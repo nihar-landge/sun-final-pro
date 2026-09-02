@@ -1,0 +1,48 @@
+# --- Java / Maven ---
+backend/**/target/
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+*.log
+hs_err_pid*
+
+# --- IDE ---
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# --- Flutter / Dart ---
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/.packages
+mobile/build/
+mobile/android/.gradle/
+mobile/ios/Pods/
+mobile/.pub-cache/
+mobile/pubspec.lock
+admin/.dart_tool/
+admin/.flutter-plugins
+admin/.flutter-plugins-dependencies
+admin/build/
+admin/android/.gradle/
+admin/ios/Pods/
+admin/pubspec.lock
+
+# --- Env / secrets ---
+.env
+*.env
+!*.example.env
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+
+# --- Docker dev volumes (if bind-mounted) ---
+infra/data/
+
+# ZCode session metadata
+.zcode/

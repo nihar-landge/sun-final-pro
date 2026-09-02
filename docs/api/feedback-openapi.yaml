@@ -1,0 +1,114 @@
+openapi: 3.0.3
+info:
+  title: Feedback Service API
+  version: 0.1.0
+  description: >
+    Geo-tagged civic feedback with community upvotes, comments and an audited
+    admin status workflow. PostGIS powers the near-me radius query.
+servers:
+  - url: http://localhost:8083
+paths:
+  /api/v1/feedback:
+    get:
+      tags: [Feedback]
+      summary: List feedback (paged)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: query, name: category, schema: { type: string, enum: [ROADS, WATER, ELECTRICITY, SANITATION, TRANSPORT, OTHER] } }
+        - { in: query, name: status, schema: { type: string, enum: [OPEN, IN_REVIEW, RESOLVED] } }
+        - { in: query, name: page, schema: { type: integer, default: 0 } }
+        - { in: query, name: size, schema: { type: integer, default: 20 } }
+      responses:
+        '200': { description: Page of feedback summaries }
+    post:
+      tags: [Feedback]
+      summary: Submit feedback (optionally geo-tagged)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, description, category]
+              properties:
+                title: { type: string, maxLength: 200 }
+                description: { type: string, maxLength: 5000 }
+                category: { type: string, enum: [ROADS, WATER, ELECTRICITY, SANITATION, TRANSPORT, OTHER] }
+                latitude: { type: number, format: double }
+                longitude: { type: number, format: double }
+      responses:
+        '201': { description: Created (status OPEN) }
+  /api/v1/feedback/near-me:
+    get:
+      tags: [Feedback]
+      summary: Feedback within a radius, nearest first (PostGIS ST_DWithin)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: query, name: lat, required: true, schema: { type: number } }
+        - { in: query, name: lng, required: true, schema: { type: number } }
+        - { in: query, name: radiusKm, schema: { type: number, default: 5 } }
+        - { in: query, name: status, schema: { type: string } }
+      responses:
+        '200': { description: Nearby items with distanceMeters }
+  /api/v1/feedback/{id}:
+    get:
+      tags: [Feedback]
+      summary: Detail with comments and status history
+      security: [{ bearerAuth: [] }]
+      parameters: [{ in: path, name: id, required: true, schema: { type: integer } }]
+      responses:
+        '200': { description: Feedback detail }
+        '404': { description: Unknown item }
+  /api/v1/feedback/{id}/upvote:
+    post:
+      tags: [Feedback]
+      summary: Upvote (one per citizen)
+      security: [{ bearerAuth: [] }]
+      parameters: [{ in: path, name: id, required: true, schema: { type: integer } }]
+      responses:
+        '200': { description: Upvoted }
+        '409': { description: Already upvoted }
+  /api/v1/feedback/{id}/status:
+    post:
+      tags: [Feedback]
+      summary: Transition status (admin; audited)
+      description: Allowed OPEN→IN_REVIEW→RESOLVED plus re-openings.
+      security: [{ bearerAuth: [] }]
+      parameters: [{ in: path, name: id, required: true, schema: { type: integer } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [newStatus]
+              properties:
+                newStatus: { type: string, enum: [OPEN, IN_REVIEW, RESOLVED] }
+      responses:
+        '200': { description: Updated detail with history }
+        '401': { description: Not admin }
+        '409': { description: Illegal transition }
+  /api/v1/feedback/{id}/comments:
+    post:
+      tags: [Feedback]
+      summary: Comment on feedback
+      security: [{ bearerAuth: [] }]
+      parameters: [{ in: path, name: id, required: true, schema: { type: integer } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text: { type: string, maxLength: 2000 }
+      responses:
+        '201': { description: Updated detail including the new comment }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

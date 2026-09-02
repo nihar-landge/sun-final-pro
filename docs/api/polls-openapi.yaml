@@ -1,0 +1,99 @@
+openapi: 3.0.3
+info:
+  title: Poll Service API
+  version: 0.1.0
+  description: >
+    Poll creation (admin), one-person-one-vote participation and live results.
+    All business endpoints expect the gateway's X-User-* headers; when called
+    through the gateway they require a Bearer JWT.
+servers:
+  - url: http://localhost:8082
+paths:
+  /api/v1/polls:
+    get:
+      tags: [Polls]
+      summary: List polls
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: status
+          schema: { type: string, enum: [active, closed, scheduled, all] }
+          description: Defaults to active
+      responses:
+        '200': { description: Poll summaries }
+    post:
+      tags: [Polls]
+      summary: Create a poll (admin)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, startTime, endTime, options]
+              properties:
+                title: { type: string, maxLength: 200 }
+                description: { type: string }
+                startTime: { type: string, format: date-time }
+                endTime: { type: string, format: date-time }
+                isAnonymous: { type: boolean, default: false }
+                options:
+                  type: array
+                  minItems: 2
+                  items: { type: string }
+      responses:
+        '201': { description: Poll created }
+        '401': { description: Not admin }
+        '409': { description: Invalid window or option list }
+  /api/v1/polls/{id}:
+    get:
+      tags: [Polls]
+      summary: Poll details with live results
+      security: [{ bearerAuth: [] }]
+      parameters: [{ in: path, name: id, required: true, schema: { type: integer } }]
+      responses:
+        '200': { description: Poll with results }
+        '404': { description: Unknown poll }
+  /api/v1/polls/{id}/results:
+    get:
+      tags: [Polls]
+      summary: Live results (short-TTL Redis cached)
+      security: [{ bearerAuth: [] }]
+      parameters: [{ in: path, name: id, required: true, schema: { type: integer } }]
+      responses:
+        '200': { description: Results }
+  /api/v1/polls/{id}/vote:
+    post:
+      tags: [Polls]
+      summary: Cast a vote (one per citizen per poll)
+      security: [{ bearerAuth: [] }]
+      parameters: [{ in: path, name: id, required: true, schema: { type: integer } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [optionId]
+              properties:
+                optionId: { type: integer }
+      responses:
+        '200': { description: Vote recorded; returns updated results }
+        '404': { description: Unknown poll or option }
+        '409': { description: Already voted, or poll not open }
+  /api/v1/polls/{id}/close:
+    post:
+      tags: [Polls]
+      summary: Close a poll early (admin)
+      security: [{ bearerAuth: [] }]
+      parameters: [{ in: path, name: id, required: true, schema: { type: integer } }]
+      responses:
+        '200': { description: Poll closed }
+        '401': { description: Not admin }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: feedbackapp-config
+  namespace: feedbackapp
+data:
+  DB_HOST: "postgres.feedbackapp.svc.cluster.local"
+  REDIS_HOST: "redis.feedbackapp.svc.cluster.local"
+  AUTH_SERVICE_URL: "http://auth-service.feedbackapp.svc.cluster.local:8081"
+  POLL_SERVICE_URL: "http://poll-service.feedbackapp.svc.cluster.local:8082"
+  FEEDBACK_SERVICE_URL: "http://feedback-service.feedbackapp.svc.cluster.local:8083"

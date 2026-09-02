@@ -1,0 +1,68 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  cloud:
+    gateway:
+      routes:
+        # OTP send gets its own route so the Redis rate limiter can protect
+        # the SMS budget (1 req/s refill, burst of 5 per client IP).
+        - id: auth-otp-send
+          uri: ${AUTH_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/v1/auth/otp/send
+            - Method=POST
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 1
+                redis-rate-limiter.burstCapacity: 5
+                redis-rate-limiter.requestedTokens: 1
+        - id: auth-service
+          uri: ${AUTH_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/v1/auth/**
+        - id: poll-service
+          uri: ${POLL_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/v1/polls/**
+        - id: feedback-service
+          uri: ${FEEDBACK_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=/api/v1/feedback/**
+        - id: notification-service
+          uri: ${NOTIFICATION_SERVICE_URL:http://localhost:8084}
+          predicates:
+            - Path=/api/v1/notifications/**
+        # WebSocket upgrade requests are proxied to the STOMP broker endpoint.
+        - id: poll-service-ws
+          uri: ws://${POLL_SERVICE_WS_HOST:localhost}:${POLL_SERVICE_WS_PORT:8082}
+          predicates:
+            - Path=/ws/**
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOriginPatterns: "*"
+            allowedMethods: "*"
+            allowedHeaders: "*"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:dev-only-secret-change-me-min-32-bytes-1234567890}
+    issuer: feedbackapp-auth
+
+logging:
+  level:
+    com.example.feedbackapp: DEBUG
