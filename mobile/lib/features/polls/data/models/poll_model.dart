@@ -26,8 +26,16 @@ class PollModel {
     );
   }
 
-  /// Parses the poll summary payload (list endpoints; no results array).
+  /// Parses the poll summary payload (list endpoints; now carries a
+  /// result preview so cards can render percentage bars).
   static Poll summaryFromJson(Map<String, dynamic> json) {
+    final results = json['results'];
+    final options = results is List
+        ? results
+            .whereType<Map<String, dynamic>>()
+            .map(PollModel._optionFromJson)
+            .toList()
+        : <PollOptionResult>[];
     return Poll(
       id: (json['id'] as num).toInt(),
       title: json['title'] as String? ?? '',
@@ -37,7 +45,7 @@ class PollModel {
       startTime: DateTime.tryParse(json['startTime'] as String? ?? '') ?? DateTime.now(),
       endTime: DateTime.tryParse(json['endTime'] as String? ?? '') ?? DateTime.now(),
       totalVotes: (json['totalVotes'] as num? ?? 0).toInt(),
-      options: const [],
+      options: options,
     );
   }
 

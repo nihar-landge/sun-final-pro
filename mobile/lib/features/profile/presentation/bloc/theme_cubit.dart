@@ -1,0 +1,36 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+/// Persists and exposes the app theme mode (system / light / dark).
+class ThemeCubit extends Cubit<ThemeMode> {
+  static const _prefKey = 'theme_mode';
+
+  final SharedPreferences _prefs;
+
+  ThemeCubit(this._prefs) : super(_load(_prefs));
+
+  static ThemeMode _load(SharedPreferences prefs) =>
+      switch (prefs.getString(_prefKey)) {
+        'light' => ThemeMode.light,
+        'dark' => ThemeMode.dark,
+        _ => ThemeMode.system,
+      };
+
+  Future<void> setMode(ThemeMode mode) async {
+    await _prefs.setString(_prefKey, mode.name);
+    emit(mode);
+  }
+}
+
+/// Preference shown in Profile; only English is wired for now.
+enum AppLanguage {
+  english('English', 'English'),
+  hindi('हिन्दी', 'Hindi — coming soon'),
+  marathi('मराठी', 'Marathi — coming soon');
+
+  const AppLanguage(this.nativeName, this.subtitle);
+
+  final String nativeName;
+  final String subtitle;
+}

@@ -58,6 +58,13 @@ public class FeedbackController {
         return ApiResponse.ok(feedbackService.list(category, status, page, size));
     }
 
+    @GetMapping("/mine")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "The caller's own reports, newest first")
+    public ApiResponse<List<FeedbackSummaryResponse>> mine(@CurrentUser GatewayUser user) {
+        return ApiResponse.ok(feedbackService.myReports(user));
+    }
+
     @GetMapping("/near-me")
     @ResponseStatus(HttpStatus.OK)
     @Operation(summary = "Feedback within a radius, nearest first (PostGIS)")

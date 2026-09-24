@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:feedback_app/core/constants/app_constants.dart';
 import 'package:feedback_app/core/network/api_client.dart';
 import 'package:feedback_app/core/network/token_store.dart';
 import 'package:feedback_app/core/themes/app_theme.dart';
+import 'package:feedback_app/features/alerts/presentation/bloc/alerts_bloc.dart';
 import 'package:feedback_app/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:feedback_app/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:feedback_app/features/auth/presentation/bloc/auth_bloc.dart';
@@ -15,9 +17,10 @@ import 'package:feedback_app/features/feedback/presentation/bloc/feedback_bloc.d
 import 'package:feedback_app/features/polls/data/datasources/poll_remote_data_source.dart';
 import 'package:feedback_app/features/polls/data/repositories/poll_repository_impl.dart';
 import 'package:feedback_app/features/polls/presentation/bloc/polls_bloc.dart';
+import 'package:feedback_app/features/profile/presentation/bloc/theme_cubit.dart';
 
 /// Manual dependency wiring (a get_it-based injection_container.dart replaces
-/// this once more features land).
+/// this when the feature count justifies it).
 TokenStore tokenStore = TokenStore();
 ApiClient apiClient = ApiClient(tokenStore: tokenStore);
 
@@ -36,9 +39,21 @@ FeedbackBloc buildFeedbackBloc() => FeedbackBloc(
       repository: FeedbackRepositoryImpl(FeedbackRemoteDataSource(apiClient)),
     );
 
-void main() {
+AlertsBloc buildAlertsBloc() => AlertsBloc(
+      feedbackRepository:
+          FeedbackRepositoryImpl(FeedbackRemoteDataSource(apiClient)),
+      pollRepository: PollRepositoryImpl(PollRemoteDataSource(apiClient)),
+    );
+
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const FeedbackApp());
+  final prefs = await SharedPreferences.getInstance();
+  runApp(
+    BlocProvider(
+      create: (_) => ThemeCubit(prefs),
+      child: const FeedbackApp(),
+    ),
+  );
 }
 
 class FeedbackApp extends StatelessWidget {
@@ -48,15 +63,21 @@ class FeedbackApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider(create: (_) => buildAuthBloc()..add(const AuthSessionRequested())),
-        BlocProvider(create: (_) => buildPollsBloc()..add(const PollsRequested())),
-        BlocProvider(create: (_) => buildFeedbackBloc()..add(const FeedbackListRequested())),
+        BlocProvider(
+            create: (_) => buildAuthBloc()..add(const AuthSessionRequested())),
+        BlocProvider(create: (_) => buildPollsBloc()),
+        BlocProvider(
+            create: (_) => buildFeedbackBloc()..add(const MyReportsRequested())),
+        BlocProvider(create: (_) => buildAlertsBloc()),
       ],
-      child: MaterialApp(
-        title: AppConstants.appName,
-        theme: AppTheme.light(),
-        darkTheme: AppTheme.dark(),
-        home: const LoginPage(),
+      child: BlocBuilder<ThemeCubit, ThemeMode>(
+        builder: (context, themeMode) => MaterialApp(
+          title: AppConstants.appName,
+          theme: AppTheme.light(),
+          darkTheme: AppTheme.dark(),
+          themeMode: themeMode,
+          home: const LoginPage(),
+        ),
       ),
     );
   }

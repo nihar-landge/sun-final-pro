@@ -4,173 +4,132 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:feedback_app/features/polls/domain/entities/poll.dart';
 import 'package:feedback_app/features/polls/presentation/bloc/polls_bloc.dart';
 import 'package:feedback_app/features/polls/presentation/pages/poll_detail_page.dart';
+import 'package:feedback_app/shared/widgets/cards.dart';
+import 'package:feedback_app/shared/widgets/states.dart';
 
-/// Live polls list — real data from poll-service via the gateway.
-class PollsListPage extends StatelessWidget {
+/// Polls tab — Active / Upcoming / Closed segments over the real API.
+class PollsListPage extends StatefulWidget {
   const PollsListPage({super.key});
 
   @override
+  State<PollsListPage> createState() => _PollsListPageState();
+}
+
+class _PollsListPageState extends State<PollsListPage> {
+  int _segment = 0;
+  static const _statuses = ['active', 'scheduled', 'closed'];
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  void _load() {
+    context.read<PollsBloc>().add(PollsRequested(status: _statuses[_segment]));
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Live Polls')),
-      body: BlocConsumer<PollsBloc, PollsState>(
-        listener: (context, state) {
-          if (state is PollsFailure) {
-            ScaffoldMessenger.of(context)
-              ..hideCurrentSnackBar()
-              ..showSnackBar(SnackBar(content: Text(state.message)));
-          }
-        },
-        builder: (context, state) {
-          if (state is PollsLoading || state is PollsInitial) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          // Every state after a load carries the list snapshot, so voting or
-          // an error never blanks the screen.
-          final polls = switch (state) {
-            PollsLoaded s => s.polls,
-            PollVoting s => s.polls,
-            VoteRecorded s => s.polls,
-            PollsFailure s => s.polls,
-            _ => const <Poll>[],
-          };
-          if (polls.isEmpty) {
-            return RefreshIndicator(
-              onRefresh: () async => context.read<PollsBloc>().add(const PollsRequested()),
-              child: const Center(child: Text('No active polls right now.\nPull to refresh.', textAlign: TextAlign.center)),
-            );
-          }
-          return RefreshIndicator(
-            onRefresh: () async => context.read<PollsBloc>().add(const PollsRequested()),
-            child: ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: polls.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final poll = polls[index];
-                return _PollCard(
-                  poll: poll,
-                  busy: state is PollVoting,
-                  hasVoted: poll.hasVoted ||
-                      (state is VoteRecorded && state.poll.id == poll.id),
+    return SafeArea(
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text('Polls',
+                  style: Theme.of(context)
+                      .textTheme
+                      .headlineSmall
+                      ?.copyWith(fontWeight: FontWeight.w800)),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: SegmentedButton<int>(
+              segments: const [
+                ButtonSegment(value: 0, label: Text('Active')),
+                ButtonSegment(value: 1, label: Text('Upcoming')),
+                ButtonSegment(value: 2, label: Text('Closed')),
+              ],
+              selected: {_segment},
+              onSelectionChanged: (selection) {
+                setState(() => _segment = selection.first);
+                _load();
+              },
+            ),
+          ),
+          Expanded(
+            child: BlocConsumer<PollsBloc, PollsState>(
+              listener: (context, state) {
+                if (state is PollsFailure) {
+                  ScaffoldMessenger.of(context)
+                    ..hideCurrentSnackBar()
+                    ..showSnackBar(SnackBar(content: Text(state.message)));
+                }
+              },
+              builder: (context, state) {
+                if (state is PollsLoading) {
+                  return const LoadingSkeleton();
+                }
+                final polls = switch (state) {
+                  PollsLoaded s => s.polls,
+                  PollVoting s => s.polls,
+                  VoteRecorded s => s.polls,
+                  PollsFailure s => s.polls,
+                  _ => const <Poll>[],
+                };
+                if (state is PollsFailure && polls.isEmpty) {
+                  return ErrorState(message: state.message, onRetry: _load);
+                }
+                if (polls.isEmpty) {
+                  return EmptyState(
+                    icon: _emptyIcon,
+                    title: _emptyTitle,
+                    subtitle: 'Pull down to refresh.',
+                    actionLabel: 'Refresh',
+                    onAction: _load,
+                  );
+                }
+                return RefreshIndicator(
+                  onRefresh: () async => _load(),
+                  child: ListView.separated(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                    itemCount: polls.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final poll = polls[index];
+                      return PollCard(
+                        poll: poll,
+                        hasVoted: poll.hasVoted ||
+                            (state is VoteRecorded && state.poll.id == poll.id),
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                              builder: (_) => PollDetailPage(pollId: poll.id)),
+                        ),
+                      );
+                    },
+                  ),
                 );
               },
             ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _PollCard extends StatelessWidget {
-  final Poll poll;
-  final bool busy;
-  final bool hasVoted;
-
-  const _PollCard({required this.poll, required this.busy, this.hasVoted = false});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 1,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => PollDetailPage(pollId: poll.id),
-        )),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  _StatusChip(status: poll.status),
-                  if (hasVoted) ...[
-                    const SizedBox(width: 6),
-                    _VotedChip(),
-                  ],
-                  const Spacer(),
-                  Text('${poll.totalVotes} votes',
-                      style: Theme.of(context).textTheme.bodySmall),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Text(poll.title, style: Theme.of(context).textTheme.titleMedium),
-              if (poll.description.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(poll.description,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall),
-              ],
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Icon(Icons.how_to_vote_outlined,
-                      size: 16, color: Theme.of(context).colorScheme.primary),
-                  const SizedBox(width: 6),
-                  Text(
-                    '${poll.options.isEmpty ? "Tap to view" : "${poll.options.length} options"} · ends ${_format(poll.endTime)}',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
-            ],
           ),
-        ),
+        ],
       ),
     );
   }
 
-  String _format(DateTime time) {
-    final local = time.toLocal();
-    return '${local.day}/${local.month}';
-  }
-}
+  IconData get _emptyIcon => switch (_segment) {
+        0 => Icons.how_to_vote_outlined,
+        1 => Icons.schedule,
+        _ => Icons.inventory_2_outlined,
+      };
 
-class _StatusChip extends StatelessWidget {
-  final String status;
-
-  const _StatusChip({required this.status});
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final (color, label) = switch (status) {
-      'ACTIVE' => (scheme.primary, 'LIVE'),
-      'SCHEDULED' => (scheme.tertiary, 'SOON'),
-      _ => (scheme.outline, 'CLOSED'),
-    };
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(label,
-          style: TextStyle(
-              fontSize: 11, fontWeight: FontWeight.bold, color: color)),
-    );
-  }
-}
-
-class _VotedChip extends StatelessWidget {
-  const _VotedChip();
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: scheme.secondary.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text('VOTED',
-          style: TextStyle(
-              fontSize: 11, fontWeight: FontWeight.bold, color: scheme.secondary)),
-    );
-  }
+  String get _emptyTitle => switch (_segment) {
+        0 => 'No active polls right now',
+        1 => 'No upcoming polls scheduled',
+        _ => 'No closed polls yet',
+      };
 }

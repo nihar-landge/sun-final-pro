@@ -11,6 +11,7 @@ class FeedbackItem extends Equatable {
   final FeedbackCategory category;
   final FeedbackStatus status;
   final int upvotes;
+  final int userId;
   final double? latitude;
   final double? longitude;
   final String createdAt;
@@ -22,6 +23,7 @@ class FeedbackItem extends Equatable {
     required this.category,
     required this.status,
     required this.upvotes,
+    this.userId = 0,
     this.latitude,
     this.longitude,
     required this.createdAt,
@@ -29,7 +31,7 @@ class FeedbackItem extends Equatable {
 
   @override
   List<Object?> get props =>
-      [id, title, description, category, status, upvotes, latitude, longitude, createdAt];
+      [id, title, description, category, status, upvotes, userId, latitude, longitude, createdAt];
 }
 
 class FeedbackComment extends Equatable {
@@ -47,4 +49,37 @@ class FeedbackComment extends Equatable {
 
   @override
   List<Object?> get props => [id, userId, text, createdAt];
+}
+
+
+/// Flat view of the report detail payload (item + comments + history).
+class FeedbackDetail extends Equatable {
+  final FeedbackItem item;
+  final List<FeedbackComment> comments;
+  final List<StatusChange> history;
+
+  const FeedbackDetail({
+    required this.item,
+    required this.comments,
+    required this.history,
+  });
+
+  @override
+  List<Object?> get props => [item, comments, history];
+}
+
+/// One audited status transition.
+class StatusChange extends Equatable {
+  final String? oldStatus;
+  final String newStatus;
+  final String changedAt;
+
+  const StatusChange({
+    required this.oldStatus,
+    required this.newStatus,
+    required this.changedAt,
+  });
+
+  @override
+  List<Object?> get props => [oldStatus, newStatus, changedAt];
 }

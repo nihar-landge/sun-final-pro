@@ -216,11 +216,17 @@ public class PollService {
 
     private PollSummaryResponse toSummaryResponse(Poll poll) {
         long total = poll.getOptions().stream().mapToLong(o -> o.getVotesCount()).sum();
+        List<com.example.feedbackapp.polls.dto.PollResponse.OptionResult> preview =
+                poll.getOptions().stream()
+                        .map(o -> new com.example.feedbackapp.polls.dto.PollResponse.OptionResult(
+                                o.getId(), o.getOptionText(), o.getVotesCount(),
+                                total == 0 ? 0.0 : Math.round(o.getVotesCount() * 1000.0 / total) / 10.0))
+                        .toList();
         return new PollSummaryResponse(
                 poll.getId(), poll.getTitle(), poll.getDescription(),
                 poll.status(LocalDateTime.now()),
                 poll.getStartTime().toString(), poll.getEndTime().toString(),
-                total, poll.getOptions().size());
+                total, poll.getOptions().size(), preview);
     }
 
     private PollResponse toDetailResponse(Poll poll) {

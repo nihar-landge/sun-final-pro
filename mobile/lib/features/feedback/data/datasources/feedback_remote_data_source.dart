@@ -36,6 +36,19 @@ class FeedbackRemoteDataSource {
       Uri.parse('${ApiConstants.feedbackBase}$query'),
       authenticated: true,
     );
+    return _itemsFrom(data);
+  }
+
+  /// The signed-in citizen's own reports, newest first.
+  Future<List<FeedbackItem>> mine() async {
+    final data = await apiClient.getDynamic(
+      Uri.parse('${ApiConstants.feedbackBase}/mine'),
+      authenticated: true,
+    );
+    return _itemsFrom(data);
+  }
+
+  List<FeedbackItem> _itemsFrom(dynamic data) {
     final content = data is Map<String, dynamic> ? data['content'] : data;
     return content is List
         ? content.whereType<Map<String, dynamic>>().map(FeedbackModel.fromJson).toList()
@@ -59,6 +72,14 @@ class FeedbackRemoteDataSource {
   Future<void> upvote(int feedbackId) async {
     await apiClient.post(
       Uri.parse('${ApiConstants.feedbackBase}/$feedbackId/upvote'),
+      authenticated: true,
+    );
+  }
+
+  /// Raw detail payload (item + comments + history) for the repository.
+  Future<Map<String, dynamic>> getDetail(int feedbackId) {
+    return apiClient.get(
+      Uri.parse('${ApiConstants.feedbackBase}/$feedbackId'),
       authenticated: true,
     );
   }

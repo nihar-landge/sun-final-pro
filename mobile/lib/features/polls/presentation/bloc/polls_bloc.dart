@@ -144,7 +144,7 @@ class PollsBloc extends Bloc<PollsEvent, PollsState> {
       final polls = await getActivePolls(status: event.status);
       emit(PollsLoaded(polls));
     } on Failure catch (failure) {
-      emit(PollsFailure(failure.message));
+      emit(PollsFailure(failure.message, _currentPolls(state)));
     }
   }
 

@@ -177,6 +177,13 @@ public class FeedbackService {
                 feedback.getCreatedAt().toString(), comments, history);
     }
 
+    @Transactional(readOnly = true)
+    public List<FeedbackSummaryResponse> myReports(GatewayUser user) {
+        return feedbackRepository.findByUserIdOrderByIdDesc(user.id()).stream()
+                .map(this::toSummary)
+                .toList();
+    }
+
     /** Aggregate stats for the admin dashboard. */
     @Transactional(readOnly = true)
     public com.example.feedbackapp.feedback.dto.FeedbackAnalyticsSummary analyticsSummary() {

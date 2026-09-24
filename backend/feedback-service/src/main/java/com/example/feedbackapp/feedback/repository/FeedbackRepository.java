@@ -20,7 +20,9 @@ public interface FeedbackRepository extends JpaRepository<Feedback, Long>, JpaSp
     /** PostGIS radius query — uses the GIST index on location. */
     @Query(value = """
             SELECT f.id, f.title, f.category, f.status, f.upvotes, f.created_at,
-                   ST_Distance(f.location, ST_MakePoint(:lng, :lat)::geography) AS distance_meters
+                   ST_Distance(f.location, ST_MakePoint(:lng, :lat)::geography) AS distance_meters,
+                   ST_Y(f.location::geometry) AS latitude,
+                   ST_X(f.location::geometry) AS longitude
             FROM feedback f
             WHERE ST_DWithin(f.location, ST_MakePoint(:lng, :lat)::geography, :radiusMeters)
               AND f.status = COALESCE(:status, f.status::varchar)

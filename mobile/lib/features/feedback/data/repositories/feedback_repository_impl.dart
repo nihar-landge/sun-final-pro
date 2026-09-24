@@ -1,6 +1,7 @@
 import 'package:feedback_app/core/errors/exceptions.dart';
 import 'package:feedback_app/core/errors/failures.dart';
 import 'package:feedback_app/features/feedback/data/datasources/feedback_remote_data_source.dart';
+import 'package:feedback_app/features/feedback/data/models/feedback_model.dart';
 import 'package:feedback_app/features/feedback/domain/entities/feedback.dart';
 
 class FeedbackRepositoryImpl {
@@ -40,6 +41,16 @@ class FeedbackRepositoryImpl {
     }
   }
 
+  Future<List<FeedbackItem>> mine() async {
+    try {
+      return await remoteDataSource.mine();
+    } on NetworkException catch (e) {
+      throw NetworkFailure(e.message);
+    } on ServerException catch (e) {
+      throw ServerFailure(e.message, statusCode: e.statusCode);
+    }
+  }
+
   Future<List<FeedbackItem>> nearMe({
     required double lat,
     required double lng,
@@ -69,6 +80,33 @@ class FeedbackRepositoryImpl {
   Future<List<FeedbackComment>> getComments(int feedbackId) async {
     try {
       return await remoteDataSource.getComments(feedbackId);
+    } on NetworkException catch (e) {
+      throw NetworkFailure(e.message);
+    } on ServerException catch (e) {
+      throw ServerFailure(e.message, statusCode: e.statusCode);
+    }
+  }
+
+  /// Full detail (item + comments + status history) for the detail screen.
+  Future<FeedbackDetail> getDetail(int feedbackId) async {
+    try {
+      final data = await remoteDataSource.getDetail(feedbackId);
+      final item = FeedbackModel.fromJson(data);
+      final comments = (data['comments'] as List? ?? [])
+          .whereType<Map<String, dynamic>>()
+          .map(FeedbackModel.commentFromJson)
+          .cast<FeedbackComment>()
+          .toList();
+      final history = (data['history'] as List? ?? [])
+          .whereType<Map<String, dynamic>>()
+          .map((h) => StatusChange(
+                oldStatus: h['oldStatus'] as String?,
+                newStatus: h['newStatus'] as String? ?? '',
+                changedAt: h['changedAt'] as String? ?? '',
+              ))
+          .cast<StatusChange>()
+          .toList();
+      return FeedbackDetail(item: item, comments: comments, history: history);
     } on NetworkException catch (e) {
       throw NetworkFailure(e.message);
     } on ServerException catch (e) {

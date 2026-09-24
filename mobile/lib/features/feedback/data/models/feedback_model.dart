@@ -11,6 +11,7 @@ class FeedbackModel {
       category: _category(json['category'] as String?),
       status: _status(json['status'] as String?),
       upvotes: (json['upvotes'] as num? ?? 0).toInt(),
+      userId: (json['userId'] as num? ?? 0).toInt(),
       latitude: (json['latitude'] as num?)?.toDouble(),
       longitude: (json['longitude'] as num?)?.toDouble(),
       createdAt: json['createdAt'] as String? ?? '',

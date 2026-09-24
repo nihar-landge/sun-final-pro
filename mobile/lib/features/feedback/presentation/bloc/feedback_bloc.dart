@@ -23,14 +23,23 @@ class FeedbackListRequested extends FeedbackEvent {
   List<Object?> get props => [status];
 }
 
+class MyReportsRequested extends FeedbackEvent {
+  const MyReportsRequested();
+}
+
 class NearbyFeedbackRequested extends FeedbackEvent {
   final double lat;
   final double lng;
+  final double radiusKm;
 
-  const NearbyFeedbackRequested({required this.lat, required this.lng});
+  const NearbyFeedbackRequested({
+    required this.lat,
+    required this.lng,
+    this.radiusKm = 5,
+  });
 
   @override
-  List<Object?> get props => [lat, lng];
+  List<Object?> get props => [lat, lng, radiusKm];
 }
 
 class FeedbackSubmitted extends FeedbackEvent {
@@ -86,11 +95,12 @@ class FeedbackLoading extends FeedbackState {
 class FeedbackLoaded extends FeedbackState {
   final List<FeedbackItem> items;
   final bool nearby; // true when the list is the near-me result
+  final bool mine; // true when the list is the caller's own reports
 
-  const FeedbackLoaded(this.items, {this.nearby = false});
+  const FeedbackLoaded(this.items, {this.nearby = false, this.mine = false});
 
   @override
-  List<Object?> get props => [items, nearby];
+  List<Object?> get props => [items, nearby, mine];
 }
 
 class FeedbackSubmitting extends FeedbackState {
@@ -109,11 +119,12 @@ class FeedbackActionSuccess extends FeedbackState {
 
 class FeedbackFailure extends FeedbackState {
   final String message;
+  final List<FeedbackItem> items;
 
-  const FeedbackFailure(this.message);
+  const FeedbackFailure(this.message, [this.items = const []]);
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, items];
 }
 
 // ---------- Bloc ----------
@@ -123,6 +134,7 @@ class FeedbackBloc extends Bloc<FeedbackEvent, FeedbackState> {
 
   FeedbackBloc({required this.repository}) : super(const FeedbackInitial()) {
     on<FeedbackListRequested>(_onListRequested);
+    on<MyReportsRequested>(_onMineRequested);
     on<NearbyFeedbackRequested>(_onNearbyRequested);
     on<FeedbackSubmitted>(_onSubmitted);
     on<UpvoteRequested>(_onUpvote);
@@ -141,14 +153,24 @@ class FeedbackBloc extends Bloc<FeedbackEvent, FeedbackState> {
       final items = await repository.list(status: event.status);
       emit(FeedbackLoaded(items));
     } on Failure catch (failure) {
-      emit(FeedbackFailure(failure.message));
+      emit(FeedbackFailure(failure.message, _currentItems(state)));
+    }
+  }
+
+  Future<void> _onMineRequested(MyReportsRequested event, Emitter<FeedbackState> emit) async {
+    emit(FeedbackLoading(_currentItems(state)));
+    try {
+      final items = await repository.mine();
+      emit(FeedbackLoaded(items, mine: true));
+    } on Failure catch (failure) {
+      emit(FeedbackFailure(failure.message, _currentItems(state)));
     }
   }
 
   Future<void> _onNearbyRequested(NearbyFeedbackRequested event, Emitter<FeedbackState> emit) async {
     emit(FeedbackLoading(_currentItems(state)));
     try {
-      final items = await repository.nearMe(lat: event.lat, lng: event.lng);
+      final items = await repository.nearMe(lat: event.lat, lng: event.lng, radiusKm: event.radiusKm);
       emit(FeedbackLoaded(items, nearby: true));
     } on Failure catch (failure) {
       emit(FeedbackFailure(failure.message));

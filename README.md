@@ -77,10 +77,15 @@ how to demo it)
 7. **Analytics** (admin-only): poll participation summary and feedback
    status/category/resolution-time stats powering the admin dashboard's
    Analytics tab (KPI cards, distribution bars, live event feed).
-8. **Flutter citizen app**: secure token storage (login survives restarts,
-   transparent token refresh), live polls list + detail with voting and
-   **real-time animated results**, feedback submission with device location,
-   filters and upvoting.
+8. **Flutter citizen app — CivicPulse** (rebranded): 5-tab navigation
+   (Home / Polls / Report / Alerts / Profile), dashboard home with featured
+   poll + nearby issues + own activity, Active/Upcoming/Closed poll tabs with
+   result previews and countdowns, guided 5-step report wizard **with
+   similar-report detection before submission**, full report detail with
+   progress timeline + comments, **OpenStreetMap issue map** with
+   status-colored pins, alerts feed derived from own reports + closing polls,
+   Material 3 teal design system with **dark mode** and semantic status
+   colors. Secure token storage + transparent refresh throughout.
 9. **Flutter admin panel**: OTP login gated on the ADMIN role, poll
    management (create/close), feedback triage (status transitions), the
    analytics dashboard, and **user management** (search citizens and promote

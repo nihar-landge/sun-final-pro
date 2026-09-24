@@ -23,4 +23,8 @@ public interface NearbyFeedbackView {
     LocalDateTime getCreatedAt();
 
     double getDistanceMeters();
+
+    Double getLatitude();
+
+    Double getLongitude();
 }
