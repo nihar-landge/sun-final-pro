@@ -95,9 +95,15 @@ public class FeedbackService {
     }
 
     @Transactional(readOnly = true)
-    public Page<FeedbackSummaryResponse> list(FeedbackCategory category, FeedbackStatus status, int page, int size) {
+    public Page<FeedbackSummaryResponse> list(FeedbackCategory category, FeedbackStatus status,
+                                              int page, int size, GatewayUser viewer,
+                                              boolean includeHidden) {
+        boolean staff = viewer != null && (viewer.isAdmin() || "MODERATOR".equals(viewer.role()));
         Specification<Feedback> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
+            if (!staff || !includeHidden) {
+                predicates.add(cb.isFalse(root.get("hidden")));
+            }
             if (category != null) {
                 predicates.add(cb.equal(root.get("category"), category));
             }
@@ -129,11 +135,16 @@ public class FeedbackService {
         feedbackRepository.incrementUpvotes(feedbackId);
     }
 
+    /** Moderators manage content (status transitions, hiding); admins additionally manage users/polls. */
+    private void requireModeratorOrAdmin(GatewayUser user) {
+        if (user == null || !(user.isAdmin() || "MODERATOR".equals(user.role()))) {
+            throw new ForbiddenException("Only moderators or admins can perform this action");
+        }
+    }
+
     @Transactional
     public FeedbackDetailResponse transitionStatus(Long feedbackId, StatusUpdateRequest request, GatewayUser admin) {
-        if (!admin.isAdmin()) {
-            throw new ForbiddenException("Only admins can change feedback status");
-        }
+        requireModeratorOrAdmin(admin);
         Feedback feedback = getFeedbackOrThrow(feedbackId);
         FeedbackStatus oldStatus = feedback.getStatus();
         if (!ALLOWED_TRANSITIONS.getOrDefault(oldStatus, Set.of()).contains(request.newStatus())) {
@@ -145,19 +156,83 @@ public class FeedbackService {
         publishEvent(new FeedbackEvent(FeedbackEvent.STATUS_CHANGED, feedbackId, feedback.getUserId(),
                 feedback.getTitle(), feedback.getCategory().name(),
                 oldStatus.name(), request.newStatus().name(), java.time.Instant.now()));
-        return getDetail(feedbackId);
+        return getDetail(feedbackId, admin);
+    }
+
+    /**
+     * Partial admin/moderator update: only supplied fields are applied.
+     * Status changes go through the same validated, audited transition path.
+     */
+    @Transactional
+    public FeedbackDetailResponse adminUpdate(Long feedbackId,
+                                              com.example.feedbackapp.feedback.dto.AdminUpdateFeedbackRequest request,
+                                              GatewayUser operator) {
+        requireModeratorOrAdmin(operator);
+        Feedback feedback = getFeedbackOrThrow(feedbackId);
+
+        if (request.newStatus() != null && request.newStatus() != feedback.getStatus()) {
+            FeedbackStatus oldStatus = feedback.getStatus();
+            if (!ALLOWED_TRANSITIONS.getOrDefault(oldStatus, Set.of()).contains(request.newStatus())) {
+                throw new ConflictException(
+                        "Transition %s -> %s is not allowed".formatted(oldStatus, request.newStatus()));
+            }
+            feedback.setStatus(request.newStatus());
+            historyRepository.save(new FeedbackStatusHistory(feedbackId, oldStatus,
+                    request.newStatus(), operator.id()));
+        }
+        if (request.assignedTo() != null) {
+            feedback.setAssignedTo(request.assignedTo().isBlank() ? null : request.assignedTo().trim());
+        }
+        if (request.publicNote() != null) {
+            feedback.setPublicNote(request.publicNote().isBlank() ? null : request.publicNote().trim());
+        }
+        if (request.internalNote() != null) {
+            feedback.setInternalNote(request.internalNote().isBlank() ? null : request.internalNote().trim());
+        }
+        if (request.hidden() != null) {
+            feedback.setHidden(request.hidden());
+        }
+        log.info("Feedback {} updated by {} {} (assigned={}, hidden={})", feedbackId,
+                operator.role(), operator.id(), feedback.getAssignedTo(), feedback.isHidden());
+        return getDetail(feedbackId, operator);
+    }
+
+    /** Full audit trail: every status transition with the report title. */
+    @Transactional(readOnly = true)
+    public List<com.example.feedbackapp.feedback.dto.AuditEntryResponse> auditTrail(int limit) {
+        return historyRepository.findAll(org.springframework.data.domain.PageRequest.of(
+                        0, Math.min(Math.max(limit, 1), 500),
+                        org.springframework.data.domain.Sort.by(
+                                org.springframework.data.domain.Sort.Direction.DESC, "changedAt")))
+                .map(h -> {
+                    String title = feedbackRepository.findById(h.getFeedbackId())
+                            .map(f -> f.getTitle()).orElse("(deleted report)");
+                    String category = feedbackRepository.findById(h.getFeedbackId())
+                            .map(f -> f.getCategory().name()).orElse(null);
+                    return new com.example.feedbackapp.feedback.dto.AuditEntryResponse(
+                            h.getId(), h.getFeedbackId(), title, category,
+                            h.getOldStatus() == null ? null : h.getOldStatus().name(),
+                            h.getNewStatus().name(), h.getChangedBy(), h.getChangedAt().toString());
+                })
+                .getContent();
     }
 
     @Transactional
     public FeedbackDetailResponse addComment(Long feedbackId, CommentRequest request, GatewayUser user) {
         getFeedbackOrThrow(feedbackId); // ensure the target exists
         commentRepository.save(new Comment(feedbackId, user.id(), request.text().trim()));
-        return getDetail(feedbackId);
+        return getDetail(feedbackId, user);
     }
 
     @Transactional(readOnly = true)
-    public FeedbackDetailResponse getDetail(Long feedbackId) {
+    public FeedbackDetailResponse getDetail(Long feedbackId, GatewayUser viewer) {
         Feedback feedback = getFeedbackOrThrow(feedbackId);
+        if (feedback.isHidden()) {
+            boolean staff = viewer != null && (viewer.isAdmin() || "MODERATOR".equals(viewer.role()));
+            if (!staff) {
+                throw new NotFoundException("Feedback %d not found".formatted(feedbackId));
+            }
+        }
         List<FeedbackDetailResponse.CommentResponse> comments = commentRepository
                 .findByFeedbackIdOrderByCreatedAtAsc(feedbackId).stream()
                 .map(c -> new FeedbackDetailResponse.CommentResponse(
@@ -174,7 +249,9 @@ public class FeedbackService {
                 feedback.getId(), feedback.getTitle(), feedback.getDescription(),
                 feedback.getCategory().name(), feedback.getStatus().name(), feedback.getUpvotes(),
                 latOf(feedback), lngOf(feedback), feedback.getUserId(),
-                feedback.getCreatedAt().toString(), comments, history);
+                feedback.getCreatedAt().toString(),
+                feedback.getAssignedTo(), feedback.getPublicNote(), feedback.getInternalNote(),
+                feedback.isHidden(), comments, history);
     }
 
     @Transactional(readOnly = true)
@@ -240,6 +317,7 @@ public class FeedbackService {
         return new FeedbackSummaryResponse(
                 feedback.getId(), feedback.getTitle(), feedback.getDescription(),
                 feedback.getCategory().name(), feedback.getStatus().name(), feedback.getUpvotes(),
-                latOf(feedback), lngOf(feedback), feedback.getCreatedAt().toString());
+                latOf(feedback), lngOf(feedback), feedback.getCreatedAt().toString(),
+                feedback.getAssignedTo(), feedback.isHidden());
     }
 }

@@ -19,6 +19,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -54,8 +55,32 @@ public class FeedbackController {
             @RequestParam(required = false) FeedbackCategory category,
             @RequestParam(required = false) FeedbackStatus status,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        return ApiResponse.ok(feedbackService.list(category, status, page, size));
+            @RequestParam(defaultValue = "20") int size,
+            @CurrentUser(required = false) GatewayUser user,
+            @RequestParam(defaultValue = "false") boolean includeHidden) {
+        return ApiResponse.ok(feedbackService.list(category, status, page, size, user, includeHidden));
+    }
+
+    @PatchMapping("/{id}")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Admin/moderator partial update: status, assignment, notes, hidden")
+    public ApiResponse<FeedbackDetailResponse> adminUpdate(
+            @PathVariable Long id,
+            @Valid @RequestBody com.example.feedbackapp.feedback.dto.AdminUpdateFeedbackRequest request,
+            @CurrentUser GatewayUser user) {
+        return ApiResponse.ok(feedbackService.adminUpdate(id, request, user), "Report updated");
+    }
+
+    @GetMapping("/admin/audit")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Status-transition audit trail (moderators and admins)")
+    public ApiResponse<List<com.example.feedbackapp.feedback.dto.AuditEntryResponse>> audit(
+            @RequestParam(defaultValue = "100") int limit,
+            @CurrentUser GatewayUser user) {
+        if (user == null || !(user.isAdmin() || "MODERATOR".equals(user.role()))) {
+            throw new com.example.feedbackapp.common.error.ForbiddenException("Moderators or admins only");
+        }
+        return ApiResponse.ok(feedbackService.auditTrail(limit));
     }
 
     @GetMapping("/mine")
@@ -79,8 +104,9 @@ public class FeedbackController {
     @GetMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
     @Operation(summary = "Feedback detail with comments and status history")
-    public ApiResponse<FeedbackDetailResponse> get(@PathVariable Long id) {
-        return ApiResponse.ok(feedbackService.getDetail(id));
+    public ApiResponse<FeedbackDetailResponse> get(@PathVariable Long id,
+                                                   @CurrentUser(required = false) GatewayUser user) {
+        return ApiResponse.ok(feedbackService.getDetail(id, user));
     }
 
     @PostMapping("/{id}/upvote")

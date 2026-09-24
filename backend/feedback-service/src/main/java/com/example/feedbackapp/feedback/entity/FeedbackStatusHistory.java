@@ -53,6 +53,10 @@ public class FeedbackStatusHistory {
         return id;
     }
 
+    public Long getFeedbackId() {
+        return feedbackId;
+    }
+
     public FeedbackStatus getOldStatus() {
         return oldStatus;
     }

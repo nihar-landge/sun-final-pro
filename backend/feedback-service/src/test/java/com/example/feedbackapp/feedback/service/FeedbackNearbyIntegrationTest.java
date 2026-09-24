@@ -59,7 +59,7 @@ class FeedbackNearbyIntegrationTest {
         assertThatThrownBy(() -> feedbackService.upvote(id, CITIZEN))
                 .isInstanceOf(ConflictException.class);
 
-        var detail = feedbackService.getDetail(id);
+        var detail = feedbackService.getDetail(id, CITIZEN);
         assertThat(detail.upvotes()).isEqualTo(1);
     }
 

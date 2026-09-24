@@ -9,5 +9,7 @@ public record FeedbackSummaryResponse(
         int upvotes,
         Double latitude,
         Double longitude,
-        String createdAt) {
+        String createdAt,
+        String assignedTo,
+        boolean hidden) {
 }

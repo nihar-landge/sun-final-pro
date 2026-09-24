@@ -59,11 +59,15 @@ class AdminOtpSent extends AdminAuthState {
 class AdminAuthenticated extends AdminAuthState {
   final String name;
   final int userId;
+  final String role; // ADMIN or MODERATOR — drives sidebar visibility
 
-  const AdminAuthenticated(this.name, {this.userId = 0});
+  const AdminAuthenticated(this.name, {this.userId = 0, this.role = 'ADMIN'});
+
+  bool get isAdmin => role == 'ADMIN';
+  bool get isModerator => role == 'MODERATOR';
 
   @override
-  List<Object?> get props => [name, userId];
+  List<Object?> get props => [name, userId, role];
 }
 
 class AdminAccessDenied extends AdminAuthState {
@@ -111,14 +115,16 @@ class AdminAuthBloc extends Bloc<AdminAuthEvent, AdminAuthState> {
         refresh: data['refreshToken'] as String,
       );
       final me = await apiClient.request('/auth/me');
-      if ((me['role'] as String?) != 'ADMIN') {
+      final role = me['role'] as String? ?? 'CITIZEN';
+      if (role != 'ADMIN' && role != 'MODERATOR') {
         await apiClient.clearTokens();
         emit(const AdminAccessDenied());
         return;
       }
       emit(AdminAuthenticated(
-        me['name'] as String? ?? 'Admin',
+        me['name'] as String? ?? 'Staff',
         userId: (me['id'] as num?)?.toInt() ?? 0,
+        role: role,
       ));
     } on AdminApiException catch (e) {
       emit(AdminAuthFailure(e.message));

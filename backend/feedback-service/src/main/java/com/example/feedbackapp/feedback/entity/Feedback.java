@@ -52,6 +52,18 @@ public class Feedback {
     @Column(nullable = false)
     private int upvotes = 0;
 
+    @Column(name = "assigned_to", length = 100)
+    private String assignedTo;
+
+    @Column(name = "public_note", columnDefinition = "text")
+    private String publicNote;
+
+    @Column(name = "internal_note", columnDefinition = "text")
+    private String internalNote;
+
+    @Column(nullable = false)
+    private boolean hidden = false;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -147,6 +159,38 @@ public class Feedback {
 
     public void setUpvotes(int upvotes) {
         this.upvotes = upvotes;
+    }
+
+    public String getAssignedTo() {
+        return assignedTo;
+    }
+
+    public void setAssignedTo(String assignedTo) {
+        this.assignedTo = assignedTo;
+    }
+
+    public String getPublicNote() {
+        return publicNote;
+    }
+
+    public void setPublicNote(String publicNote) {
+        this.publicNote = publicNote;
+    }
+
+    public String getInternalNote() {
+        return internalNote;
+    }
+
+    public void setInternalNote(String internalNote) {
+        this.internalNote = internalNote;
+    }
+
+    public boolean isHidden() {
+        return hidden;
+    }
+
+    public void setHidden(boolean hidden) {
+        this.hidden = hidden;
     }
 
     public LocalDateTime getCreatedAt() {

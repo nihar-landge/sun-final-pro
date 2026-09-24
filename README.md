@@ -86,10 +86,15 @@ how to demo it)
    status-colored pins, alerts feed derived from own reports + closing polls,
    Material 3 teal design system with **dark mode** and semantic status
    colors. Secure token storage + transparent refresh throughout.
-9. **Flutter admin panel**: OTP login gated on the ADMIN role, poll
-   management (create/close), feedback triage (status transitions), the
-   analytics dashboard, and **user management** (search citizens and promote
-   to MODERATOR/ADMIN via `/api/v1/auth/admin/users`; self-demotion blocked).
+9. **Flutter admin console — municipal operations dashboard** (desktop-first
+   sidebar shell): Dashboard (6 KPI cards + charts + live event feed),
+   **Reports triage** (searchable/filterable table, multi-select with bulk
+   status updates, CSV export, right-side operation drawer with status
+   dropdown, officer assignment, public/internal notes, timeline, comments),
+   **Poll builder** (dynamic options, duplicate, close, results), live issue
+   **map** (OSM, status-colored pins, click-to-drawer), Analytics, user
+   management (admin-only), and an **Audit Log** of every status transition.
+   MODERATOR role supported end-to-end (sees moderation, not users).
 10. CI runs the backend build plus Testcontainers-PostgreSQL integration
    tests (`TEST_DOCKER=true`), and Flutter analyze/test.
 

@@ -118,6 +118,41 @@ class FeedbackServiceTest {
         verify(historyRepository).save(any());
     }
 
+    private static final GatewayUser MODERATOR = new GatewayUser(3L, "MODERATOR", "Mod");
+
+    @Test
+    @DisplayName("moderators can change feedback status (content management)")
+    void moderatorCanTransition() {
+        when(feedbackRepository.findById(7L)).thenReturn(Optional.of(feedback(7L)));
+        when(commentRepository.findByFeedbackIdOrderByCreatedAtAsc(7L)).thenReturn(java.util.List.of());
+        when(historyRepository.findByFeedbackIdOrderByChangedAtAsc(7L)).thenReturn(java.util.List.of());
+
+        var detail = feedbackService.transitionStatus(
+                7L, new StatusUpdateRequest(FeedbackStatus.IN_REVIEW), MODERATOR);
+
+        assertThat(detail.status()).isEqualTo("IN_REVIEW");
+        verify(historyRepository).save(any());
+    }
+
+    @Test
+    @DisplayName("adminUpdate applies only supplied fields")
+    void adminUpdatePartial() {
+        when(feedbackRepository.findById(7L)).thenReturn(Optional.of(feedback(7L)));
+        when(commentRepository.findByFeedbackIdOrderByCreatedAtAsc(7L)).thenReturn(java.util.List.of());
+        when(historyRepository.findByFeedbackIdOrderByChangedAtAsc(7L)).thenReturn(java.util.List.of());
+
+        var request = new com.example.feedbackapp.feedback.dto.AdminUpdateFeedbackRequest(
+                null, "Amit Sharma", "Inspection scheduled", null, null);
+
+        var detail = feedbackService.adminUpdate(7L, request, ADMIN);
+
+        assertThat(detail.status()).isEqualTo("OPEN");
+        assertThat(detail.assignedTo()).isEqualTo("Amit Sharma");
+        assertThat(detail.publicNote()).isEqualTo("Inspection scheduled");
+        assertThat(detail.internalNote()).isNull();
+        assertThat(detail.hidden()).isFalse();
+    }
+
     @Test
     @DisplayName("non-admins cannot change feedback status")
     void illegalTransitionRejected() {

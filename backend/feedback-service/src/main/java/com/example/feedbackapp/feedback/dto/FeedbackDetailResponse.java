@@ -13,6 +13,10 @@ public record FeedbackDetailResponse(
         Double longitude,
         Long userId,
         String createdAt,
+        String assignedTo,
+        String publicNote,
+        String internalNote,
+        boolean hidden,
         List<CommentResponse> comments,
         List<StatusChangeResponse> history) {
 
