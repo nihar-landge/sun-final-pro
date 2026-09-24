@@ -46,6 +46,8 @@ class FeedbackServiceTest {
     private FeedbackStatusHistoryRepository historyRepository;
     @Mock
     private org.springframework.amqp.rabbit.core.RabbitTemplate rabbitTemplate;
+    @Mock
+    private FeedbackImageService imageService;
 
     private FeedbackService feedbackService;
 
@@ -55,8 +57,11 @@ class FeedbackServiceTest {
     @BeforeEach
     void setUp() {
         feedbackService = new FeedbackService(feedbackRepository, upvoteRepository,
-                commentRepository, historyRepository, rabbitTemplate,
+                commentRepository, historyRepository, imageService, rabbitTemplate,
                 new com.fasterxml.jackson.databind.ObjectMapper());
+        org.mockito.Mockito.lenient()
+                .when(imageService.viewUrls(org.mockito.ArgumentMatchers.anyLong()))
+                .thenReturn(java.util.List.of());
     }
 
     private Feedback feedback(long id) {

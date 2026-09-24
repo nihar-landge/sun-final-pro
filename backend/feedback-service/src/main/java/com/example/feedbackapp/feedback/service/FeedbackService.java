@@ -59,6 +59,7 @@ public class FeedbackService {
     private final FeedbackUpvoteRepository upvoteRepository;
     private final CommentRepository commentRepository;
     private final FeedbackStatusHistoryRepository historyRepository;
+    private final FeedbackImageService imageService;
     private final RabbitTemplate rabbitTemplate;
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
 
@@ -66,12 +67,14 @@ public class FeedbackService {
                            FeedbackUpvoteRepository upvoteRepository,
                            CommentRepository commentRepository,
                            FeedbackStatusHistoryRepository historyRepository,
+                           FeedbackImageService imageService,
                            RabbitTemplate rabbitTemplate,
                            com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
         this.feedbackRepository = feedbackRepository;
         this.upvoteRepository = upvoteRepository;
         this.commentRepository = commentRepository;
         this.historyRepository = historyRepository;
+        this.imageService = imageService;
         this.rabbitTemplate = rabbitTemplate;
         this.objectMapper = objectMapper;
     }
@@ -112,8 +115,10 @@ public class FeedbackService {
             }
             return cb.and(predicates.toArray(new Predicate[0]));
         };
+        int safeSize = Math.min(Math.max(size, 1), 100);
+        int safePage = Math.max(page, 0);
         return feedbackRepository
-                .findAll(spec, PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt")))
+                .findAll(spec, PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "createdAt")))
                 .map(this::toSummary);
     }
 
@@ -251,7 +256,7 @@ public class FeedbackService {
                 latOf(feedback), lngOf(feedback), feedback.getUserId(),
                 feedback.getCreatedAt().toString(),
                 feedback.getAssignedTo(), feedback.getPublicNote(), feedback.getInternalNote(),
-                feedback.isHidden(), comments, history);
+                feedback.isHidden(), imageService.viewUrls(feedbackId), comments, history);
     }
 
     @Transactional(readOnly = true)

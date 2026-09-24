@@ -100,6 +100,35 @@ class _DetailView extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
 
+                // ---- photos ----
+                if (detail.images.isNotEmpty) ...[
+                  SizedBox(
+                    height: 200,
+                    child: PageView.builder(
+                      itemCount: detail.images.length,
+                      itemBuilder: (context, index) => Padding(
+                        padding: const EdgeInsets.only(right: 10),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
+                          child: Image.network(
+                            detail.images[index],
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            errorBuilder: (_, _, _) => Container(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .surfaceContainerHighest,
+                              child: const Icon(Icons.broken_image_outlined,
+                                  size: 40),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                ],
+
                 // ---- upvote ----
                 FilledButton.tonalIcon(
                   onPressed: busy ? null : () => context

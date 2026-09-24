@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -10,8 +13,7 @@ import 'package:feedback_app/shared/widgets/cards.dart';
 import 'package:feedback_app/shared/widgets/states.dart';
 
 /// Guided multi-step report creation:
-/// category → describe → location → similar reports → submit.
-/// Photo capture arrives with MinIO upload (Phase 3).
+/// category → describe → photos → location → similar reports → submit.
 class ReportWizardPage extends StatefulWidget {
   const ReportWizardPage({super.key});
 
@@ -29,6 +31,9 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
   bool _locating = false;
   bool _similarChecked = false;
   List<FeedbackItem> _similar = const [];
+  final List<Uint8List> _photoBytes = [];
+  final List<String> _photoPaths = [];
+  bool _uploading = false;
 
   static const _categories = [
     (FeedbackCategory.roads, 'Roads', Icons.construction),
@@ -51,7 +56,8 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
         1 =>
           _titleController.text.trim().isNotEmpty &&
               _descriptionController.text.trim().isNotEmpty,
-        2 => _lat != null && _lng != null,
+        2 => true, // photos optional (0-3)
+        3 => _lat != null && _lng != null,
         _ => true,
       };
 
@@ -113,13 +119,74 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
         ));
   }
 
+  /// Uploads picked photos to the freshly created report, with progress.
+  Future<void> _uploadPhotos(int reportId) async {
+    if (_photoBytes.isEmpty) return;
+    final repository = context.read<FeedbackBloc>().repository;
+    var done = 0;
+
+    void Function(void Function())? updateDialog;
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          updateDialog = setDialogState;
+          return AlertDialog(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(
+                  value: _photoBytes.length == 1
+                      ? null
+                      : done / _photoBytes.length,
+                ),
+                const SizedBox(height: 14),
+                const Text('Uploading photos…'),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+
+    for (var i = 0; i < _photoBytes.length; i++) {
+      final contentType =
+          _photoPaths[i].endsWith('.png') ? 'image/png' : 'image/jpeg';
+      try {
+        await repository.uploadPhoto(
+          reportId,
+          FeedbackPhoto(
+              path: _photoPaths[i],
+              bytes: _photoBytes[i],
+              contentType: contentType),
+        );
+      } on Failure {
+        // Report is already saved — a photo failure must not lose it.
+      }
+      done++;
+      updateDialog?.call(() {});
+    }
+    if (mounted && Navigator.of(context).canPop()) {
+      Navigator.of(context).pop(); // close the progress dialog
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<FeedbackBloc, FeedbackState>(
       listener: (context, state) {
         if (state is FeedbackActionSuccess) {
           final created = state.items.isNotEmpty ? state.items.last : null;
-          _showCreated(created);
+          if (created != null && _photoBytes.isNotEmpty && !_uploading) {
+            _uploading = true;
+            _uploadPhotos(created.id).then((_) {
+              _uploading = false;
+              if (mounted) _showCreated(created);
+            });
+          } else {
+            _showCreated(created);
+          }
         } else if (state is FeedbackFailure) {
           _snack(state.message);
         }
@@ -145,12 +212,12 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Row(
-                  children: List.generate(4, (i) {
+                  children: List.generate(5, (i) {
                     final active = i <= _step;
                     return Expanded(
                       child: Container(
                         height: 4,
-                        margin: EdgeInsets.only(right: i < 3 ? 6 : 0),
+                        margin: EdgeInsets.only(right: i < 4 ? 6 : 0),
                         decoration: BoxDecoration(
                           color: active
                               ? Theme.of(context).colorScheme.primary
@@ -184,7 +251,7 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
                         child: OutlinedButton(
                           onPressed: () => setState(() {
                             _step--;
-                            if (_step < 3) _similarChecked = false;
+                            if (_step < 4) _similarChecked = false;
                           }),
                           child: const Text('Back'),
                         ),
@@ -222,6 +289,8 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
       case 1:
         return _stepDescribe();
       case 2:
+        return _stepPhotos();
+      case 3:
         return _stepLocation();
       default:
         return _stepSimilar();
@@ -308,6 +377,121 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
           maxLines: 5,
           maxLength: 5000,
           onChanged: (_) => setState(() {}),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _pickPhoto(ImageSource source) async {
+    if (_photoBytes.length >= 3) return;
+    try {
+      final picked = await ImagePicker().pickImage(
+        source: source,
+        maxWidth: 1920,
+        imageQuality: 80,
+      );
+      if (picked == null) return;
+      final bytes = await picked.readAsBytes();
+      setState(() {
+        _photoBytes.add(bytes);
+        _photoPaths.add(picked.path);
+      });
+    } catch (_) {
+      _snack('Could not pick the photo — try again.');
+    }
+  }
+
+  Widget _stepPhotos() {
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      key: const ValueKey(2),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Add photos',
+            style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 6),
+        Text('Up to 3 photos — clear photos get reports fixed faster.',
+            style: Theme.of(context).textTheme.bodySmall),
+        const SizedBox(height: 14),
+        Row(
+          children: [
+            for (var i = 0; i < _photoBytes.length; i++)
+              Padding(
+                padding: const EdgeInsets.only(right: 10),
+                child: Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.memory(
+                        _photoBytes[i],
+                        width: 88,
+                        height: 88,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    Positioned(
+                      top: 2,
+                      right: 2,
+                      child: GestureDetector(
+                        onTap: () => setState(() {
+                          _photoBytes.removeAt(i);
+                          _photoPaths.removeAt(i);
+                        }),
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            color: scheme.surface.withValues(alpha: 0.9),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.close, size: 16),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            if (_photoBytes.length < 3)
+              InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () async {
+                  final source = await showModalBottomSheet<ImageSource>(
+                    context: context,
+                    showDragHandle: true,
+                    builder: (sheetContext) => SafeArea(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ListTile(
+                            leading: const Icon(Icons.camera_alt_outlined),
+                            title: const Text('Take a photo'),
+                            onTap: () =>
+                                Navigator.of(sheetContext).pop(ImageSource.camera),
+                          ),
+                          ListTile(
+                            leading: const Icon(Icons.photo_outlined),
+                            title: const Text('Choose from gallery'),
+                            onTap: () =>
+                                Navigator.of(sheetContext).pop(ImageSource.gallery),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                  if (source != null) _pickPhoto(source);
+                },
+                child: Container(
+                  width: 88,
+                  height: 88,
+                  decoration: BoxDecoration(
+                    color: scheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: scheme.outlineVariant),
+                  ),
+                  child: Icon(Icons.add_a_photo_outlined,
+                      size: 30, color: scheme.outline),
+                ),
+              ),
+          ],
         ),
       ],
     );

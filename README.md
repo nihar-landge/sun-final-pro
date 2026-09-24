@@ -95,8 +95,17 @@ how to demo it)
    **map** (OSM, status-colored pins, click-to-drawer), Analytics, user
    management (admin-only), and an **Audit Log** of every status transition.
    MODERATOR role supported end-to-end (sees moderation, not users).
-10. CI runs the backend build plus Testcontainers-PostgreSQL integration
-   tests (`TEST_DOCKER=true`), and Flutter analyze/test.
+10. **Report photos**: citizens attach up to 3 photos in the report wizard;
+    uploads go **directly to MinIO** via time-limited pre-signed URLs
+    (photo bytes never touch the Java services), view URLs are minted per
+    detail request, and the 3-photo cap is server-enforced (409).
+11. **Observability & testing**: every service exposes Prometheus metrics
+    (`/actuator/prometheus`, scraped by the compose Prometheus at :9090,
+    dashboards at Grafana :3000), `scripts/e2e.sh` verifies 27 system
+    guarantees in one run (also a CI job), and `scripts/load/vote.js` is a
+    k6 load test asserting the blueprint's p95 < 200 ms target.
+12. CI runs the backend build plus Testcontainers-PostgreSQL integration
+    tests (`TEST_DOCKER=true`), the E2E suite, and Flutter analyze/test.
 
 ## Quickstart
 

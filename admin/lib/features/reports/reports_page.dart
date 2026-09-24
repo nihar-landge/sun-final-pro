@@ -371,6 +371,36 @@ class _DrawerBodyState extends State<_DrawerBody> {
       children: [
         StatusChip(status: report.status),
         const SizedBox(height: 10),
+        if (detail.images.isNotEmpty) ...[
+          SizedBox(
+            height: 120,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: [
+                for (final url in detail.images)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 10),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.network(
+                        url,
+                        width: 160,
+                        height: 120,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => Container(
+                          width: 160,
+                          height: 120,
+                          color: Colors.blueGrey.shade100,
+                          child: const Icon(Icons.broken_image_outlined),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+        ],
         Text(report.title,
             style: Theme.of(context)
                 .textTheme

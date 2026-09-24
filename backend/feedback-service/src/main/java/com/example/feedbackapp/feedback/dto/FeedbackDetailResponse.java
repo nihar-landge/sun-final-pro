@@ -17,6 +17,7 @@ public record FeedbackDetailResponse(
         String publicNote,
         String internalNote,
         boolean hidden,
+        List<String> images,
         List<CommentResponse> comments,
         List<StatusChangeResponse> history) {
 

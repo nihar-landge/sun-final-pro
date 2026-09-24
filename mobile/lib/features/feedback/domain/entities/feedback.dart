@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:equatable/equatable.dart';
 
 enum FeedbackCategory { roads, water, electricity, sanitation, transport, other }
@@ -57,15 +59,33 @@ class FeedbackDetail extends Equatable {
   final FeedbackItem item;
   final List<FeedbackComment> comments;
   final List<StatusChange> history;
+  final List<String> images;
 
   const FeedbackDetail({
     required this.item,
     required this.comments,
     required this.history,
+    this.images = const [],
   });
 
   @override
-  List<Object?> get props => [item, comments, history];
+  List<Object?> get props => [item, comments, history, images];
+}
+
+/// A photo picked in the wizard, pending upload.
+class FeedbackPhoto extends Equatable {
+  final String path;
+  final Uint8List bytes;
+  final String contentType;
+
+  const FeedbackPhoto({
+    required this.path,
+    required this.bytes,
+    required this.contentType,
+  });
+
+  @override
+  List<Object?> get props => [path, bytes, contentType];
 }
 
 /// One audited status transition.

@@ -56,7 +56,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,gateway
+        include: health,info,prometheus,gateway
 
 app:
   jwt:

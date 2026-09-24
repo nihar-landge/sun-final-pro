@@ -11,6 +11,7 @@ import com.example.feedbackapp.feedback.dto.StatusUpdateRequest;
 import com.example.feedbackapp.feedback.dto.SubmitFeedbackRequest;
 import com.example.feedbackapp.feedback.entity.FeedbackCategory;
 import com.example.feedbackapp.feedback.entity.FeedbackStatus;
+import com.example.feedbackapp.feedback.service.FeedbackImageService;
 import com.example.feedbackapp.feedback.service.FeedbackService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -35,9 +36,11 @@ import java.util.List;
 public class FeedbackController {
 
     private final FeedbackService feedbackService;
+    private final FeedbackImageService imageService;
 
-    public FeedbackController(FeedbackService feedbackService) {
+    public FeedbackController(FeedbackService feedbackService, FeedbackImageService imageService) {
         this.feedbackService = feedbackService;
+        this.imageService = imageService;
     }
 
     @PostMapping
@@ -69,6 +72,29 @@ public class FeedbackController {
             @Valid @RequestBody com.example.feedbackapp.feedback.dto.AdminUpdateFeedbackRequest request,
             @CurrentUser GatewayUser user) {
         return ApiResponse.ok(feedbackService.adminUpdate(id, request, user), "Report updated");
+    }
+
+    @PostMapping("/{id}/images/presign")
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "Get a time-limited direct-upload URL for one photo (author or staff)")
+    public ApiResponse<com.example.feedbackapp.feedback.dto.ImagePresignResponse> presignImage(
+            @PathVariable Long id,
+            @Valid @RequestBody com.example.feedbackapp.feedback.dto.ImagePresignRequest request,
+            @CurrentUser GatewayUser user) {
+        var result = imageService.presignUpload(id, request.contentType(), user);
+        return ApiResponse.ok(new com.example.feedbackapp.feedback.dto.ImagePresignResponse(
+                result.uploadUrl(), result.objectKey()));
+    }
+
+    @PostMapping("/{id}/images")
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "Register an uploaded photo against the report")
+    public ApiResponse<Void> registerImage(
+            @PathVariable Long id,
+            @Valid @RequestBody com.example.feedbackapp.feedback.dto.ImageRegisterRequest request,
+            @CurrentUser GatewayUser user) {
+        imageService.register(id, request.objectKey(), user);
+        return ApiResponse.ok(null, "Photo attached");
     }
 
     @GetMapping("/admin/audit")

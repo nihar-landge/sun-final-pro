@@ -87,6 +87,23 @@ class FeedbackRepositoryImpl {
     }
   }
 
+  /// Uploads one photo: presign -> direct PUT to MinIO -> register.
+  Future<void> uploadPhoto(int feedbackId, FeedbackPhoto photo) async {
+    try {
+      final presign = await remoteDataSource.presignImage(feedbackId, photo.contentType);
+      await remoteDataSource.putBytes(
+        Uri.parse(presign['uploadUrl'] as String),
+        photo.bytes,
+        photo.contentType,
+      );
+      await remoteDataSource.registerImage(feedbackId, presign['objectKey'] as String);
+    } on NetworkException catch (e) {
+      throw NetworkFailure(e.message);
+    } on ServerException catch (e) {
+      throw ServerFailure(e.message, statusCode: e.statusCode);
+    }
+  }
+
   /// Full detail (item + comments + status history) for the detail screen.
   Future<FeedbackDetail> getDetail(int feedbackId) async {
     try {
@@ -106,7 +123,9 @@ class FeedbackRepositoryImpl {
               ))
           .cast<StatusChange>()
           .toList();
-      return FeedbackDetail(item: item, comments: comments, history: history);
+      final images = (data['images'] as List? ?? []).cast<String>().toList();
+      return FeedbackDetail(
+          item: item, comments: comments, history: history, images: images);
     } on NetworkException catch (e) {
       throw NetworkFailure(e.message);
     } on ServerException catch (e) {

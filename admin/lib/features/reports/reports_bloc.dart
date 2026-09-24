@@ -71,6 +71,7 @@ class AdminReportDetail extends Equatable {
   final AdminReport report;
   final String publicNote;
   final String internalNote;
+  final List<String> images;
   final List<Map<String, dynamic>> comments;
   final List<Map<String, dynamic>> history;
 
@@ -78,12 +79,14 @@ class AdminReportDetail extends Equatable {
     required this.report,
     required this.publicNote,
     required this.internalNote,
+    this.images = const [],
     required this.comments,
     required this.history,
   });
 
   @override
-  List<Object?> get props => [report, publicNote, internalNote, comments, history];
+  List<Object?> get props =>
+      [report, publicNote, internalNote, images, comments, history];
 }
 
 sealed class ReportsEvent extends Equatable {
@@ -305,6 +308,7 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
         report: AdminReport.fromJson(data),
         publicNote: data['publicNote'] as String? ?? '',
         internalNote: data['internalNote'] as String? ?? '',
+        images: (data['images'] as List? ?? []).cast<String>(),
         comments: (data['comments'] as List? ?? [])
             .whereType<Map<String, dynamic>>()
             .toList(),

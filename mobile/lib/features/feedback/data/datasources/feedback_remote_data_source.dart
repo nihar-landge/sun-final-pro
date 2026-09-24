@@ -1,4 +1,9 @@
 import 'package:feedback_app/core/constants/api_constants.dart';
+import 'dart:typed_data';
+
+import 'package:http/http.dart' as http;
+
+import 'package:feedback_app/core/errors/exceptions.dart';
 import 'package:feedback_app/core/network/api_client.dart';
 import 'package:feedback_app/features/feedback/data/models/feedback_model.dart';
 import 'package:feedback_app/features/feedback/domain/entities/feedback.dart';
@@ -72,6 +77,32 @@ class FeedbackRemoteDataSource {
   Future<void> upvote(int feedbackId) async {
     await apiClient.post(
       Uri.parse('${ApiConstants.feedbackBase}/$feedbackId/upvote'),
+      authenticated: true,
+    );
+  }
+
+  /// Asks feedback-service for a time-limited direct-upload URL.
+  Future<Map<String, dynamic>> presignImage(int feedbackId, String contentType) async {
+    return apiClient.post(
+      Uri.parse('${ApiConstants.feedbackBase}/$feedbackId/images/presign'),
+      body: {'contentType': contentType},
+      authenticated: true,
+    );
+  }
+
+  /// Puts the photo bytes straight to MinIO using the pre-signed URL.
+  Future<void> putBytes(Uri url, Uint8List bytes, String contentType) async {
+    final response = await http.put(url, headers: {'Content-Type': contentType}, body: bytes);
+    if (response.statusCode != 200) {
+      throw ServerException('Photo upload failed', statusCode: response.statusCode);
+    }
+  }
+
+  /// Registers the uploaded object against the report.
+  Future<void> registerImage(int feedbackId, String objectKey) async {
+    await apiClient.post(
+      Uri.parse('${ApiConstants.feedbackBase}/$feedbackId/images'),
+      body: {'objectKey': objectKey},
       authenticated: true,
     );
   }

@@ -47,8 +47,10 @@ public class AdminUserService {
             }
             return cb.and(predicates.toArray(new Predicate[0]));
         };
+        int safeSize = Math.min(Math.max(size, 1), 100);
+        int safePage = Math.max(page, 0);
         return userRepository
-                .findAll(spec, PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt")))
+                .findAll(spec, PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "createdAt")))
                 .map(AdminUserResponse::from);
     }
 
