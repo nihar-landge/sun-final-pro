@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:feedback_app/core/constants/app_constants.dart';
 import 'package:feedback_app/core/network/api_client.dart';
+import 'package:feedback_app/core/notifications/push_service.dart';
 import 'package:feedback_app/core/network/token_store.dart';
 import 'package:feedback_app/core/themes/app_theme.dart';
 import 'package:feedback_app/features/alerts/presentation/bloc/alerts_bloc.dart';
@@ -47,6 +48,7 @@ AlertsBloc buildAlertsBloc() => AlertsBloc(
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await PushService.preload(); // Firebase init (FCM push)
   final prefs = await SharedPreferences.getInstance();
   runApp(
     BlocProvider(
@@ -76,7 +78,16 @@ class FeedbackApp extends StatelessWidget {
           theme: AppTheme.light(),
           darkTheme: AppTheme.dark(),
           themeMode: themeMode,
-          home: const LoginPage(),
+          navigatorKey: PushService.navigatorKey,
+          home: BlocListener<AuthBloc, AuthState>(
+            listener: (context, authState) {
+              if (authState is Authenticated) {
+                PushService.register(tokenStore);
+                PushService.handleInitialMessage();
+              }
+            },
+            child: const LoginPage(),
+          ),
         ),
       ),
     );

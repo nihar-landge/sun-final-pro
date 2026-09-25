@@ -10,8 +10,20 @@ spring:
     username: ${RABBITMQ_USER:guest}
     password: ${RABBITMQ_PASSWORD:guest}
 
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
 management:
   endpoints:
     web:
       exposure:
         include: health,info,prometheus
+
+fcm:
+  # Service-account JSON from Firebase console > Project settings >
+  # Service accounts > Generate new private key. Push is disabled (and the
+  # token registry keeps working) when the file is absent.
+  service-account: ${FCM_SERVICE_ACCOUNT:}
+  project-id: ${FCM_PROJECT_ID:feedback-5c79b}

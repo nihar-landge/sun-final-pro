@@ -5,6 +5,6 @@ class SendOtp {
 
   SendOtp(this.repository);
 
-  /// Returns true when the OTP was dispatched successfully.
-  Future<bool> call(String phone) => repository.sendOtp(phone);
+  /// Returns the dev-echoed OTP (null in production).
+  Future<String?> call(String phone) => repository.sendOtp(phone);
 }

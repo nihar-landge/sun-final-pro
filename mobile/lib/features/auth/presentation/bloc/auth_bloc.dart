@@ -66,11 +66,12 @@ class AuthLoading extends AuthState {
 
 class OtpSent extends AuthState {
   final String phone;
+  final String? devOtp; // present only when the backend runs with dev echo
 
-  const OtpSent(this.phone);
+  const OtpSent(this.phone, [this.devOtp]);
 
   @override
-  List<Object?> get props => [phone];
+  List<Object?> get props => [phone, devOtp];
 }
 
 class Authenticated extends AuthState {
@@ -127,12 +128,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   Future<void> _onSendOtp(SendOtpRequested event, Emitter<AuthState> emit) async {
     emit(const AuthLoading());
     try {
-      final sent = await sendOtp(event.phone);
-      if (!sent) {
-        emit(const AuthFailure('Could not send the OTP. Try again.'));
-        return;
-      }
-      emit(OtpSent(event.phone));
+      final devOtp = await sendOtp(event.phone);
+      emit(OtpSent(event.phone, devOtp));
     } on Failure catch (failure) {
       emit(AuthFailure(failure.message));
     }

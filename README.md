@@ -121,7 +121,8 @@ cd backend && ./mvnw -pl api-gateway spring-boot:run
 curl -s -X POST localhost:8080/api/v1/auth/otp/send \
   -H 'Content-Type: application/json' -d '{"phone":"9876543210"}'
 # -> {"success":true,"data":{...,"devOtp":"123456"},...}
-# Then verify (use the echoed code), create/vote on polls, submit feedback.
+# In the app itself, the OTP screen shows a "Dev OTP" chip you tap to fill.
+# (Logs live in Kubernetes now: kubectl logs -n feedbackapp deploy/auth-service)
 
 # 4. Mobile app (Android emulator reaches the host via 10.0.2.2)
 cd mobile && flutter run

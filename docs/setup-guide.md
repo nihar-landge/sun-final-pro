@@ -90,3 +90,5 @@ by the live E2E curl flow in the README.
 | Flyway "Validate failed" | volume has an older schema: `docker compose ... down -v` and re-up (destroys dev data) |
 | Android emulator can't reach gateway | use `http://10.0.2.2:8080` (already the default `API_BASE_URL`) |
 | OTP always rate-limited | Redis cooldown is 60s per phone; `docker exec feedbackapp-redis redis-cli flushdb` to reset |
+| "Could not reach the server" on the phone | re-establish `adb reverse tcp:8080 <gateway-port>` after every wireless-adb reconnect — reconnects reset all reverse forwards |
+| Where are the service logs? | Services run in Kubernetes: `kubectl logs -n feedbackapp deploy/auth-service` (etc.) |

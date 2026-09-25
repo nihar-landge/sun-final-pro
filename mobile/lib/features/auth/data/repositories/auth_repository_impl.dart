@@ -13,10 +13,9 @@ class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl(this.remoteDataSource, this.tokenStore);
 
   @override
-  Future<bool> sendOtp(String phone) async {
+  Future<String?> sendOtp(String phone) async {
     try {
-      await remoteDataSource.sendOtp(phone);
-      return true;
+      return await remoteDataSource.sendOtp(phone);
     } on NetworkException catch (e) {
       throw NetworkFailure(e.message);
     } on ServerException catch (e) {

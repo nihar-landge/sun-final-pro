@@ -5,6 +5,11 @@ import com.example.feedbackapp.common.event.FeedbackEvent;
 import com.example.feedbackapp.common.error.ForbiddenException;
 import com.example.feedbackapp.common.web.CurrentUser;
 import com.example.feedbackapp.common.web.GatewayUser;
+import com.example.feedbackapp.notifications.web.TokenRegistryService;
+import jakarta.validation.constraints.NotBlank;
+import org.springframework.web.bind.annotation.PostMapping;
+import jakarta.validation.Valid;
+import org.springframework.web.bind.annotation.RequestBody;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,9 +24,22 @@ import java.util.List;
 public class NotificationsController {
 
     private final NotificationStore store;
+    private final TokenRegistryService tokenRegistry;
 
-    public NotificationsController(NotificationStore store) {
+    public NotificationsController(NotificationStore store, TokenRegistryService tokenRegistry) {
         this.store = store;
+        this.tokenRegistry = tokenRegistry;
+    }
+
+    public record RegisterTokenRequest(@NotBlank String token) {
+    }
+
+    @PostMapping("/register-token")
+    @Operation(summary = "Register the caller's FCM device token")
+    public ApiResponse<Void> registerToken(@Valid @RequestBody RegisterTokenRequest request,
+                                           @CurrentUser GatewayUser user) {
+        tokenRegistry.register(user, request.token());
+        return ApiResponse.ok(null, "Push token registered");
     }
 
     @GetMapping("/recent")

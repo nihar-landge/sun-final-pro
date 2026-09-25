@@ -37,7 +37,8 @@ class _LoginPageState extends State<LoginPage> {
         listener: (context, state) {
           if (state is OtpSent) {
             Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => OtpVerificationPage(phone: state.phone),
+              builder: (_) => OtpVerificationPage(
+                  phone: state.phone, devOtp: state.devOtp),
             ));
           } else if (state is Authenticated) {
             // Covers the session restored from secure storage on app start —

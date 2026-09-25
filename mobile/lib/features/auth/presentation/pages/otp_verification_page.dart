@@ -8,8 +8,9 @@ import 'package:feedback_app/features/home_shell.dart';
 /// Second step of OTP login: enter the 6-digit code (and name on first login).
 class OtpVerificationPage extends StatefulWidget {
   final String phone;
+  final String? devOtp;
 
-  const OtpVerificationPage({super.key, required this.phone});
+  const OtpVerificationPage({super.key, required this.phone, this.devOtp});
 
   @override
   State<OtpVerificationPage> createState() => _OtpVerificationPageState();
@@ -69,6 +70,34 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
                         'We sent a code to ${widget.phone}',
                         style: Theme.of(context).textTheme.bodyLarge,
                       ),
+                      if (widget.devOtp != null) ...[
+                        const SizedBox(height: 10),
+                        InkWell(
+                          borderRadius: BorderRadius.circular(10),
+                          onTap: () => _codeController.text = widget.devOtp!,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .tertiaryContainer
+                                  .withValues(alpha: 0.6),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.developer_mode, size: 16),
+                                const SizedBox(width: 8),
+                                Text('Dev OTP: ${widget.devOtp} — tap to fill',
+                                    style:
+                                        Theme.of(context).textTheme.bodySmall),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 24),
                       TextFormField(
                         controller: _codeController,

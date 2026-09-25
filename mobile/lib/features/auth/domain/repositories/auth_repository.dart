@@ -16,8 +16,9 @@ class AuthSession {
 }
 
 abstract interface class AuthRepository {
-  /// Sends a login OTP to [phone]. Returns true when the OTP was dispatched.
-  Future<bool> sendOtp(String phone);
+  /// Sends a login OTP to [phone]. Returns the dev-echoed OTP in dev mode
+  /// (null in production), so the demo can show it without an SMS provider.
+  Future<String?> sendOtp(String phone);
 
   /// Verifies [code] for [phone], persists the session and returns it.
   Future<AuthSession> verifyOtp({required String phone, required String code, String? name});

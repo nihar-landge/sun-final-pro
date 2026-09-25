@@ -7,8 +7,12 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
+
 import com.example.feedbackapp.notifications.config.RabbitMqConfig;
+import com.example.feedbackapp.notifications.push.FcmSender;
 import com.example.feedbackapp.notifications.web.NotificationStore;
+import com.example.feedbackapp.notifications.web.TokenRegistryService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
@@ -22,10 +26,17 @@ public class FeedbackEventListener {
     private static final Logger log = LoggerFactory.getLogger(FeedbackEventListener.class);
 
     private final NotificationStore store;
+    private final TokenRegistryService tokenRegistry;
+    private final FcmSender fcmSender;
     private final ObjectMapper objectMapper;
 
-    public FeedbackEventListener(NotificationStore store, ObjectMapper objectMapper) {
+    public FeedbackEventListener(NotificationStore store,
+                                 TokenRegistryService tokenRegistry,
+                                 FcmSender fcmSender,
+                                 ObjectMapper objectMapper) {
         this.store = store;
+        this.tokenRegistry = tokenRegistry;
+        this.fcmSender = fcmSender;
         this.objectMapper = objectMapper;
     }
 
@@ -36,6 +47,23 @@ public class FeedbackEventListener {
             store.add(event);
             log.info("Consumed {} for feedback {} ({} -> {})",
                     event.type(), event.feedbackId(), event.oldStatus(), event.newStatus());
+
+            // Push the report's author when staff touches their report.
+            if (FeedbackEvent.STATUS_CHANGED.equals(event.type()) && event.newStatus() != null) {
+                String token = tokenRegistry.tokenFor(event.userId());
+                if (token != null) {
+                    String body = switch (event.newStatus()) {
+                        case "RESOLVED" -> "Your report has been resolved 🎉";
+                        case "IN_REVIEW" -> "Your report is now being reviewed";
+                        default -> "Your report status changed to " + event.newStatus();
+                    };
+                    fcmSender.pushToToken(token, event.title(), body, Map.of(
+                            "reportId", String.valueOf(event.feedbackId()),
+                            "newStatus", event.newStatus()));
+                } else {
+                    log.debug("No device token for user {} — push skipped", event.userId());
+                }
+            }
         } catch (Exception e) {
             // Never rethrow: a malformed message should not requeue forever.
             log.error("Failed to process event payload: {}", payload, e);
