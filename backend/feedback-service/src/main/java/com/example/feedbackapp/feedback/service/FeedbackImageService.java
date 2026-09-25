@@ -36,15 +36,18 @@ public class FeedbackImageService {
             Set.of("image/jpeg", "image/png", "image/webp");
 
     private final MinioClient minioClient;
+    private final MinioClient presignMinioClient;
     private final MinioProperties props;
     private final FeedbackRepository feedbackRepository;
     private final FeedbackImageRepository imageRepository;
 
-    public FeedbackImageService(MinioClient minioClient,
+    public FeedbackImageService(@org.springframework.beans.factory.annotation.Qualifier("minioClient") MinioClient minioClient,
+                                @org.springframework.beans.factory.annotation.Qualifier("presignMinioClient") MinioClient presignMinioClient,
                                 MinioProperties props,
                                 FeedbackRepository feedbackRepository,
                                 FeedbackImageRepository imageRepository) {
         this.minioClient = minioClient;
+        this.presignMinioClient = presignMinioClient;
         this.props = props;
         this.feedbackRepository = feedbackRepository;
         this.imageRepository = imageRepository;
@@ -69,7 +72,7 @@ public class FeedbackImageService {
         };
         String objectKey = "reports/%d/%s.%s".formatted(feedbackId, UUID.randomUUID(), ext);
         try {
-            String url = minioClient.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder()
+            String url = presignMinioClient.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder()
                     .method(Method.PUT)
                     .bucket(props.bucket())
                     .object(objectKey)
@@ -103,7 +106,7 @@ public class FeedbackImageService {
         return imageRepository.findByFeedbackIdOrderByIdAsc(feedbackId).stream()
                 .map(image -> {
                     try {
-                        return minioClient.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder()
+                        return presignMinioClient.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder()
                                 .method(Method.GET)
                                 .bucket(props.bucket())
                                 .object(image.getObjectKey())

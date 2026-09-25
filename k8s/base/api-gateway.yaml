@@ -5,7 +5,7 @@ metadata:
   namespace: feedbackapp
   labels: { app: api-gateway }
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels: { app: api-gateway }
   template:
@@ -14,23 +14,35 @@ spec:
     spec:
       containers:
         - name: api-gateway
-          image: ghcr.io/REPLACE_ME/api-gateway:latest   # set by CI in weeks 9-10
+          image: civicpulse/api-gateway:0.1.0
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
           envFrom:
             - configMapRef: { name: feedbackapp-config }
             - secretRef: { name: feedbackapp-secrets }
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: "-XX:MaxRAMPercentage=70.0 -XX:MaxMetaspaceSize=128m"
+          startupProbe:
+            httpGet: { path: /actuator/health, port: 8080 }
+            periodSeconds: 5
+            failureThreshold: 60          # up to 5 min for slow JVM boot under load
           readinessProbe:
             httpGet: { path: /actuator/health, port: 8080 }
-            initialDelaySeconds: 15
+            initialDelaySeconds: 25
             periodSeconds: 10
           livenessProbe:
             httpGet: { path: /actuator/health, port: 8080 }
-            initialDelaySeconds: 30
+            initialDelaySeconds: 45
             periodSeconds: 15
           resources:
-            requests: { cpu: 250m, memory: 512Mi }
-            limits: { cpu: "1", memory: 1Gi }
+            requests:
+              cpu: 150m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 384Mi
 ---
 apiVersion: v1
 kind: Service
@@ -38,10 +50,9 @@ metadata:
   name: api-gateway
   namespace: feedbackapp
 spec:
-  type: LoadBalancer
   selector: { app: api-gateway }
   ports:
-    - port: 80
+    - port: 8080
       targetPort: 8080
 ---
 apiVersion: autoscaling/v2
@@ -54,8 +65,8 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: api-gateway
-  minReplicas: 2
-  maxReplicas: 10
+  minReplicas: 1
+  maxReplicas: 4
   metrics:
     - type: Resource
       resource:
@@ -63,3 +74,4 @@ spec:
         target:
           type: Utilization
           averageUtilization: 70
+

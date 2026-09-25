@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: poll-service
+  namespace: feedbackapp
+  labels: { app: poll-service }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: poll-service }
+  template:
+    metadata:
+      labels: { app: poll-service }
+    spec:
+      containers:
+        - name: poll-service
+          image: civicpulse/poll-service:0.1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8082
+          envFrom:
+            - configMapRef: { name: feedbackapp-config }
+            - secretRef: { name: feedbackapp-secrets }
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: "-XX:MaxRAMPercentage=70.0 -XX:MaxMetaspaceSize=128m"
+          startupProbe:
+            httpGet: { path: /actuator/health, port: 8082 }
+            periodSeconds: 5
+            failureThreshold: 60          # up to 5 min for slow JVM boot under load
+          readinessProbe:
+            httpGet: { path: /actuator/health, port: 8082 }
+            initialDelaySeconds: 25
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /actuator/health, port: 8082 }
+            initialDelaySeconds: 45
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 150m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 384Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: poll-service
+  namespace: feedbackapp
+spec:
+  selector: { app: poll-service }
+  ports:
+    - port: 8082
+      targetPort: 8082
+---
+

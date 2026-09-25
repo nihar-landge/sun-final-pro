@@ -7,7 +7,7 @@ networks:
 volumes:
   postgres_data:
   redis_data:
-  minio_data:
+  storage_data:
   rabbitmq_data:
   grafana_data:
 
@@ -46,23 +46,24 @@ services:
       retries: 10
     networks: [app-net]
 
-  minio:
-    image: minio/minio:latest
-    container_name: feedbackapp-minio
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: minioadmin          # dev-only credentials
-      MINIO_ROOT_PASSWORD: minioadmin123
+  storage:
+    image: chrislusf/seaweedfs:3.80
+    container_name: feedbackapp-storage
+    # S3-compatible object storage (MinIO pulled its public images; SeaweedFS
+    # speaks the same S3 API and works with the MinIO Java client).
+    command: >
+      server -dir=/data -master.volumeSizeLimitMB=1024
+      -ip=storage -master.port=9333 -volume.port=8080
+      -s3 -s3.port=9000
     ports:
       - "9000:9000"   # S3 API
-      - "9001:9001"   # Web console
     volumes:
-      - minio_data:/data
+      - storage_data:/data
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9000/status || exit 1"]
       interval: 15s
       timeout: 5s
-      retries: 10
+      retries: 20
     networks: [app-net]
 
   prometheus:

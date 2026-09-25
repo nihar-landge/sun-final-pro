@@ -5,7 +5,7 @@ metadata:
   namespace: feedbackapp
   labels: { app: auth-service }
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels: { app: auth-service }
   template:
@@ -14,23 +14,35 @@ spec:
     spec:
       containers:
         - name: auth-service
-          image: ghcr.io/REPLACE_ME/auth-service:latest   # set by CI in weeks 9-10
+          image: civicpulse/auth-service:0.1.0
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8081
           envFrom:
             - configMapRef: { name: feedbackapp-config }
             - secretRef: { name: feedbackapp-secrets }
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: "-XX:MaxRAMPercentage=70.0 -XX:MaxMetaspaceSize=128m"
+          startupProbe:
+            httpGet: { path: /actuator/health, port: 8081 }
+            periodSeconds: 5
+            failureThreshold: 60          # up to 5 min for slow JVM boot under load
           readinessProbe:
             httpGet: { path: /actuator/health, port: 8081 }
-            initialDelaySeconds: 20
+            initialDelaySeconds: 25
             periodSeconds: 10
           livenessProbe:
             httpGet: { path: /actuator/health, port: 8081 }
-            initialDelaySeconds: 40
+            initialDelaySeconds: 45
             periodSeconds: 15
           resources:
-            requests: { cpu: 250m, memory: 512Mi }
-            limits: { cpu: "1", memory: 1Gi }
+            requests:
+              cpu: 150m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 384Mi
 ---
 apiVersion: v1
 kind: Service
@@ -43,22 +55,4 @@ spec:
     - port: 8081
       targetPort: 8081
 ---
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: auth-service
-  namespace: feedbackapp
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: auth-service
-  minReplicas: 2
-  maxReplicas: 10
-  metrics:
-    - type: Resource
-      resource:
-        name: cpu
-        target:
-          type: Utilization
-          averageUtilization: 70
+

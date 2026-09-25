@@ -1,11 +1,20 @@
+# App services run in Kubernetes; the stateful data layer (PostgreSQL+PostGIS,
+# Redis, MinIO, RabbitMQ) stays in the local Docker Compose stack and is
+# reached via host.docker.internal. In a real deployment these become
+# in-cluster StatefulSets or managed cloud services.
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: feedbackapp-config
   namespace: feedbackapp
 data:
-  DB_HOST: "postgres.feedbackapp.svc.cluster.local"
-  REDIS_HOST: "redis.feedbackapp.svc.cluster.local"
+  DB_HOST: "host.docker.internal"
+  REDIS_HOST: "host.docker.internal"
+  MINIO_URL: "http://host.docker.internal:9000"
+  MINIO_PUBLIC_URL: "http://localhost:9000"
+  RABBITMQ_HOST: "host.docker.internal"
   AUTH_SERVICE_URL: "http://auth-service.feedbackapp.svc.cluster.local:8081"
   POLL_SERVICE_URL: "http://poll-service.feedbackapp.svc.cluster.local:8082"
   FEEDBACK_SERVICE_URL: "http://feedback-service.feedbackapp.svc.cluster.local:8083"
+  NOTIFICATION_SERVICE_URL: "http://notification-service.feedbackapp.svc.cluster.local:8084"
+  POLL_SERVICE_WS_HOST: "poll-service.feedbackapp.svc.cluster.local"

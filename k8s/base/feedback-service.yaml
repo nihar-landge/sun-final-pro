@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: feedback-service
+  namespace: feedbackapp
+  labels: { app: feedback-service }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: feedback-service }
+  template:
+    metadata:
+      labels: { app: feedback-service }
+    spec:
+      containers:
+        - name: feedback-service
+          image: civicpulse/feedback-service:0.1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8083
+          envFrom:
+            - configMapRef: { name: feedbackapp-config }
+            - secretRef: { name: feedbackapp-secrets }
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: "-XX:MaxRAMPercentage=70.0 -XX:MaxMetaspaceSize=128m"
+          startupProbe:
+            httpGet: { path: /actuator/health, port: 8083 }
+            periodSeconds: 5
+            failureThreshold: 60          # up to 5 min for slow JVM boot under load
+          readinessProbe:
+            httpGet: { path: /actuator/health, port: 8083 }
+            initialDelaySeconds: 25
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /actuator/health, port: 8083 }
+            initialDelaySeconds: 45
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 150m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 384Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: feedback-service
+  namespace: feedbackapp
+spec:
+  selector: { app: feedback-service }
+  ports:
+    - port: 8083
+      targetPort: 8083
+---
+

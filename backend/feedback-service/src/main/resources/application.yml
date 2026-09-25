@@ -37,6 +37,7 @@ springdoc:
 minio:
   enabled: ${MINIO_ENABLED:true}
   url: ${MINIO_URL:http://localhost:9000}
+  public-url: ${MINIO_PUBLIC_URL:http://localhost:9000}
   access-key: ${MINIO_ACCESS_KEY:minioadmin}
   secret-key: ${MINIO_SECRET_KEY:minioadmin123}
   bucket: ${MINIO_BUCKET:feedback-photos}
