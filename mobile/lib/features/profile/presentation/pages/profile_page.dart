@@ -7,6 +7,7 @@ import 'package:feedback_app/features/auth/presentation/pages/login_page.dart';
 import 'package:feedback_app/features/feedback/domain/entities/feedback.dart';
 import 'package:feedback_app/features/feedback/presentation/bloc/feedback_bloc.dart';
 import 'package:feedback_app/features/feedback/presentation/pages/feedback_detail_page.dart';
+import 'package:feedback_app/features/profile/presentation/pages/about_page.dart';
 import 'package:feedback_app/features/profile/presentation/bloc/theme_cubit.dart';
 
 /// Profile — account, my reports, preferences (theme, language) and logout.
@@ -108,6 +109,10 @@ class ProfilePage extends StatelessWidget {
               subtitle: const Text(
                   '${AppConstants.appTagline}\nCDAC Final Project — Mobile Computing'),
               isThreeLine: true,
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const AboutPage()),
+              ),
             ),
           ),
           const SizedBox(height: 16),

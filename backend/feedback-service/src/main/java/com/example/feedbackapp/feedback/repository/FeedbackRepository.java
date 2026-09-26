@@ -33,6 +33,16 @@ public interface FeedbackRepository extends JpaRepository<Feedback, Long>, JpaSp
                                         @Param("radiusMeters") double radiusMeters,
                                         @Param("status") String status);
 
+    /** Daily submission counts for the admin trend chart. */
+    @Query(value = """
+            SELECT to_char(d.day, 'YYYY-MM-DD') AS day,
+                   COUNT(f.id) AS count
+            FROM generate_series(CURRENT_DATE - CAST(:days AS int), CURRENT_DATE, '1 day') AS d(day)
+            LEFT JOIN feedback f ON date_trunc('day', f.created_at) = d.day
+            GROUP BY d.day ORDER BY d.day
+            """, nativeQuery = true)
+    List<Object[]> dailyCounts(@Param("days") int days);
+
     /** Average hours from submission to first RESOLVED transition (null when none resolved). */
     @Query(value = """
             SELECT AVG(EXTRACT(EPOCH FROM (h.changed_at - f.created_at)) / 3600.0)

@@ -265,6 +265,59 @@ class DashboardPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Text('Reports - last 14 days',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 120,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      for (final point in a.trend)
+                        Expanded(
+                          child: Tooltip(
+                            message: '${point.day.substring(5)}: ${point.count}',
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 2),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  if (point.count > 0)
+                                    Text('${point.count}',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .labelSmall),
+                                  const SizedBox(height: 2),
+                                  Container(
+                                    height: _barHeight(point.count, a.trend),
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(context).colorScheme.primary,
+                                      borderRadius: const BorderRadius.vertical(
+                                          top: Radius.circular(4)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                 Text('Reports by category',
                     style: Theme.of(context)
                         .textTheme
@@ -327,4 +380,10 @@ class DashboardPage extends StatelessWidget {
       ],
     );
   }
+}
+
+
+double _barHeight(int count, List<TrendPoint> trend) {
+  final max = trend.fold<int>(1, (m, p) => p.count > m ? p.count : m);
+  return 12.0 + (count / max) * 88.0;
 }

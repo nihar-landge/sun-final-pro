@@ -7,8 +7,8 @@ import 'package:feedback_app/features/feedback/presentation/pages/feedback_detai
 import 'package:feedback_app/features/polls/presentation/pages/poll_detail_page.dart';
 import 'package:feedback_app/shared/widgets/states.dart';
 
-/// Alerts — the citizen's civic activity feed: report status changes and
-/// polls worth voting on. Tap deep-links into the report or poll.
+/// Alerts — the citizen's persistent inbox. Rows are created by consumed
+/// RabbitMQ events; tapping marks read and deep-links into the target.
 class AlertsPage extends StatefulWidget {
   const AlertsPage({super.key});
 
@@ -34,13 +34,26 @@ class _AlertsPageState extends State<AlertsPage> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text('Alerts',
-                  style: Theme.of(context)
-                      .textTheme
-                      .headlineSmall
-                      ?.copyWith(fontWeight: FontWeight.w800)),
+            child: Row(
+              children: [
+                Text('Alerts',
+                    style: Theme.of(context)
+                        .textTheme
+                        .headlineSmall
+                        ?.copyWith(fontWeight: FontWeight.w800)),
+                const Spacer(),
+                BlocBuilder<AlertsBloc, AlertsState>(
+                  builder: (context, state) {
+                    final hasUnread = state is AlertsLoaded && state.unreadCount > 0;
+                    return TextButton(
+                      onPressed: hasUnread
+                          ? () => context.read<AlertsBloc>().add(const AllMarkedRead())
+                          : null,
+                      child: const Text('Mark all read'),
+                    );
+                  },
+                ),
+              ],
             ),
           ),
           Expanded(
@@ -65,7 +78,8 @@ class _AlertsPageState extends State<AlertsPage> {
                   return EmptyState(
                     icon: Icons.notifications_none_rounded,
                     title: 'Nothing new',
-                    subtitle: 'Report an issue or vote in a poll to see updates here.',
+                    subtitle:
+                        'Report an issue or vote in a poll to see updates here.',
                     actionLabel: 'Refresh',
                     onAction: _refresh,
                   );
@@ -79,7 +93,7 @@ class _AlertsPageState extends State<AlertsPage> {
                     itemCount: items.length,
                     itemBuilder: (context, index) {
                       final item = items[index];
-                      final group = _groupOf(item.when);
+                      final group = _groupOf(item.createdAt);
                       final showHeader = group != currentGroup;
                       currentGroup = group;
                       return Column(
@@ -115,7 +129,8 @@ class _AlertsPageState extends State<AlertsPage> {
     );
   }
 
-  String _groupOf(DateTime? when) {
+  String _groupOf(String iso) {
+    final when = DateTime.tryParse(iso);
     if (when == null) return 'Earlier';
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -128,14 +143,19 @@ class _AlertsPageState extends State<AlertsPage> {
   }
 
   void _open(AlertItem item) {
-    if (item.reportId != null) {
-      Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => FeedbackDetailPage(feedbackId: item.reportId!),
-      ));
-    } else if (item.pollId != null) {
-      Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => PollDetailPage(pollId: item.pollId!),
-      ));
+    if (item.unread) {
+      context.read<AlertsBloc>().add(NotificationMarkRead(item.id));
+    }
+    if (item.refId != null) {
+      if (item.type == 'REPORT_STATUS') {
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => FeedbackDetailPage(feedbackId: item.refId!),
+        ));
+      } else {
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => PollDetailPage(pollId: item.refId!),
+        ));
+      }
     }
   }
 }
@@ -149,15 +169,11 @@ class _AlertTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final (icon, color) = switch (item.kind) {
-      AlertKind.reportStatus when item.status == 'RESOLVED' =>
+    final (icon, color) = switch (item.type) {
+      'REPORT_STATUS' when item.body.contains('resolved') =>
         (Icons.verified_rounded, StatusColors.resolved),
-      AlertKind.reportStatus => (
-          Icons.campaign_rounded,
-          StatusColors.forStatus(item.status ?? 'OPEN')
-        ),
-      AlertKind.pollClosing => (Icons.how_to_vote_rounded, scheme.tertiary),
-      AlertKind.pollLive => (Icons.poll_rounded, scheme.primary),
+      'REPORT_STATUS' => (Icons.campaign_rounded, StatusColors.open),
+      _ => (Icons.poll_rounded, scheme.primary),
     };
     return Card(
       child: ListTile(
@@ -175,11 +191,19 @@ class _AlertTile extends StatelessWidget {
         title: Text(item.title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text(item.subtitle,
+            style: TextStyle(
+                fontWeight:
+                    item.unread ? FontWeight.w800 : FontWeight.w500)),
+        subtitle: Text(item.body,
             maxLines: 2, overflow: TextOverflow.ellipsis),
-        trailing:
-            Icon(Icons.chevron_right, color: scheme.outline, size: 20),
+        trailing: item.unread
+            ? Container(
+                width: 10,
+                height: 10,
+                decoration:
+                    BoxDecoration(color: scheme.primary, shape: BoxShape.circle),
+              )
+            : Icon(Icons.chevron_right, color: scheme.outline, size: 20),
       ),
     );
   }

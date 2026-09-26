@@ -2,13 +2,10 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:feedback_app/core/errors/failures.dart';
-import 'package:feedback_app/features/feedback/data/repositories/feedback_repository_impl.dart';
-import 'package:feedback_app/features/polls/domain/repositories/poll_repository.dart';
+import 'package:feedback_app/features/alerts/data/datasources/notification_remote_data_source.dart';
 
-/// "Alerts" derived from real data the citizen can act on today:
-///  · their own reports with the current status (tap → track progress)
-///  · active polls closing within 24h (tap → vote)
-/// FCM push items will prepend to the same list once notifications land.
+/// The citizen's notification inbox — persistent rows created by consumed
+/// RabbitMQ events, with unread tracking and mark-read.
 sealed class AlertsEvent extends Equatable {
   const AlertsEvent();
 
@@ -20,32 +17,51 @@ class AlertsRefreshed extends AlertsEvent {
   const AlertsRefreshed();
 }
 
-/// One alert row.
-class AlertItem extends Equatable {
-  final AlertKind kind;
-  final String title;
-  final String subtitle;
-  final String? status;
-  final DateTime? when;
-  final int? reportId;
-  final int? pollId;
+class NotificationMarkRead extends AlertsEvent {
+  final int notificationId;
 
-  const AlertItem({
-    required this.kind,
-    required this.title,
-    required this.subtitle,
-    this.status,
-    this.when,
-    this.reportId,
-    this.pollId,
-  });
+  const NotificationMarkRead(this.notificationId);
 
   @override
-  List<Object?> get props =>
-      [kind, title, subtitle, status, when, reportId, pollId];
+  List<Object?> get props => [notificationId];
 }
 
-enum AlertKind { reportStatus, pollClosing, pollLive }
+class AllMarkedRead extends AlertsEvent {
+  const AllMarkedRead();
+}
+
+class AlertItem extends Equatable {
+  final int id;
+  final String type;
+  final String title;
+  final String body;
+  final bool unread;
+  final int? refId;
+  final String createdAt;
+
+  const AlertItem({
+    required this.id,
+    required this.type,
+    required this.title,
+    required this.body,
+    required this.unread,
+    this.refId,
+    required this.createdAt,
+  });
+
+  factory AlertItem.fromJson(Map<String, dynamic> json) => AlertItem(
+        id: (json['id'] as num).toInt(),
+        type: json['type'] as String? ?? '',
+        title: json['title'] as String? ?? '',
+        body: json['body'] as String? ?? '',
+        unread: json['unread'] as bool? ?? false,
+        refId: (json['refId'] as num?)?.toInt(),
+        createdAt: json['createdAt'] as String? ?? '',
+      );
+
+  @override
+  List<Object?> get props => [id, type, title, body, unread, refId, createdAt];
+}
 
 sealed class AlertsState extends Equatable {
   const AlertsState();
@@ -60,11 +76,12 @@ class AlertsLoading extends AlertsState {
 
 class AlertsLoaded extends AlertsState {
   final List<AlertItem> items;
+  final int unreadCount;
 
-  const AlertsLoaded(this.items);
+  const AlertsLoaded(this.items, {this.unreadCount = 0});
 
   @override
-  List<Object?> get props => [items];
+  List<Object?> get props => [items, unreadCount];
 }
 
 class AlertsFailure extends AlertsState {
@@ -77,61 +94,56 @@ class AlertsFailure extends AlertsState {
 }
 
 class AlertsBloc extends Bloc<AlertsEvent, AlertsState> {
-  final FeedbackRepositoryImpl feedbackRepository;
-  final PollRepository pollRepository;
+  final NotificationRemoteDataSource remoteDataSource;
 
-  AlertsBloc({
-    required this.feedbackRepository,
-    required this.pollRepository,
-  }) : super(const AlertsLoading()) {
+  AlertsBloc({required this.remoteDataSource}) : super(const AlertsLoading()) {
     on<AlertsRefreshed>(_onRefresh);
+    on<NotificationMarkRead>(_onMarkRead);
+    on<AllMarkedRead>(_onMarkAll);
   }
 
   Future<void> _onRefresh(AlertsRefreshed event, Emitter<AlertsState> emit) async {
     emit(const AlertsLoading());
     try {
-      final reports = await feedbackRepository.mine();
-      final polls = await pollRepository.getPolls(status: 'active');
+      final rows = await remoteDataSource.inbox();
+      final items = rows.map(AlertItem.fromJson).toList();
+      final unread = items.where((i) => i.unread).length;
+      emit(AlertsLoaded(items, unreadCount: unread));
+    } on Failure catch (failure) {
+      emit(AlertsFailure(failure.message));
+    }
+  }
 
-      final items = <AlertItem>[];
-      for (final report in reports.take(10)) {
-        items.add(AlertItem(
-          kind: AlertKind.reportStatus,
-          title: report.title,
-          subtitle: switch (report.status.name) {
-            'RESOLVED' => 'Your report has been resolved 🎉',
-            'IN_REVIEW' => 'Your report is being reviewed',
-            _ => 'Your report is open — awaiting review',
-          },
-          status: report.status.name,
-          when: DateTime.tryParse(report.createdAt),
-          reportId: report.id,
-        ));
-      }
-      for (final poll in polls) {
-        final closesIn = poll.endTime.difference(DateTime.now());
-        if (closesIn.inHours <= 24 && !closesIn.isNegative) {
-          items.add(AlertItem(
-            kind: AlertKind.pollClosing,
-            title: poll.title,
-            subtitle:
-                'Poll closes ${closesIn.inHours == 0 ? 'in less than an hour' : 'in ${closesIn.inHours}h'} — ${poll.totalVotes} votes so far',
-            when: poll.endTime,
-            pollId: poll.id,
-          ));
-        } else if (!poll.hasVoted) {
-          items.add(AlertItem(
-            kind: AlertKind.pollLive,
-            title: poll.title,
-            subtitle: 'New poll open — your vote matters',
-            when: poll.startTime,
-            pollId: poll.id,
-          ));
-        }
-      }
-      items.sort((a, b) =>
-          (b.when ?? DateTime.now()).compareTo(a.when ?? DateTime.now()));
-      emit(AlertsLoaded(items));
+  Future<void> _onMarkRead(NotificationMarkRead event, Emitter<AlertsState> emit) async {
+    final current = state;
+    if (current is! AlertsLoaded) return;
+    try {
+      await remoteDataSource.markRead(event.notificationId);
+      final items = current.items
+          .map((i) => i.id == event.notificationId
+              ? AlertItem(
+                  id: i.id, type: i.type, title: i.title, body: i.body,
+                  unread: false, refId: i.refId, createdAt: i.createdAt)
+              : i)
+          .toList();
+      emit(AlertsLoaded(items,
+          unreadCount: items.where((i) => i.unread).length));
+    } on Failure catch (failure) {
+      emit(AlertsFailure(failure.message));
+    }
+  }
+
+  Future<void> _onMarkAll(AllMarkedRead event, Emitter<AlertsState> emit) async {
+    final current = state;
+    if (current is! AlertsLoaded) return;
+    try {
+      await remoteDataSource.markAllRead();
+      final items = current.items
+          .map((i) => AlertItem(
+              id: i.id, type: i.type, title: i.title, body: i.body,
+              unread: false, refId: i.refId, createdAt: i.createdAt))
+          .toList();
+      emit(AlertsLoaded(items, unreadCount: 0));
     } on Failure catch (failure) {
       emit(AlertsFailure(failure.message));
     }

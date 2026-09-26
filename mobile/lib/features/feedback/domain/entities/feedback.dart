@@ -60,16 +60,45 @@ class FeedbackDetail extends Equatable {
   final List<FeedbackComment> comments;
   final List<StatusChange> history;
   final List<String> images;
+  final String publicNote; // official update from staff
 
   const FeedbackDetail({
     required this.item,
     required this.comments,
     required this.history,
     this.images = const [],
+    this.publicNote = '',
+  });
+
+  /// The RESOLVED history row (null when not resolved).
+  StatusChange? get resolvedAt {
+    for (final change in history.reversed) {
+      if (change.newStatus == 'RESOLVED') return change;
+    }
+    return null;
+  }
+
+  @override
+  List<Object?> get props => [item, comments, history, images, publicNote];
+}
+
+/// Community impact numbers (Home screen).
+class CommunityStats extends Equatable {
+  final int totalReports;
+  final int resolvedReports;
+  final int resolutionRatePercent;
+  final int totalUpvotes;
+
+  const CommunityStats({
+    required this.totalReports,
+    required this.resolvedReports,
+    required this.resolutionRatePercent,
+    required this.totalUpvotes,
   });
 
   @override
-  List<Object?> get props => [item, comments, history, images];
+  List<Object?> get props =>
+      [totalReports, resolvedReports, resolutionRatePercent, totalUpvotes];
 }
 
 /// A photo picked in the wizard, pending upload.

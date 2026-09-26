@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:feedback_app/features/alerts/presentation/bloc/alerts_bloc.dart';
 import 'package:feedback_app/features/alerts/presentation/pages/alerts_page.dart';
 import 'package:feedback_app/features/feedback/presentation/pages/report_wizard_page.dart';
 import 'package:feedback_app/features/home/home_page.dart';
@@ -65,11 +67,18 @@ class _HomeShellState extends State<HomeShell> {
             label: _titles[2],
           ),
           NavigationDestination(
-            icon: Badge(
-              isLabelVisible: false, // unread count once FCM lands
-              child: Icon(_index == 3
-                  ? Icons.notifications_rounded
-                  : Icons.notifications_outlined),
+            icon: BlocBuilder<AlertsBloc, AlertsState>(
+              builder: (context, state) {
+                final unread =
+                    state is AlertsLoaded ? state.unreadCount : 0;
+                return Badge(
+                  isLabelVisible: unread > 0,
+                  label: Text('$unread'),
+                  child: Icon(_index == 3
+                      ? Icons.notifications_rounded
+                      : Icons.notifications_outlined),
+                );
+              },
             ),
             label: _titles[3],
           ),

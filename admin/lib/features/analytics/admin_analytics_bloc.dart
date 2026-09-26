@@ -9,15 +9,32 @@ class AdminAnalytics extends Equatable {
   final PollStats pollStats;
   final FeedbackStats feedbackStats;
   final List<RecentEvent> events;
+  final List<TrendPoint> trend;
 
   const AdminAnalytics({
     required this.pollStats,
     required this.feedbackStats,
     required this.events,
+    required this.trend,
   });
 
   @override
-  List<Object?> get props => [pollStats, feedbackStats, events];
+  List<Object?> get props => [pollStats, feedbackStats, events, trend];
+}
+
+class TrendPoint extends Equatable {
+  final String day;
+  final int count;
+
+  const TrendPoint(this.day, this.count);
+
+  factory TrendPoint.fromJson(Map<String, dynamic> json) => TrendPoint(
+        json['day'] as String? ?? '',
+        (json['count'] as num? ?? 0).toInt(),
+      );
+
+  @override
+  List<Object?> get props => [day, count];
 }
 
 class PollStats extends Equatable {
@@ -175,8 +192,17 @@ class AdminAnalyticsBloc extends Bloc<AdminAnalyticsEvent, AdminAnalyticsState> 
           .whereType<Map<String, dynamic>>()
           .map(RecentEvent.fromJson)
           .toList();
+      final trendData = await apiClient.request('/feedback/admin/trend?days=14');
+      final trend = (trendData as List? ?? [])
+          .whereType<Map<String, dynamic>>()
+          .map(TrendPoint.fromJson)
+          .toList();
       emit(AdminAnalyticsLoaded(AdminAnalytics(
-        pollStats: pollStats, feedbackStats: feedbackStats, events: events)));
+        pollStats: pollStats,
+        feedbackStats: feedbackStats,
+        events: events,
+        trend: trend,
+      )));
     } on AdminApiException catch (e) {
       emit(AdminAnalyticsFailure(e.message));
     }

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:feedback_app/core/constants/app_constants.dart';
+import 'package:feedback_app/core/network/api_client.dart' as api;
+import 'package:feedback_app/features/feedback/data/datasources/feedback_remote_data_source.dart';
+import 'package:feedback_app/features/feedback/data/repositories/feedback_repository_impl.dart';
 import 'package:feedback_app/features/feedback/domain/entities/feedback.dart';
 import 'package:feedback_app/features/feedback/presentation/bloc/feedback_bloc.dart';
 import 'package:feedback_app/features/feedback/presentation/pages/feedback_detail_page.dart';
@@ -134,7 +137,11 @@ class _HomePageState extends State<HomePage> {
                     )),
                   ),
                 ),
-                const SizedBox(width: 10),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
                 Expanded(
                   child: _QuickAction(
                     icon: Icons.how_to_vote_outlined,
@@ -142,8 +149,18 @@ class _HomePageState extends State<HomePage> {
                     onTap: () => widget.onNavigate?.call(1),
                   ),
                 ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _QuickAction(
+                    icon: Icons.description_outlined,
+                    label: 'My\nReports',
+                    onTap: () => widget.onNavigate?.call(4),
+                  ),
+                ),
               ],
             ),
+            // ---- Community impact ----
+            _CommunityImpactCard(),
             // ---- Nearby issues ----
             BlocBuilder<FeedbackBloc, FeedbackState>(
               buildWhen: (prev, cur) =>
@@ -291,3 +308,69 @@ class _QuickAction extends StatelessWidget {
   }
 }
 
+
+
+/// Community impact — real numbers from feedback-service (public endpoint).
+class _CommunityImpactCard extends StatelessWidget {
+  final FeedbackRepositoryImpl _repository = FeedbackRepositoryImpl(
+      FeedbackRemoteDataSource(api.ApiClient()));
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return FutureBuilder<CommunityStats>(
+      future: _repository.communityStats(),
+      builder: (context, snapshot) {
+        final stats = snapshot.data;
+        return Container(
+          margin: const EdgeInsets.only(top: 24),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [scheme.primary, scheme.tertiary],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Community impact',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: scheme.onPrimary, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _impact(context, '${stats?.totalReports ?? '—'}', 'issues reported'),
+                  _impact(context, '${stats?.resolvedReports ?? '—'}', 'resolved'),
+                  _impact(context,
+                      stats == null ? '—' : '${stats.resolutionRatePercent}%',
+                      'resolution rate'),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _impact(BuildContext context, String value, String label) {
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      children: [
+        Text(value,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                color: scheme.onPrimary, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 2),
+        Text(label,
+            style: Theme.of(context)
+                .textTheme
+                .bodySmall
+                ?.copyWith(color: scheme.onPrimary.withValues(alpha: 0.85))),
+      ],
+    );
+  }
+}

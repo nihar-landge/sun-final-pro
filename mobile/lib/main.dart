@@ -7,6 +7,7 @@ import 'package:feedback_app/core/network/api_client.dart';
 import 'package:feedback_app/core/notifications/push_service.dart';
 import 'package:feedback_app/core/network/token_store.dart';
 import 'package:feedback_app/core/themes/app_theme.dart';
+import 'package:feedback_app/features/alerts/data/datasources/notification_remote_data_source.dart';
 import 'package:feedback_app/features/alerts/presentation/bloc/alerts_bloc.dart';
 import 'package:feedback_app/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:feedback_app/features/auth/data/repositories/auth_repository_impl.dart';
@@ -41,9 +42,7 @@ FeedbackBloc buildFeedbackBloc() => FeedbackBloc(
     );
 
 AlertsBloc buildAlertsBloc() => AlertsBloc(
-      feedbackRepository:
-          FeedbackRepositoryImpl(FeedbackRemoteDataSource(apiClient)),
-      pollRepository: PollRepositoryImpl(PollRemoteDataSource(apiClient)),
+      remoteDataSource: NotificationRemoteDataSource(apiClient),
     );
 
 Future<void> main() async {

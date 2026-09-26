@@ -179,6 +179,69 @@ class _PollDetailPageState extends State<PollDetailPage> {
                       result: option,
                       highlight: option.optionId == _selectedOption,
                     )),
+
+                // ---- poll insights ----
+                if (poll.options.isNotEmpty) ...[
+                  const SizedBox(height: 20),
+                  Text('Poll insights',
+                      style: Theme.of(context).textTheme.titleSmall),
+                  const SizedBox(height: 8),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.trending_up, size: 16),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                  child: Text('Top choice',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall)),
+                              Text(_topChoice(poll),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 13)),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              const Icon(Icons.groups_outlined, size: 16),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                  child: Text('Participation',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall)),
+                              Text('${poll.totalVotes} citizens',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 13)),
+                            ],
+                          ),
+                          Row(
+                            children: [
+                              const Icon(Icons.schedule, size: 16),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                  child: Text('Poll ends',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall)),
+                              Text(_endsLabel(poll),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 13)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
                 if (!poll.isActive) ...[
                   const SizedBox(height: 12),
                   TextButton.icon(
@@ -194,6 +257,20 @@ class _PollDetailPageState extends State<PollDetailPage> {
         },
       ),
     );
+  }
+
+  String _topChoice(Poll poll) {
+    if (poll.options.isEmpty) return '—';
+    final top = poll.options.reduce((a, b) => a.percentage >= b.percentage ? a : b);
+    return top.text;
+  }
+
+  String _endsLabel(Poll poll) {
+    final diff = poll.endTime.difference(DateTime.now());
+    if (diff.isNegative) return 'Ended';
+    if (diff.inDays >= 1) return 'in ${diff.inDays}d ${diff.inHours % 24}h';
+    if (diff.inHours >= 1) return 'in ${diff.inHours}h';
+    return 'in ${diff.inMinutes}m';
   }
 
   String _fmt(DateTime time) {

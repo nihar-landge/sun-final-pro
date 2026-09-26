@@ -29,6 +29,6 @@ public class RabbitMqConfig {
 
     @Bean
     public Binding notificationBinding(Queue notificationQueue, TopicExchange eventsExchange) {
-        return BindingBuilder.bind(notificationQueue).to(eventsExchange).with("feedback.*");
+        return BindingBuilder.bind(notificationQueue).to(eventsExchange).with("feedback.#");
     }
 }

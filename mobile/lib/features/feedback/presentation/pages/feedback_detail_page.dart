@@ -140,6 +140,93 @@ class _DetailView extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
 
+                // ---- official update (staff public note) ----
+                if (detail.publicNote.isNotEmpty) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primaryContainer
+                          .withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withValues(alpha: 0.3)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.verified_user_outlined,
+                                size: 16,
+                                color: Theme.of(context).colorScheme.primary),
+                            const SizedBox(width: 6),
+                            Text('OFFICIAL UPDATE',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelSmall
+                                    ?.copyWith(
+                                        letterSpacing: 0.8,
+                                        fontWeight: FontWeight.w800,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary)),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(detail.publicNote),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
+                // ---- resolved celebration ----
+                if (item.status == FeedbackStatus.resolved) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Colors.green.withValues(alpha: 0.4)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('🎉 Issue Resolved',
+                            style: TextStyle(
+                                fontWeight: FontWeight.w800, fontSize: 16)),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Your report helped bring attention to this issue.',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        if (detail.resolvedAt != null) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            'Reported ${_shortDate(item.createdAt)} · '
+                            'Resolved ${_shortDate(detail.resolvedAt!.changedAt)}'
+                            ' · ${_duration(item.createdAt, detail.resolvedAt!.changedAt)}',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
+                        Text(
+                          '${item.upvotes} citizens supported this report',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
                 // ---- timeline ----
                 Text('Progress',
                     style: Theme.of(context)
@@ -190,6 +277,22 @@ class _DetailView extends StatelessWidget {
         },
       ),
     );
+  }
+
+  String _shortDate(String iso) {
+    final date = DateTime.tryParse(iso);
+    if (date == null) return '—';
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return '${date.day} ${months[date.month - 1]}';
+  }
+
+  String _duration(String fromIso, String toIso) {
+    final from = DateTime.tryParse(fromIso);
+    final to = DateTime.tryParse(toIso);
+    if (from == null || to == null) return '';
+    final days = to.difference(from).inDays;
+    if (days < 1) return 'same day';
+    return '$days days';
   }
 
   String _fmtDate(String iso) {

@@ -87,6 +87,23 @@ class FeedbackRepositoryImpl {
     }
   }
 
+  /// Community impact for the Home screen (public, no auth needed).
+  Future<CommunityStats> communityStats() async {
+    try {
+      final data = await remoteDataSource.communityStats();
+      return CommunityStats(
+        totalReports: (data['totalReports'] as num? ?? 0).toInt(),
+        resolvedReports: (data['resolvedReports'] as num? ?? 0).toInt(),
+        resolutionRatePercent: (data['resolutionRatePercent'] as num? ?? 0).toInt(),
+        totalUpvotes: (data['totalUpvotes'] as num? ?? 0).toInt(),
+      );
+    } on NetworkException catch (e) {
+      throw NetworkFailure(e.message);
+    } on ServerException catch (e) {
+      throw ServerFailure(e.message, statusCode: e.statusCode);
+    }
+  }
+
   /// Uploads one photo: presign -> direct PUT to MinIO -> register.
   Future<void> uploadPhoto(int feedbackId, FeedbackPhoto photo) async {
     try {
@@ -125,7 +142,11 @@ class FeedbackRepositoryImpl {
           .toList();
       final images = (data['images'] as List? ?? []).cast<String>().toList();
       return FeedbackDetail(
-          item: item, comments: comments, history: history, images: images);
+          item: item,
+          comments: comments,
+          history: history,
+          images: images,
+          publicNote: data['publicNote'] as String? ?? '');
     } on NetworkException catch (e) {
       throw NetworkFailure(e.message);
     } on ServerException catch (e) {

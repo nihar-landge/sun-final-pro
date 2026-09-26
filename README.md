@@ -95,16 +95,25 @@ how to demo it)
    **map** (OSM, status-colored pins, click-to-drawer), Analytics, user
    management (admin-only), and an **Audit Log** of every status transition.
    MODERATOR role supported end-to-end (sees moderation, not users).
-10. **Report photos**: citizens attach up to 3 photos in the report wizard;
+10. **Persistent notification inbox** — status changes land in a
+    `notificationdb` inbox (created by the RabbitMQ consumer) with unread
+    tracking, mark-read/mark-all-read, an unread badge on the Alerts tab,
+    and deep-linking. FCM push rides the same event.
+11. **Community impact & insights** — public community-stats endpoint
+    (reports / resolved / resolution rate) powers a Home gradient card;
+    resolved reports show a celebration card with resolution duration;
+    poll detail gains a Poll Insights card; admin dashboard gains a
+    14-day reports trend chart; About screen in Profile.
+12. **Report photos**: citizens attach up to 3 photos in the report wizard;
     uploads go **directly to MinIO** via time-limited pre-signed URLs
     (photo bytes never touch the Java services), view URLs are minted per
     detail request, and the 3-photo cap is server-enforced (409).
-11. **Observability & testing**: every service exposes Prometheus metrics
+13. **Observability & testing**: every service exposes Prometheus metrics
     (`/actuator/prometheus`, scraped by the compose Prometheus at :9090,
     dashboards at Grafana :3000), `scripts/e2e.sh` verifies 27 system
     guarantees in one run (also a CI job), and `scripts/load/vote.js` is a
     k6 load test asserting the blueprint's p95 < 200 ms target.
-12. CI runs the backend build plus Testcontainers-PostgreSQL integration
+14. CI runs the backend build plus Testcontainers-PostgreSQL integration
     tests (`TEST_DOCKER=true`), the E2E suite, and Flutter analyze/test.
 
 ## Quickstart

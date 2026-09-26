@@ -266,6 +266,28 @@ public class FeedbackService {
                 .toList();
     }
 
+    /** Community impact for the citizen Home screen (public - no user data). */
+    @Transactional(readOnly = true)
+    public com.example.feedbackapp.feedback.dto.CommunityStatsResponse communityStats() {
+        long total = feedbackRepository.count();
+        long resolved = feedbackRepository.count(
+                (root, query, cb) -> cb.equal(root.get("status"), FeedbackStatus.RESOLVED));
+        long upvotes = feedbackRepository.findAll().stream()
+                .mapToLong(Feedback::getUpvotes).sum();
+        int rate = total == 0 ? 0 : (int) Math.round(resolved * 100.0 / total);
+        return new com.example.feedbackapp.feedback.dto.CommunityStatsResponse(
+                total, resolved, rate, upvotes);
+    }
+
+    /** Daily submission counts for the admin 30-day trend chart. */
+    @Transactional(readOnly = true)
+    public List<com.example.feedbackapp.feedback.dto.TrendPointResponse> trend(int days) {
+        return feedbackRepository.dailyCounts(Math.min(Math.max(days, 7), 90)).stream()
+                .map(row -> new com.example.feedbackapp.feedback.dto.TrendPointResponse(
+                        (String) row[0], ((Number) row[1]).longValue()))
+                .toList();
+    }
+
     /** Aggregate stats for the admin dashboard. */
     @Transactional(readOnly = true)
     public com.example.feedbackapp.feedback.dto.FeedbackAnalyticsSummary analyticsSummary() {

@@ -161,6 +161,25 @@ public class FeedbackController {
         return ApiResponse.ok(feedbackService.addComment(id, request, user), "Comment added");
     }
 
+    @GetMapping("/community-stats")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Community impact numbers (public - no user data)")
+    public ApiResponse<com.example.feedbackapp.feedback.dto.CommunityStatsResponse> communityStats() {
+        return ApiResponse.ok(feedbackService.communityStats());
+    }
+
+    @GetMapping("/admin/trend")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Daily reports trend for the last N days (moderators and admins)")
+    public ApiResponse<List<com.example.feedbackapp.feedback.dto.TrendPointResponse>> trend(
+            @RequestParam(defaultValue = "30") int days,
+            @CurrentUser GatewayUser user) {
+        if (user == null || !(user.isAdmin() || "MODERATOR".equals(user.role()))) {
+            throw new com.example.feedbackapp.common.error.ForbiddenException("Moderators or admins only");
+        }
+        return ApiResponse.ok(feedbackService.trend(days));
+    }
+
     @GetMapping("/analytics/summary")
     @ResponseStatus(HttpStatus.OK)
     @Operation(summary = "Feedback analytics for the admin dashboard")

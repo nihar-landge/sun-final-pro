@@ -107,6 +107,13 @@ class FeedbackRemoteDataSource {
     );
   }
 
+  /// Public community-impact numbers for the Home screen.
+  Future<Map<String, dynamic>> communityStats() {
+    return apiClient.get(
+      Uri.parse('${ApiConstants.feedbackBase}/community-stats'),
+    );
+  }
+
   /// Raw detail payload (item + comments + history) for the repository.
   Future<Map<String, dynamic>> getDetail(int feedbackId) {
     return apiClient.get(
