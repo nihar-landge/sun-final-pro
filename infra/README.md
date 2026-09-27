@@ -60,6 +60,27 @@ docker compose -f infra/docker-compose.yml down -v    # stop + DESTROY all data
 `down -v` also wipes the database-creation scripts' work; they re-run on the
 next `up` (fresh volumes = fresh first-boot).
 
+## Photo storage: SeaweedFS vs Cloudflare R2 (investigated, deferred)
+
+The platform's photo pipeline speaks S3, so storage is swappable by env.
+**Cloudflare R2 was tested end-to-end and is currently deferred**: presigned
+PUT URLs minted by the AWS Java SDK v2 presigner are rejected by R2 with
+`AccessDenied`, while the *identical* presigned URL minted by Python boto3
+uploads successfully (200) — same credentials, bucket, key path and expiry.
+The signature-style incompatibility is a known Java-SDK↔R2 rough edge.
+
+Findings logged for a future pass:
+- R2 token MUST be created from **R2 → Manage R2 API Tokens** (S3
+  credentials); Cloudflare API tokens from My Profile do not work
+- Bucket-scoped tokens deny `ListBuckets` — test with `HeadBucket`
+- Candidates for the fix: account-scoped token (vs bucket-scoped), AWS
+  SDK v1 `generatePresignedUrl`, or a manual SigV4 presigner once the
+  canonical form is pinned against a working reference
+
+Until then SeaweedFS provides the same S3 API locally, and photo uploads
+are fully functional. Swapping to R2 later is env-only **once presigning
+against R2 works from Java**.
+
 ## Security note
 
 Every credential here is a development placeholder (and `OTP_DEV_ECHO=true`

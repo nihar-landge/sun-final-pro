@@ -9,10 +9,8 @@ import com.example.feedbackapp.feedback.config.MinioProperties;
 import com.example.feedbackapp.feedback.entity.Feedback;
 import com.example.feedbackapp.feedback.repository.FeedbackImageRepository;
 import com.example.feedbackapp.feedback.repository.FeedbackRepository;
-import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.MinioClient;
 import io.minio.StatObjectArgs;
-import io.minio.http.Method;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -20,7 +18,6 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Report photo storage on MinIO. Uploads are direct-from-client using
@@ -36,18 +33,18 @@ public class FeedbackImageService {
             Set.of("image/jpeg", "image/png", "image/webp");
 
     private final MinioClient minioClient;
-    private final MinioClient presignMinioClient;
+    private final SigV4Presigner sigV4Presigner;
     private final MinioProperties props;
     private final FeedbackRepository feedbackRepository;
     private final FeedbackImageRepository imageRepository;
 
     public FeedbackImageService(@org.springframework.beans.factory.annotation.Qualifier("minioClient") MinioClient minioClient,
-                                @org.springframework.beans.factory.annotation.Qualifier("presignMinioClient") MinioClient presignMinioClient,
+                                SigV4Presigner sigV4Presigner,
                                 MinioProperties props,
                                 FeedbackRepository feedbackRepository,
                                 FeedbackImageRepository imageRepository) {
         this.minioClient = minioClient;
-        this.presignMinioClient = presignMinioClient;
+        this.sigV4Presigner = sigV4Presigner;
         this.props = props;
         this.feedbackRepository = feedbackRepository;
         this.imageRepository = imageRepository;
@@ -72,13 +69,9 @@ public class FeedbackImageService {
         };
         String objectKey = "reports/%d/%s.%s".formatted(feedbackId, UUID.randomUUID(), ext);
         try {
-            String url = presignMinioClient.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder()
-                    .method(Method.PUT)
-                    .bucket(props.bucket())
-                    .object(objectKey)
-                    .expiry(10, TimeUnit.MINUTES)
-                    .build());
-            return new PresignResult(url, objectKey);
+            SigV4Presigner.PresignedUrl presigned =
+                    sigV4Presigner.presignPut(props.bucket(), objectKey, 600);
+            return new PresignResult(presigned.url(), objectKey);
         } catch (Exception e) {
             log.error("Presign failed for report {}", feedbackId, e);
             throw new InternalErrorException("Could not prepare the photo upload");
@@ -104,19 +97,7 @@ public class FeedbackImageService {
     /** Pre-signed read URLs (1 h) for the report's photos. */
     public List<String> viewUrls(Long feedbackId) {
         return imageRepository.findByFeedbackIdOrderByIdAsc(feedbackId).stream()
-                .map(image -> {
-                    try {
-                        return presignMinioClient.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder()
-                                .method(Method.GET)
-                                .bucket(props.bucket())
-                                .object(image.getObjectKey())
-                                .expiry(60, TimeUnit.MINUTES)
-                                .build());
-                    } catch (Exception e) {
-                        log.warn("Presign GET failed for {}", image.getObjectKey());
-                        return null;
-                    }
-                })
+                .map(image -> sigV4Presigner.presignGet(props.bucket(), image.getObjectKey(), 3600).url())
                 .filter(url -> url != null)
                 .toList();
     }
