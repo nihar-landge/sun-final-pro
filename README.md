@@ -16,6 +16,7 @@ asking anyone:
 
 **Start here**
 
+- [docs/SESSION-HANDOFF.md](docs/SESSION-HANDOFF.md) — full build history: every bug, fix, decision and war story (viva prep)
 - [docs/project-structure.md](docs/project-structure.md) — annotated map of every folder and key file
 - [docs/architecture.md](docs/architecture.md) — system diagram, request flows, design decisions
 - [docs/setup-guide.md](docs/setup-guide.md) — run everything on a new machine
