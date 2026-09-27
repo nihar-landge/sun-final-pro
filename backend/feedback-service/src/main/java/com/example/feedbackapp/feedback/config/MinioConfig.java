@@ -53,12 +53,19 @@ public class MinioConfig {
     public ApplicationRunner bucketBootstrap(
             @org.springframework.beans.factory.annotation.Qualifier("minioClient") MinioClient client,
             MinioProperties props) {
+        // Non-fatal: a storage outage or missing credentials must not take the
+        // whole service down — only photo uploads fail until storage is ready.
         return args -> {
-            boolean exists = client.bucketExists(
-                    BucketExistsArgs.builder().bucket(props.bucket()).build());
-            if (!exists) {
-                client.makeBucket(MakeBucketArgs.builder().bucket(props.bucket()).build());
-                log.info("Created MinIO bucket '{}'", props.bucket());
+            try {
+                boolean exists = client.bucketExists(
+                        BucketExistsArgs.builder().bucket(props.bucket()).build());
+                if (!exists) {
+                    client.makeBucket(MakeBucketArgs.builder().bucket(props.bucket()).build());
+                    log.info("Created storage bucket '{}'", props.bucket());
+                }
+            } catch (Exception e) {
+                log.warn("Storage bucket bootstrap skipped ({}): {}",
+                        props.bucket(), e.getMessage());
             }
         };
     }

@@ -23,7 +23,7 @@ spec:
             - secretRef: { name: feedbackapp-secrets }
           env:
             - name: JAVA_TOOL_OPTIONS
-              value: "-XX:MaxRAMPercentage=70.0 -XX:MaxMetaspaceSize=128m"
+              value: "-XX:MaxRAMPercentage=55.0 -XX:MaxMetaspaceSize=110m"
           startupProbe:
             httpGet: { path: /actuator/health, port: 8082 }
             periodSeconds: 5
@@ -42,7 +42,7 @@ spec:
               memory: 256Mi
             limits:
               cpu: 500m
-              memory: 384Mi
+              memory: 460Mi
 ---
 apiVersion: v1
 kind: Service
