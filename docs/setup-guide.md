@@ -6,7 +6,7 @@
 |---|---|---|
 | JDK | 21 (`/opt/homebrew/opt/openjdk@21`) | backend build & run |
 | Maven | 3.9.x (`brew install maven`) + committed `mvnw` wrapper | backend build |
-| Docker Desktop | any recent | PostgreSQL/PostGIS, Redis, MinIO, RabbitMQ |
+| Docker Desktop | any recent | PostgreSQL/PostGIS, Redis, SeaweedFS, RabbitMQ |
 | Flutter | stable (analyze/test green) | mobile + admin apps |
 | kubectl | any recent | weeks 9-10 deployment |
 
@@ -21,7 +21,7 @@ docker compose -f infra/docker-compose.yml ps     # all four should be "healthy"
 |---|---|---|
 | PostgreSQL + PostGIS | localhost:5432 | `feedback` / `feedback_dev_password` — dbs: `authdb`, `polldb`, `feedbackdb` |
 | Redis | localhost:6379 | none |
-| MinIO | localhost:9000 (API), localhost:9001 (console) | `minioadmin` / `minioadmin123` |
+| SeaweedFS (S3 API) | localhost:9000 | none (no auth in dev) |
 | RabbitMQ | localhost:5672 (AMQP), localhost:15672 (UI) | `guest` / `guest` |
 
 ## 2. Run the backend
@@ -79,8 +79,13 @@ cd admin && flutter analyze
 
 Note: recent Docker Desktop versions reject the Testcontainers client
 version, so the PostgreSQL integration tests are gated behind
-`TEST_DOCKER=true` (CI runs them). Locally the same constraints are verified
-by the live E2E curl flow in the README.
+`TEST_DOCKER=true` (CI runs them). On Docker Desktop 29+, the engine's
+minimum API version (1.40) is above what the Testcontainers client
+negotiates (1.32) — add `-DargLine="-Dapi.version=1.44"` to run them locally:
+
+```bash
+TEST_DOCKER=true ./mvnw -pl poll-service,feedback-service -am test -DargLine="-Dapi.version=1.44"
+```
 
 ## Troubleshooting
 

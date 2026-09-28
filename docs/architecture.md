@@ -26,7 +26,7 @@ flowchart TD
         J[(polldb)]
         K[(feedbackdb<br/>+ PostGIS)]
         L[(Redis)]
-        M[(MinIO)]
+        M[(Object storage<br/>R2 / SeaweedFS)]
         N[(RabbitMQ)]
     end
 

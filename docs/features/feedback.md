@@ -23,7 +23,7 @@ POST /feedback              POST /feedback/{id}/status    POST /feedback/{id}/up
 | `feedback` | The report | `location GEOGRAPHY(POINT,4326)` + GIST index; `sentiment_score/label` (reserved for sentiment-service); `upvotes` counter |
 | `feedback_status_history` | Audit trail | old status, new status, who changed, when |
 | `feedback_upvotes` | Who upvoted | composite PK `(feedback_id, user_id)` = one per citizen; implements `Persistable` (see polls.md for why) |
-| `feedback_images` | Photo links | MinIO URLs — upload itself is future work |
+| `feedback_images` | Photo links | object keys in S3-compatible storage (Cloudflare R2 live; SeaweedFS in dev); direct pre-signed uploads, 3-photo cap |
 | `comments` | Discussion threads | text + author + timestamp |
 
 ## The near-me query (PostGIS)

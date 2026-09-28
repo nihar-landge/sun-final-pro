@@ -122,12 +122,12 @@ feedbackapp/                        ← repo root (this project)
 │                                   analytics, users
 │
 ├── infra/                          Local development infrastructure
-│   ├── docker-compose.yml          PostgreSQL+PostGIS, Redis, MinIO, RabbitMQ
-│   └── postgres/init/              First-boot scripts: create 3 databases + PostGIS
+│   ├── docker-compose.yml          PostgreSQL+PostGIS, Redis, SeaweedFS, RabbitMQ
+│   └── postgres/init/              First-boot scripts: create the service databases + PostGIS
 │
-├── k8s/                            Kubernetes manifests (pattern for weeks 9-10)
-│   └── base/                       namespace, config, secret, gateway + auth
-│                                   Deployment/Service/HPA
+├── k8s/                            Kubernetes manifests (public via Cloudflare Tunnel)
+│   └── base/                       namespace, configmap, secret +
+│                                   Deployments/Services/HPA for all five services
 │
 └── docs/api/*.yaml                 Import into Swagger Editor to explore the API
 ```

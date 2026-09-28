@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
 # =============================================================================
 # CivicPulse end-to-end verification — the guarantees that must never break.
-# Usage: infra must be up; scripts/e2e.sh [gatewayPort]
+# Usage: infra must be up; scripts/e2e.sh [port | host:port | https://host]
 # Exits non-zero on the first broken guarantee.
 # =============================================================================
 set -u
 GW="${1:-localhost:8080}"
+case "$GW" in
+  *:*) ;;                    # full URL or host:port — use as given
+  *) GW="localhost:$GW" ;;   # bare port — local gateway
+esac
 PASS=0; FAIL=0
 
 check() { # check <name> <expected> <actual>
@@ -27,11 +31,18 @@ token() { # token <phone> -> access token (dev echo OTP)
 }
 
 echo "── 1. Authentication"
-check "gateway health" "200" "$(curl -s -o /dev/null -w '%{http_code}' -m 5 $GW/actuator/health)"
+HEALTH=$(curl -s -o /dev/null -w '%{http_code}' -m 5 $GW/actuator/health)
+check "gateway health" "200" "$HEALTH"
+if [ "$HEALTH" != "200" ]; then
+  echo ""
+  echo "Gateway unreachable at $GW (got $HEALTH) — aborting before the remaining checks."
+  echo "In CI, service logs are dumped by the workflow; locally check the service consoles."
+  exit 1
+fi
 CITIZEN=$(token "9876543210"); [ -n "$CITIZEN" ] && { PASS=$((PASS+1)); echo "  ✓ citizen login"; } || { FAIL=$((FAIL+1)); echo "  ✗ citizen login"; }
 ADMIN=$(token "9999999999");   [ -n "$ADMIN" ] &&   { PASS=$((PASS+1)); echo "  ✓ admin login"; }   || { FAIL=$((FAIL+1)); echo "  ✗ admin login"; }
-check "bad token rejected" "401" "$(curl -s -o /dev/null -w '%{http_code}' $GW/api/v1/auth/me -H 'Authorization: Bearer garbage')"
-check "no token rejected"  "401" "$(curl -s -o /dev/null -w '%{http_code}' $GW/api/v1/polls/health 2>/dev/null || true)"
+check "bad token rejected" "401" "$(curl -s -o /dev/null -w '%{http_code}' -m 5 $GW/api/v1/auth/me -H 'Authorization: Bearer garbage')"
+check "no token rejected"  "401" "$(curl -s -o /dev/null -w '%{http_code}' -m 5 $GW/api/v1/polls/health 2>/dev/null || true)"
 
 echo "── 2. One-person-one-vote (composite PK)"
 CREATED=$(curl -s -X POST "$GW/api/v1/polls" -H "Authorization: Bearer $ADMIN" \

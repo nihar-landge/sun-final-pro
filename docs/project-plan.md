@@ -5,7 +5,7 @@ Baseline of what exists after the foundation phase, then the phased roadmap.
 ## Phase 0 — Foundation (done)
 
 - [x] Monorepo: Maven multi-module backend, Flutter mobile + web admin
-- [x] Docker Compose infra (PostgreSQL+PostGIS, Redis, MinIO, RabbitMQ)
+- [x] Docker Compose infra (PostgreSQL+PostGIS, Redis, SeaweedFS, RabbitMQ)
 - [x] Flyway schemas for all three databases
 - [x] auth-service: OTP + JWT + refresh rotation, unit-tested
 - [x] api-gateway: routing, edge JWT validation, CORS
@@ -24,8 +24,8 @@ Baseline of what exists after the foundation phase, then the phased roadmap.
 ## Phase 2 — Rich features (weeks 5-6)
 
 - [ ] WebSocket (STOMP) live poll results; Redis pub/sub fan-out
-- [ ] Geo-tagging: PostGIS `ST_DWithin` "issues near me"; image upload to
-  MinIO (pre-signed URLs)
+- [x] Geo-tagging: PostGIS `ST_DWithin` "issues near me"; image upload via
+  pre-signed URLs (Cloudflare R2 live / SeaweedFS local)
 - [ ] sentiment-service: score feedback text on `feedback.created` events
   from RabbitMQ; store score/label on feedback rows
 - [ ] notification-service: consume events, push/in-app notifications
