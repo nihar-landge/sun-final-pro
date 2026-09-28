@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:feedback_app/core/theme/status_colors.dart';
+import 'package:feedback_app/l10n/gen/app_localizations.dart';
 import 'package:feedback_app/features/alerts/presentation/bloc/alerts_bloc.dart';
 import 'package:feedback_app/features/feedback/presentation/pages/feedback_detail_page.dart';
 import 'package:feedback_app/features/polls/presentation/pages/poll_detail_page.dart';
@@ -29,6 +30,7 @@ class _AlertsPageState extends State<AlertsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return SafeArea(
       child: Column(
         children: [
@@ -36,7 +38,7 @@ class _AlertsPageState extends State<AlertsPage> {
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
             child: Row(
               children: [
-                Text('Alerts',
+                Text(l10n.alertsTitle,
                     style: Theme.of(context)
                         .textTheme
                         .headlineSmall
@@ -49,7 +51,7 @@ class _AlertsPageState extends State<AlertsPage> {
                       onPressed: hasUnread
                           ? () => context.read<AlertsBloc>().add(const AllMarkedRead())
                           : null,
-                      child: const Text('Mark all read'),
+                      child: Text(l10n.alertsMarkAllRead),
                     );
                   },
                 ),
@@ -77,10 +79,9 @@ class _AlertsPageState extends State<AlertsPage> {
                 if (items.isEmpty) {
                   return EmptyState(
                     icon: Icons.notifications_none_rounded,
-                    title: 'Nothing new',
-                    subtitle:
-                        'Report an issue or vote in a poll to see updates here.',
-                    actionLabel: 'Refresh',
+                    title: l10n.alertsNothingNew,
+                    subtitle: l10n.alertsNothingNewSubtitle,
+                    actionLabel: l10n.commonRefresh,
                     onAction: _refresh,
                   );
                 }
@@ -93,7 +94,7 @@ class _AlertsPageState extends State<AlertsPage> {
                     itemCount: items.length,
                     itemBuilder: (context, index) {
                       final item = items[index];
-                      final group = _groupOf(item.createdAt);
+                      final group = _groupOf(l10n, item.createdAt);
                       final showHeader = group != currentGroup;
                       currentGroup = group;
                       return Column(
@@ -129,17 +130,17 @@ class _AlertsPageState extends State<AlertsPage> {
     );
   }
 
-  String _groupOf(String iso) {
+  String _groupOf(AppLocalizations l10n, String iso) {
     final when = DateTime.tryParse(iso);
-    if (when == null) return 'Earlier';
+    if (when == null) return l10n.alertsEarlier;
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final day = DateTime(when.year, when.month, when.day);
     final diff = today.difference(day).inDays;
-    if (diff <= 0) return 'Today';
-    if (diff == 1) return 'Yesterday';
-    if (diff <= 7) return 'This week';
-    return 'Earlier';
+    if (diff <= 0) return l10n.alertsToday;
+    if (diff == 1) return l10n.alertsYesterday;
+    if (diff <= 7) return l10n.alertsThisWeek;
+    return l10n.alertsEarlier;
   }
 
   void _open(AlertItem item) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:feedback_app/l10n/gen/app_localizations.dart';
 import 'package:feedback_app/features/polls/domain/entities/poll.dart';
 import 'package:feedback_app/features/polls/presentation/bloc/polls_bloc.dart';
 import 'package:feedback_app/features/polls/presentation/pages/poll_detail_page.dart';
@@ -31,6 +32,7 @@ class _PollsListPageState extends State<PollsListPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return SafeArea(
       child: Column(
         children: [
@@ -38,7 +40,7 @@ class _PollsListPageState extends State<PollsListPage> {
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
             child: Align(
               alignment: Alignment.centerLeft,
-              child: Text('Polls',
+              child: Text(l10n.pollsTitle,
                   style: Theme.of(context)
                       .textTheme
                       .headlineSmall
@@ -48,10 +50,10 @@ class _PollsListPageState extends State<PollsListPage> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: SegmentedButton<int>(
-              segments: const [
-                ButtonSegment(value: 0, label: Text('Active')),
-                ButtonSegment(value: 1, label: Text('Upcoming')),
-                ButtonSegment(value: 2, label: Text('Closed')),
+              segments: [
+                ButtonSegment(value: 0, label: Text(l10n.pollsSegmentActive)),
+                ButtonSegment(value: 1, label: Text(l10n.pollsSegmentUpcoming)),
+                ButtonSegment(value: 2, label: Text(l10n.pollsSegmentClosed)),
               ],
               selected: {_segment},
               onSelectionChanged: (selection) {
@@ -86,9 +88,9 @@ class _PollsListPageState extends State<PollsListPage> {
                 if (polls.isEmpty) {
                   return EmptyState(
                     icon: _emptyIcon,
-                    title: _emptyTitle,
-                    subtitle: 'Pull down to refresh.',
-                    actionLabel: 'Refresh',
+                    title: _emptyTitle(l10n),
+                    subtitle: l10n.pollsPullToRefresh,
+                    actionLabel: l10n.commonRefresh,
                     onAction: _load,
                   );
                 }
@@ -127,9 +129,9 @@ class _PollsListPageState extends State<PollsListPage> {
         _ => Icons.inventory_2_outlined,
       };
 
-  String get _emptyTitle => switch (_segment) {
-        0 => 'No active polls right now',
-        1 => 'No upcoming polls scheduled',
-        _ => 'No closed polls yet',
+  String _emptyTitle(AppLocalizations l10n) => switch (_segment) {
+        0 => l10n.pollsEmptyActive,
+        1 => l10n.pollsEmptyUpcoming,
+        _ => l10n.pollsEmptyClosed,
       };
 }

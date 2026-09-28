@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:feedback_app/core/constants/app_constants.dart';
 import 'package:feedback_app/core/network/api_client.dart' as api;
 import 'package:feedback_app/features/feedback/data/datasources/feedback_remote_data_source.dart';
 import 'package:feedback_app/features/feedback/data/repositories/feedback_repository_impl.dart';
@@ -12,6 +11,7 @@ import 'package:feedback_app/features/map/presentation/pages/nearby_issues_map_p
 import 'package:feedback_app/features/polls/domain/entities/poll.dart';
 import 'package:feedback_app/features/polls/presentation/bloc/polls_bloc.dart';
 import 'package:feedback_app/features/polls/presentation/pages/poll_detail_page.dart';
+import 'package:feedback_app/l10n/gen/app_localizations.dart';
 import 'package:feedback_app/shared/widgets/cards.dart';
 import 'package:feedback_app/shared/widgets/states.dart';
 
@@ -27,11 +27,11 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  String get _greeting {
+  String _greeting(AppLocalizations l10n) {
     final hour = DateTime.now().hour;
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
+    if (hour < 12) return l10n.homeGreetingMorning;
+    if (hour < 17) return l10n.homeGreetingAfternoon;
+    return l10n.homeGreetingEvening;
   }
 
   @override
@@ -46,6 +46,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     return SafeArea(
       child: RefreshIndicator(
         onRefresh: () async {
@@ -64,13 +65,13 @@ class _HomePageState extends State<HomePage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('$_greeting 👋',
+                      Text('${_greeting(l10n)} 👋',
                           style: Theme.of(context)
                               .textTheme
                               .headlineSmall
                               ?.copyWith(fontWeight: FontWeight.w800)),
                       const SizedBox(height: 2),
-                      Text('Make your city better.',
+                      Text(l10n.homeSubtitle,
                           style: Theme.of(context)
                               .textTheme
                               .bodyMedium
@@ -100,8 +101,8 @@ class _HomePageState extends State<HomePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SectionHeader(
-                      title: 'Active poll',
-                      actionLabel: 'See all',
+                      title: l10n.homeActivePoll,
+                      actionLabel: l10n.commonSeeAll,
                       onAction: () => widget.onNavigate?.call(1),
                     ),
                     PollCard(
@@ -117,13 +118,13 @@ class _HomePageState extends State<HomePage> {
               },
             ),
             // ---- Quick actions ----
-            SectionHeader(title: 'Quick actions'),
+            SectionHeader(title: l10n.homeQuickActions),
             Row(
               children: [
                 Expanded(
                   child: _QuickAction(
                     icon: Icons.add_a_photo_outlined,
-                    label: 'Report\nIssue',
+                    label: l10n.homeQuickReport,
                     onTap: () => widget.onNavigate?.call(2),
                   ),
                 ),
@@ -131,7 +132,7 @@ class _HomePageState extends State<HomePage> {
                 Expanded(
                   child: _QuickAction(
                     icon: Icons.map_outlined,
-                    label: 'Nearby\nIssues',
+                    label: l10n.homeQuickNearby,
                     onTap: () => Navigator.of(context).push(MaterialPageRoute(
                       builder: (_) => const NearbyIssuesMapPage(),
                     )),
@@ -145,7 +146,7 @@ class _HomePageState extends State<HomePage> {
                 Expanded(
                   child: _QuickAction(
                     icon: Icons.how_to_vote_outlined,
-                    label: 'Active\nPolls',
+                    label: l10n.homeQuickPolls,
                     onTap: () => widget.onNavigate?.call(1),
                   ),
                 ),
@@ -153,7 +154,7 @@ class _HomePageState extends State<HomePage> {
                 Expanded(
                   child: _QuickAction(
                     icon: Icons.description_outlined,
-                    label: 'My\nReports',
+                    label: l10n.homeQuickMyReports,
                     onTap: () => widget.onNavigate?.call(4),
                   ),
                 ),
@@ -175,14 +176,14 @@ class _HomePageState extends State<HomePage> {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SectionHeader(title: 'Nearby issues'),
+                    SectionHeader(title: l10n.homeNearbyIssues),
                     if (state is FeedbackLoading && items.isEmpty)
                       const LoadingSkeleton(cards: 2)
                     else if (items.isEmpty)
-                      const EmptyState(
+                      EmptyState(
                         icon: Icons.explore_outlined,
-                        title: 'No nearby reports',
-                        subtitle: 'Your area looks clean — or be the first to report.',
+                        title: l10n.homeNoNearbyTitle,
+                        subtitle: l10n.homeNoNearbySubtitle,
                       )
                     else
                       ...items.take(3).map((item) => Padding(
@@ -218,7 +219,7 @@ class _HomePageState extends State<HomePage> {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SectionHeader(title: 'Your reports'),
+                    SectionHeader(title: l10n.homeYourReports),
                     if (items.isEmpty)
                       Card(
                         child: Padding(
@@ -230,7 +231,7 @@ class _HomePageState extends State<HomePage> {
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
-                                  "You haven't reported anything yet.\nSpotted a problem? Tap + to report it.",
+                                  l10n.homeNoReports,
                                   style:
                                       Theme.of(context).textTheme.bodySmall,
                                 ),
@@ -258,7 +259,7 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 8),
             Center(
-              child: Text(AppConstants.appTagline,
+              child: Text(l10n.appTagline,
                   style: Theme.of(context)
                       .textTheme
                       .bodySmall
@@ -318,6 +319,7 @@ class _CommunityImpactCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     return FutureBuilder<CommunityStats>(
       future: _repository.communityStats(),
       builder: (context, snapshot) {
@@ -336,18 +338,20 @@ class _CommunityImpactCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Community impact',
+              Text(l10n.homeCommunityImpact,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       color: scheme.onPrimary, fontWeight: FontWeight.w800)),
               const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _impact(context, '${stats?.totalReports ?? '—'}', 'issues reported'),
-                  _impact(context, '${stats?.resolvedReports ?? '—'}', 'resolved'),
+                  _impact(context, '${stats?.totalReports ?? '—'}',
+                      l10n.homeIssuesReported),
+                  _impact(context, '${stats?.resolvedReports ?? '—'}',
+                      l10n.homeResolved),
                   _impact(context,
                       stats == null ? '—' : '${stats.resolutionRatePercent}%',
-                      'resolution rate'),
+                      l10n.homeResolutionRate),
                 ],
               ),
             ],

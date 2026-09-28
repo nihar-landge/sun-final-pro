@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:feedback_app/core/l10n/entity_labels.dart';
 import 'package:feedback_app/core/theme/status_colors.dart';
+import 'package:feedback_app/l10n/gen/app_localizations.dart';
 import 'package:feedback_app/features/feedback/data/repositories/feedback_repository_impl.dart';
 import 'package:feedback_app/features/feedback/domain/entities/feedback.dart';
 import 'package:feedback_app/features/feedback/presentation/bloc/feedback_detail_bloc.dart';
@@ -32,8 +34,9 @@ class _DetailView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Report')),
+      appBar: AppBar(title: Text(l10n.detailTitle)),
       body: BlocConsumer<FeedbackDetailBloc, DetailState>(
         listener: (context, state) {
           if (state is DetailMessage) {
@@ -88,7 +91,7 @@ class _DetailView extends StatelessWidget {
                     Icon(Icons.person_outline,
                         size: 16, color: Theme.of(context).colorScheme.outline),
                     const SizedBox(width: 4),
-                    Text('Citizen',
+                    Text(l10n.detailCitizen,
                         style: Theme.of(context).textTheme.bodySmall),
                     const SizedBox(width: 12),
                     Icon(Icons.schedule,
@@ -135,8 +138,7 @@ class _DetailView extends StatelessWidget {
                       .read<FeedbackDetailBloc>()
                       .add(const DetailUpvoteRequested()),
                   icon: const Icon(Icons.thumb_up_alt_rounded, size: 18),
-                  label: Text(
-                      '${item.upvotes} ${item.upvotes == 1 ? 'person supports' : 'people support'} this'),
+                  label: Text(l10n.detailUpvoteSupport(item.upvotes)),
                 ),
                 const SizedBox(height: 16),
 
@@ -164,7 +166,7 @@ class _DetailView extends StatelessWidget {
                                 size: 16,
                                 color: Theme.of(context).colorScheme.primary),
                             const SizedBox(width: 6),
-                            Text('OFFICIAL UPDATE',
+                            Text(l10n.detailOfficialUpdate,
                                 style: Theme.of(context)
                                     .textTheme
                                     .labelSmall
@@ -197,25 +199,28 @@ class _DetailView extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('🎉 Issue Resolved',
-                            style: TextStyle(
+                        Text(l10n.detailResolvedTitle,
+                            style: const TextStyle(
                                 fontWeight: FontWeight.w800, fontSize: 16)),
                         const SizedBox(height: 6),
                         Text(
-                          'Your report helped bring attention to this issue.',
+                          l10n.detailResolvedSubtitle,
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                         if (detail.resolvedAt != null) ...[
                           const SizedBox(height: 8),
                           Text(
-                            'Reported ${_shortDate(item.createdAt)} · '
-                            'Resolved ${_shortDate(detail.resolvedAt!.changedAt)}'
-                            ' · ${_duration(item.createdAt, detail.resolvedAt!.changedAt)}',
+                            l10n.detailResolvedDates(
+                              _shortDate(item.createdAt),
+                              _shortDate(detail.resolvedAt!.changedAt),
+                              _duration(l10n, item.createdAt,
+                                  detail.resolvedAt!.changedAt),
+                            ),
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
                         ],
                         Text(
-                          '${item.upvotes} citizens supported this report',
+                          l10n.detailCitizensSupported(item.upvotes),
                           style: Theme.of(context)
                               .textTheme
                               .bodySmall
@@ -228,7 +233,7 @@ class _DetailView extends StatelessWidget {
                 ],
 
                 // ---- timeline ----
-                Text('Progress',
+                Text(l10n.detailProgress,
                     style: Theme.of(context)
                         .textTheme
                         .titleMedium
@@ -239,7 +244,7 @@ class _DetailView extends StatelessWidget {
                 // ---- location ----
                 if (item.latitude != null) ...[
                   const SizedBox(height: 20),
-                  Text('Location',
+                  Text(l10n.detailLocation,
                       style: Theme.of(context)
                           .textTheme
                           .titleMedium
@@ -254,14 +259,14 @@ class _DetailView extends StatelessWidget {
 
                 // ---- comments ----
                 const SizedBox(height: 20),
-                Text('Comments (${detail.comments.length})',
+                Text(l10n.detailComments(detail.comments.length),
                     style: Theme.of(context)
                         .textTheme
                         .titleMedium
                         ?.copyWith(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 10),
                 if (detail.comments.isEmpty)
-                  Text('No comments yet — start the conversation.',
+                  Text(l10n.detailNoComments,
                       style: Theme.of(context).textTheme.bodySmall)
                 else
                   ...detail.comments.map((comment) => _CommentBubble(
@@ -286,13 +291,13 @@ class _DetailView extends StatelessWidget {
     return '${date.day} ${months[date.month - 1]}';
   }
 
-  String _duration(String fromIso, String toIso) {
+  String _duration(AppLocalizations l10n, String fromIso, String toIso) {
     final from = DateTime.tryParse(fromIso);
     final to = DateTime.tryParse(toIso);
     if (from == null || to == null) return '';
     final days = to.difference(from).inDays;
-    if (days < 1) return 'same day';
-    return '$days days';
+    if (days < 1) return l10n.detailSameDay;
+    return l10n.detailDaysCount(days);
   }
 
   String _fmtDate(String iso) {
@@ -314,15 +319,16 @@ class _Timeline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final steps = <_TimelineStep>[
       _TimelineStep(
-          label: 'Report submitted',
+          label: l10n.detailTimelineSubmitted,
           time: detail.item.createdAt,
           done: true,
           color: Theme.of(context).colorScheme.primary),
       for (final change in detail.history)
         _TimelineStep(
-          label: StatusColors.label(change.newStatus),
+          label: feedbackStatusLabel(context, change.newStatus),
           time: change.changedAt,
           done: true,
           current: change == detail.history.last &&
@@ -332,8 +338,8 @@ class _Timeline extends StatelessWidget {
       if (detail.item.status != FeedbackStatus.resolved)
         _TimelineStep(
           label: detail.item.status == FeedbackStatus.inReview
-              ? 'Resolution'
-              : 'Review',
+              ? l10n.detailTimelineResolution
+              : l10n.detailTimelineReview,
           time: null,
           done: false,
           color: Theme.of(context).colorScheme.outline,
@@ -466,7 +472,9 @@ class _CommentBubble extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Citizen #${comment.userId}',
+            Text(
+                AppLocalizations.of(context)
+                    .detailCitizenNumber('${comment.userId}'),
                 style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
@@ -511,8 +519,8 @@ class _CommentComposerState extends State<_CommentComposer> {
         Expanded(
           child: TextField(
             controller: _controller,
-            decoration:
-                const InputDecoration(hintText: 'Write a comment…'),
+            decoration: InputDecoration(
+                hintText: AppLocalizations.of(context).detailCommentHint),
             onSubmitted: (_) => _send(),
           ),
         ),

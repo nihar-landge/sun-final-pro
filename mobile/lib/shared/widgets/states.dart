@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:feedback_app/l10n/gen/app_localizations.dart';
+
 /// Standard empty / error / loading states so every screen behaves the same.
 
 class EmptyState extends StatelessWidget {
@@ -68,11 +70,12 @@ class ErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return EmptyState(
       icon: Icons.cloud_off_outlined,
-      title: 'Something went wrong',
+      title: l10n.commonSomethingWentWrong,
       subtitle: message,
-      actionLabel: 'Try again',
+      actionLabel: l10n.commonTryAgain,
       onAction: onRetry,
     );
   }

@@ -4,11 +4,13 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
+import 'package:feedback_app/core/l10n/entity_labels.dart';
 import 'package:feedback_app/core/theme/status_colors.dart';
 import 'package:feedback_app/shared/widgets/status_chips.dart';
 import 'package:feedback_app/features/feedback/domain/entities/feedback.dart';
 import 'package:feedback_app/features/feedback/presentation/bloc/feedback_bloc.dart';
 import 'package:feedback_app/features/feedback/presentation/pages/feedback_detail_page.dart';
+import 'package:feedback_app/l10n/gen/app_localizations.dart';
 import 'package:feedback_app/shared/widgets/states.dart';
 
 /// Nearby-issues map: PostGIS near-me results plotted as status-colored
@@ -65,8 +67,9 @@ class _NearbyIssuesMapPageState extends State<NearbyIssuesMapPage> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Issues Near You')),
+      appBar: AppBar(title: Text(l10n.mapTitle)),
       body: BlocConsumer<FeedbackBloc, FeedbackState>(
         listener: (context, state) {
           if (state is FeedbackFailure) {
@@ -144,11 +147,14 @@ class _NearbyIssuesMapPageState extends State<NearbyIssuesMapPage> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      _legendDot(StatusColors.open, 'Open'),
+                      _legendDot(StatusColors.open,
+                          feedbackStatusLabel(context, 'OPEN')),
                       const SizedBox(width: 10),
-                      _legendDot(StatusColors.inReview, 'Review'),
+                      _legendDot(StatusColors.inReview,
+                          feedbackStatusLabel(context, 'IN_REVIEW')),
                       const SizedBox(width: 10),
-                      _legendDot(StatusColors.resolved, 'Resolved'),
+                      _legendDot(StatusColors.resolved,
+                          feedbackStatusLabel(context, 'RESOLVED')),
                     ],
                   ),
                 ),
@@ -162,7 +168,7 @@ class _NearbyIssuesMapPageState extends State<NearbyIssuesMapPage> {
                     FloatingActionButton.small(
                       heroTag: 'recenter',
                       onPressed: _loadNearby,
-                      tooltip: 'Center on my location',
+                      tooltip: l10n.mapRecenter,
                       child: const Icon(Icons.my_location),
                     ),
                     const SizedBox(height: 8),
@@ -174,7 +180,7 @@ class _NearbyIssuesMapPageState extends State<NearbyIssuesMapPage> {
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: scheme.outlineVariant),
                       ),
-                      child: Text('${geoItems.length} reports',
+                      child: Text(l10n.mapReportsCount(geoItems.length),
                           style: Theme.of(context).textTheme.bodySmall),
                     ),
                   ],
@@ -202,6 +208,7 @@ class _NearbyIssuesMapPageState extends State<NearbyIssuesMapPage> {
   }
 
   void _showPreview(FeedbackItem item) {
+    final l10n = AppLocalizations.of(context);
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -239,7 +246,7 @@ class _NearbyIssuesMapPageState extends State<NearbyIssuesMapPage> {
                         FeedbackDetailPage(feedbackId: item.id),
                   ));
                 },
-                child: const Text('View Report'),
+                child: Text(l10n.mapViewReport),
               ),
             ),
           ],

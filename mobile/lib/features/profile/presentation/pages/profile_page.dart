@@ -2,13 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:feedback_app/core/constants/app_constants.dart';
+import 'package:feedback_app/core/l10n/entity_labels.dart';
 import 'package:feedback_app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:feedback_app/features/auth/presentation/pages/login_page.dart';
 import 'package:feedback_app/features/feedback/domain/entities/feedback.dart';
 import 'package:feedback_app/features/feedback/presentation/bloc/feedback_bloc.dart';
 import 'package:feedback_app/features/feedback/presentation/pages/feedback_detail_page.dart';
 import 'package:feedback_app/features/profile/presentation/pages/about_page.dart';
+import 'package:feedback_app/features/profile/presentation/bloc/locale_cubit.dart';
 import 'package:feedback_app/features/profile/presentation/bloc/theme_cubit.dart';
+import 'package:feedback_app/l10n/gen/app_localizations.dart';
 
 /// Profile — account, my reports, preferences (theme, language) and logout.
 class ProfilePage extends StatelessWidget {
@@ -17,8 +20,9 @@ class ProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final authState = context.watch<AuthBloc>().state;
+    final l10n = AppLocalizations.of(context);
     final user = authState is Authenticated ? authState.user : null;
-    final name = user?.name ?? 'Citizen';
+    final name = user?.name ?? l10n.profileFallbackName;
     final phone = user?.phone ?? '';
 
     return SafeArea(
@@ -63,10 +67,10 @@ class ProfilePage extends StatelessWidget {
               ),
             ],
           ),
-          const _SectionTitle('My activity'),
+          _SectionTitle(l10n.profileSectionActivity),
           _MyReportsCard(),
 
-          const _SectionTitle('Preferences'),
+          _SectionTitle(l10n.profileSectionPreferences),
           Card(
             child: Column(
               children: [
@@ -77,37 +81,34 @@ class ProfilePage extends StatelessWidget {
             ),
           ),
 
-          const _SectionTitle('Privacy'),
+          _SectionTitle(l10n.profileSectionPrivacy),
           Card(
             child: Column(
               children: [
                 ListTile(
                   leading: const Icon(Icons.shield_outlined),
-                  title: const Text('Anonymous voting'),
-                  subtitle: const Text(
-                      'Your votes are always anonymous by design — results can never be traced back to you.'),
+                  title: Text(l10n.profileAnonymousVotingTitle),
+                  subtitle: Text(l10n.profileAnonymousVotingSubtitle),
                   trailing: const Icon(Icons.check_circle,
                       color: Colors.green, size: 20),
                 ),
                 const Divider(height: 1, indent: 16, endIndent: 16),
                 ListTile(
                   leading: const Icon(Icons.location_off_outlined),
-                  title: const Text('Location sharing'),
-                  subtitle: const Text(
-                      'Only attached to a report when you choose to.'),
+                  title: Text(l10n.profileLocationSharingTitle),
+                  subtitle: Text(l10n.profileLocationSharingSubtitle),
                   isThreeLine: true,
                 ),
               ],
             ),
           ),
 
-          const _SectionTitle('About'),
+          _SectionTitle(l10n.profileSectionAbout),
           Card(
             child: ListTile(
               leading: const Icon(Icons.info_outline),
               title: const Text(AppConstants.appName),
-              subtitle: const Text(
-                  '${AppConstants.appTagline}\nCDAC Final Project — Mobile Computing'),
+              subtitle: Text(l10n.profileAboutSubtitle(l10n.appTagline)),
               isThreeLine: true,
               trailing: const Icon(Icons.chevron_right),
               onTap: () => Navigator.of(context).push(
@@ -123,7 +124,7 @@ class ProfilePage extends StatelessWidget {
               side: BorderSide(color: Theme.of(context).colorScheme.error),
             ),
             icon: const Icon(Icons.logout_rounded),
-            label: const Text('Sign out'),
+            label: Text(l10n.profileSignOut),
             onPressed: () {
               context.read<AuthBloc>().add(LogoutRequested());
               Navigator.of(context).pushAndRemoveUntil(
@@ -168,6 +169,7 @@ class _MyReportsCard extends StatelessWidget {
           cur is FeedbackLoading ||
           cur is FeedbackFailure,
       builder: (context, state) {
+        final l10n = AppLocalizations.of(context);
         final items = switch (state) {
           FeedbackLoaded s when s.mine => s.items,
           _ => const <FeedbackItem>[],
@@ -184,7 +186,7 @@ class _MyReportsCard extends StatelessWidget {
                         style: Theme.of(context).textTheme.headlineSmall
                             ?.copyWith(fontWeight: FontWeight.w800)),
                     const SizedBox(width: 8),
-                    Text('reports filed',
+                    Text(l10n.profileReportsFiled,
                         style: Theme.of(context).textTheme.bodyMedium),
                   ],
                 ),
@@ -198,11 +200,7 @@ class _MyReportsCard extends StatelessWidget {
                         title: Text(item.title,
                             maxLines: 1, overflow: TextOverflow.ellipsis),
                         trailing: Text(
-                          switch (item.status.name) {
-                            'RESOLVED' => 'Resolved',
-                            'IN_REVIEW' => 'In Review',
-                            _ => 'Open',
-                          },
+                          feedbackStatusLabel(context, item.status.name),
                           style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -222,7 +220,7 @@ class _MyReportsCard extends StatelessWidget {
                   if (items.length > 3)
                     TextButton(
                       onPressed: () {},
-                      child: Text('View all ${items.length} reports'),
+                      child: Text(l10n.profileViewAllReports(items.length)),
                     ),
                 ],
               ],
@@ -246,7 +244,7 @@ class _ThemeSelector extends StatelessWidget {
         ThemeMode.light => Icons.light_mode_rounded,
         _ => Icons.brightness_auto_rounded,
       }),
-      title: const Text('Theme'),
+      title: Text(AppLocalizations.of(context).profileTheme),
       trailing: SegmentedButton<ThemeMode>(
         segments: const [
           ButtonSegment(value: ThemeMode.system, icon: Icon(Icons.brightness_auto, size: 18)),
@@ -271,10 +269,12 @@ class _LanguageSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final current = AppLanguage.forLocale(context.watch<LocaleCubit>().state);
     return ListTile(
       leading: const Icon(Icons.translate),
-      title: const Text('Language'),
-      subtitle: const Text('English'),
+      title: Text(l10n.profileLanguage),
+      subtitle: Text(current.nativeName),
       onTap: () {
         showModalBottomSheet<void>(
           context: context,
@@ -285,15 +285,23 @@ class _LanguageSelector extends StatelessWidget {
               children: [
                 for (final language in AppLanguage.values)
                   ListTile(
-                    title: Text(language.nativeName),
-                    subtitle: language == AppLanguage.english
-                        ? null
-                        : Text(language.subtitle),
-                    trailing: language == AppLanguage.english
-                        ? const Icon(Icons.check_circle)
+                    title: Text(language.nativeName,
+                        style: language == current
+                            ? TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: Theme.of(sheetContext)
+                                    .colorScheme
+                                    .primary)
+                            : null),
+                    trailing: language == current
+                        ? Icon(Icons.check_circle,
+                            color:
+                                Theme.of(sheetContext).colorScheme.primary)
                         : null,
-                    enabled: language == AppLanguage.english,
-                    onTap: () => Navigator.of(sheetContext).pop(),
+                    onTap: () {
+                      context.read<LocaleCubit>().setLocale(language.locale);
+                      Navigator.of(sheetContext).pop();
+                    },
                   ),
                 const SizedBox(height: 12),
               ],

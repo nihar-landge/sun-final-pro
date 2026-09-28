@@ -1,0 +1,285 @@
+{
+  "@@locale": "en",
+
+  "appTagline": "Your voice. Your community. Your impact.",
+
+  "commonTryAgain": "Try again",
+  "commonSomethingWentWrong": "Something went wrong",
+  "commonView": "VIEW",
+
+  "statusOpen": "Open",
+  "statusInReview": "In Review",
+  "statusResolved": "Resolved",
+
+  "categoryRoads": "Roads",
+  "categoryWater": "Water",
+  "categoryElectricity": "Electricity",
+  "categorySanitation": "Sanitation",
+  "categoryTransport": "Transport",
+  "categoryOther": "Other",
+
+  "pollStatusLive": "LIVE",
+  "pollStatusUpcoming": "UPCOMING",
+  "pollStatusClosed": "CLOSED",
+  "pollVotedBadge": "VOTED",
+  "pollEnded": "Ended",
+  "pollEndsInDays": "Ends in {days}d",
+  "@pollEndsInDays": {
+    "placeholders": { "days": { "type": "int" } }
+  },
+  "pollEndsInHours": "Ends in {hours}h",
+  "@pollEndsInHours": {
+    "placeholders": { "hours": { "type": "int" } }
+  },
+  "pollEndsInMinutes": "Ends in {minutes}m",
+  "@pollEndsInMinutes": {
+    "placeholders": { "minutes": { "type": "int" } }
+  },
+  "pollVotesCount": "{count} votes",
+  "@pollVotesCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "pollParticipating": "{count} participating",
+  "@pollParticipating": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "pollParticipatingWithCountdown": "{count} participating  •  {countdown}",
+  "@pollParticipatingWithCountdown": {
+    "placeholders": {
+      "count": { "type": "int" },
+      "countdown": { "type": "String" }
+    }
+  },
+  "pollOptionsWithCountdown": "{count} options · {countdown}",
+  "@pollOptionsWithCountdown": {
+    "placeholders": {
+      "count": { "type": "int" },
+      "countdown": { "type": "String" }
+    }
+  },
+
+  "profileFallbackName": "Citizen",
+  "profileSectionActivity": "My activity",
+  "profileReportsFiled": "reports filed",
+  "profileViewAllReports": "View all {count} reports",
+  "@profileViewAllReports": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "profileSectionPreferences": "Preferences",
+  "profileTheme": "Theme",
+  "profileLanguage": "Language",
+  "profileSectionPrivacy": "Privacy",
+  "profileAnonymousVotingTitle": "Anonymous voting",
+  "profileAnonymousVotingSubtitle": "Your votes are always anonymous by design — results can never be traced back to you.",
+  "profileLocationSharingTitle": "Location sharing",
+  "profileLocationSharingSubtitle": "Only attached to a report when you choose to.",
+  "profileSectionAbout": "About",
+  "profileAboutSubtitle": "{tagline}\nCDAC Final Project — Mobile Computing",
+  "@profileAboutSubtitle": {
+    "placeholders": { "tagline": { "type": "String" } }
+  },
+  "profileSignOut": "Sign out",
+
+  "loginSubtitle": "Raise your voice for your city.\nSign in with your phone number.",
+  "loginPhoneLabel": "Phone number",
+  "loginSendOtp": "Send OTP",
+
+  "otpTitle": "Verify OTP",
+  "otpSentTo": "We sent a code to {phone}",
+  "@otpSentTo": {
+    "placeholders": { "phone": { "type": "String" } }
+  },
+  "otpDevChip": "Dev OTP: {code} — tap to fill",
+  "@otpDevChip": {
+    "placeholders": { "code": { "type": "String" } }
+  },
+  "otpCodeLabel": "6-digit OTP",
+  "otpNameLabel": "Your name (new users)",
+  "otpVerifySignIn": "Verify & Sign in",
+
+  "validationEnterPhone": "Enter your phone number",
+  "validationPhoneDigits": "Phone must be 10-15 digits",
+  "validationEnterOtp": "Enter the OTP",
+  "validationOtpDigits": "OTP must be 6 digits",
+  "validationEnterName": "Enter your name",
+  "validationNameLength": "Name must be at most 100 characters",
+
+  "commonSeeAll": "See all",
+
+  "homeGreetingMorning": "Good morning",
+  "homeGreetingAfternoon": "Good afternoon",
+  "homeGreetingEvening": "Good evening",
+  "homeSubtitle": "Make your city better.",
+  "homeActivePoll": "Active poll",
+  "homeQuickActions": "Quick actions",
+  "homeQuickReport": "Report\nIssue",
+  "homeQuickNearby": "Nearby\nIssues",
+  "homeQuickPolls": "Active\nPolls",
+  "homeQuickMyReports": "My\nReports",
+  "homeNearbyIssues": "Nearby issues",
+  "homeNoNearbyTitle": "No nearby reports",
+  "homeNoNearbySubtitle": "Your area looks clean — or be the first to report.",
+  "homeYourReports": "Your reports",
+  "homeNoReports": "You haven't reported anything yet.\nSpotted a problem? Tap + to report it.",
+  "homeCommunityImpact": "Community impact",
+  "homeIssuesReported": "issues reported",
+  "homeResolved": "resolved",
+  "homeResolutionRate": "resolution rate",
+
+  "mapTitle": "Issues Near You",
+  "mapRecenter": "Center on my location",
+  "mapReportsCount": "{count, plural, =1{1 report} other{{count} reports}}",
+  "@mapReportsCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "mapViewReport": "View Report",
+
+  "commonBack": "Back",
+  "commonContinue": "Continue",
+
+  "wizardTitle": "Report an Issue",
+  "wizardSubmitReport": "Submit Report",
+  "wizardCategoryQuestion": "What is the problem?",
+  "wizardCategoryRoads": "Roads",
+  "wizardCategoryStreetLights": "Street Lights",
+  "wizardCategoryWaste": "Waste",
+  "wizardCategoryWater": "Water",
+  "wizardCategoryTraffic": "Traffic",
+  "wizardCategoryPublicSpaces": "Public Spaces",
+  "wizardDescribeTitle": "What's happening?",
+  "wizardTitleHint": "Short title, e.g. \"Large pothole near the bus stop\"",
+  "wizardDescriptionHint": "Describe the issue — what, where exactly, since when…",
+  "wizardAddPhotos": "Add photos",
+  "wizardPhotosHint": "Up to 3 photos — clear photos get reports fixed faster.",
+  "wizardTakePhoto": "Take a photo",
+  "wizardChooseGallery": "Choose from gallery",
+  "wizardPickPhotoError": "Could not pick the photo — try again.",
+  "wizardUploadingPhotos": "Uploading photos…",
+  "wizardLocationQuestion": "Where is the issue?",
+  "wizardNoLocationYet": "No location set yet",
+  "wizardUseMyLocation": "Use my current location",
+  "wizardManualEntryTitle": "No GPS? Enter coordinates manually",
+  "wizardLatitude": "Latitude",
+  "wizardLongitude": "Longitude",
+  "wizardInvalid": "Invalid",
+  "wizardLocationNote": "Your location is used only for this report and helps the municipality find and fix the issue faster. You can copy coordinates from any maps app.",
+  "wizardLocationBlocked": "Location is blocked for this app.",
+  "wizardOpenSettings": "Open Settings",
+  "wizardLocationDenied": "Location permission denied — enter coordinates below.",
+  "wizardLocationFailed": "Could not get your location. Enter coordinates below.",
+  "wizardSimilarTitle": "Similar reports nearby",
+  "wizardSimilarSubtitle": "Reports within 300 m of your location, same category.",
+  "wizardCheckingNearby": "Checking nearby reports…",
+  "wizardNoSimilarTitle": "No similar reports",
+  "wizardNoSimilarSubtitle": "You seem to be the first to spot this here.",
+  "wizardSimilarFound": "{count, plural, =1{We found 1 similar report nearby. Supporting an existing report gets it fixed faster.} other{We found {count} similar reports nearby. Supporting an existing report gets it fixed faster.}}",
+  "@wizardSimilarFound": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "wizardSimilarDistance": "<300 m",
+  "wizardStillFileReport": "Still want to file your report? Submit below — more reports raise priority.",
+  "wizardSubmittedTitle": "Report submitted!",
+  "wizardSubmittedTrack": "Report #{id} · track it from Alerts or Profile",
+  "@wizardSubmittedTrack": {
+    "placeholders": { "id": { "type": "int" } }
+  },
+  "wizardTrackReport": "Track your report",
+  "wizardBackHome": "Back to home",
+
+  "detailTitle": "Report",
+  "detailCitizen": "Citizen",
+  "detailUpvoteSupport": "{count, plural, =1{1 person supports this} other{{count} people support this}}",
+  "@detailUpvoteSupport": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "detailOfficialUpdate": "OFFICIAL UPDATE",
+  "detailResolvedTitle": "🎉 Issue Resolved",
+  "detailResolvedSubtitle": "Your report helped bring attention to this issue.",
+  "detailResolvedDates": "Reported {reported} · Resolved {resolved} · {duration}",
+  "@detailResolvedDates": {
+    "placeholders": {
+      "reported": { "type": "String" },
+      "resolved": { "type": "String" },
+      "duration": { "type": "String" }
+    }
+  },
+  "detailSameDay": "same day",
+  "detailDaysCount": "{count, plural, =1{1 day} other{{count} days}}",
+  "@detailDaysCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "detailCitizensSupported": "{count, plural, =1{1 citizen supported this report} other{{count} citizens supported this report}}",
+  "@detailCitizensSupported": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "detailProgress": "Progress",
+  "detailLocation": "Location",
+  "detailComments": "Comments ({count})",
+  "@detailComments": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "detailNoComments": "No comments yet — start the conversation.",
+  "detailTimelineSubmitted": "Report submitted",
+  "detailTimelineResolution": "Resolution",
+  "detailTimelineReview": "Review",
+  "detailCitizenNumber": "Citizen #{id}",
+  "@detailCitizenNumber": {
+    "placeholders": { "id": { "type": "String" } }
+  },
+  "detailCommentHint": "Write a comment…",
+
+  "commonRefresh": "Refresh",
+
+  "pollsTitle": "Polls",
+  "pollsSegmentActive": "Active",
+  "pollsSegmentUpcoming": "Upcoming",
+  "pollsSegmentClosed": "Closed",
+  "pollsPullToRefresh": "Pull down to refresh.",
+  "pollsEmptyActive": "No active polls right now",
+  "pollsEmptyUpcoming": "No upcoming polls scheduled",
+  "pollsEmptyClosed": "No closed polls yet",
+
+  "pollDetailTitle": "Poll",
+  "pollOpenUntil": "open until",
+  "pollClosedLabel": "closed",
+  "pollAnonymousSuffix": " · anonymous",
+  "pollCastVote": "Cast vote",
+  "pollAlreadyVoted": "You already voted in this poll — thanks for participating!",
+  "pollLiveResults": "Live results",
+  "pollResults": "Results",
+  "pollInsights": "Poll insights",
+  "pollTopChoice": "Top choice",
+  "pollParticipation": "Participation",
+  "pollEnds": "Poll ends",
+  "pollCitizensCount": "{count} citizens",
+  "@pollCitizensCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "pollEndsInDaysHours": "Ends in {days}d {hours}h",
+  "@pollEndsInDaysHours": {
+    "placeholders": {
+      "days": { "type": "int" },
+      "hours": { "type": "int" }
+    }
+  },
+  "pollRefreshResults": "Refresh results",
+
+  "alertsTitle": "Alerts",
+  "alertsMarkAllRead": "Mark all read",
+  "alertsNothingNew": "Nothing new",
+  "alertsNothingNewSubtitle": "Report an issue or vote in a poll to see updates here.",
+  "alertsToday": "Today",
+  "alertsYesterday": "Yesterday",
+  "alertsThisWeek": "This week",
+  "alertsEarlier": "Earlier",
+
+  "aboutTitle": "About",
+  "aboutWhatYouCanDo": "What you can do",
+  "aboutBulletPolls": "Participate in public polls with live results",
+  "aboutBulletReports": "Report local issues with photos and GPS location",
+  "aboutBulletSimilar": "Find and support similar reports nearby",
+  "aboutBulletResolution": "Track issue resolution with official updates",
+  "aboutBulletNotifications": "Receive push notifications on status changes",
+  "aboutBuiltWith": "Built with",
+  "aboutFooter": "CDAC Final Project — Mobile Computing\nMicroservices · Clean Architecture · One person, one vote"
+}

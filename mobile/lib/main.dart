@@ -19,7 +19,9 @@ import 'package:feedback_app/features/feedback/presentation/bloc/feedback_bloc.d
 import 'package:feedback_app/features/polls/data/datasources/poll_remote_data_source.dart';
 import 'package:feedback_app/features/polls/data/repositories/poll_repository_impl.dart';
 import 'package:feedback_app/features/polls/presentation/bloc/polls_bloc.dart';
+import 'package:feedback_app/features/profile/presentation/bloc/locale_cubit.dart';
 import 'package:feedback_app/features/profile/presentation/bloc/theme_cubit.dart';
+import 'package:feedback_app/l10n/gen/app_localizations.dart';
 
 /// Manual dependency wiring (a get_it-based injection_container.dart replaces
 /// this when the feature count justifies it).
@@ -50,8 +52,11 @@ Future<void> main() async {
   await PushService.preload(); // Firebase init (FCM push)
   final prefs = await SharedPreferences.getInstance();
   runApp(
-    BlocProvider(
-      create: (_) => ThemeCubit(prefs),
+    MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (_) => ThemeCubit(prefs)),
+        BlocProvider(create: (_) => LocaleCubit(prefs)),
+      ],
       child: const FeedbackApp(),
     ),
   );
@@ -72,20 +77,25 @@ class FeedbackApp extends StatelessWidget {
         BlocProvider(create: (_) => buildAlertsBloc()),
       ],
       child: BlocBuilder<ThemeCubit, ThemeMode>(
-        builder: (context, themeMode) => MaterialApp(
-          title: AppConstants.appName,
-          theme: AppTheme.light(),
-          darkTheme: AppTheme.dark(),
-          themeMode: themeMode,
-          navigatorKey: PushService.navigatorKey,
-          home: BlocListener<AuthBloc, AuthState>(
-            listener: (context, authState) {
-              if (authState is Authenticated) {
-                PushService.register(tokenStore);
-                PushService.handleInitialMessage();
-              }
-            },
-            child: const LoginPage(),
+        builder: (context, themeMode) => BlocBuilder<LocaleCubit, Locale>(
+          builder: (context, locale) => MaterialApp(
+            title: AppConstants.appName,
+            theme: AppTheme.light(),
+            darkTheme: AppTheme.dark(),
+            themeMode: themeMode,
+            locale: locale,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            navigatorKey: PushService.navigatorKey,
+            home: BlocListener<AuthBloc, AuthState>(
+              listener: (context, authState) {
+                if (authState is Authenticated) {
+                  PushService.register(tokenStore);
+                  PushService.handleInitialMessage();
+                }
+              },
+              child: const LoginPage(),
+            ),
           ),
         ),
       ),

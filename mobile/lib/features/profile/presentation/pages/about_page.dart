@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:feedback_app/core/constants/app_constants.dart';
+import 'package:feedback_app/l10n/gen/app_localizations.dart';
 
 /// About CivicPulse — purpose, capabilities and technology stack.
 class AboutPage extends StatelessWidget {
@@ -8,8 +9,9 @@ class AboutPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('About')),
+      appBar: AppBar(title: Text(l10n.aboutTitle)),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -35,25 +37,25 @@ class AboutPage extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Center(
-            child: Text(AppConstants.appTagline,
+            child: Text(l10n.appTagline,
                 style: Theme.of(context)
                     .textTheme
                     .bodyMedium
                     ?.copyWith(fontStyle: FontStyle.italic)),
           ),
           const SizedBox(height: 24),
-          Text('What you can do',
+          Text(l10n.aboutWhatYouCanDo,
               style: Theme.of(context)
                   .textTheme
                   .titleMedium
                   ?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
           ...[
-            'Participate in public polls with live results',
-            'Report local issues with photos and GPS location',
-            'Find and support similar reports nearby',
-            'Track issue resolution with official updates',
-            'Receive push notifications on status changes',
+            l10n.aboutBulletPolls,
+            l10n.aboutBulletReports,
+            l10n.aboutBulletSimilar,
+            l10n.aboutBulletResolution,
+            l10n.aboutBulletNotifications,
           ].map((line) => Padding(
                 padding: const EdgeInsets.only(bottom: 6),
                 child: Row(
@@ -66,7 +68,7 @@ class AboutPage extends StatelessWidget {
                 ),
               )),
           const SizedBox(height: 20),
-          Text('Built with',
+          Text(l10n.aboutBuiltWith,
               style: Theme.of(context)
                   .textTheme
                   .titleMedium
@@ -85,8 +87,7 @@ class AboutPage extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           Text(
-            'CDAC Final Project — Mobile Computing\n'
-            'Microservices · Clean Architecture · One person, one vote',
+            l10n.aboutFooter,
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ],

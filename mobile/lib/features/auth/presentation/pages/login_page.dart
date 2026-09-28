@@ -6,6 +6,7 @@ import 'package:feedback_app/core/utils/validators.dart';
 import 'package:feedback_app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:feedback_app/features/auth/presentation/pages/otp_verification_page.dart';
 import 'package:feedback_app/features/home_shell.dart';
+import 'package:feedback_app/l10n/gen/app_localizations.dart';
 
 /// Phone number entry — the first step of OTP login.
 class LoginPage extends StatefulWidget {
@@ -55,6 +56,7 @@ class _LoginPageState extends State<LoginPage> {
         },
         builder: (context, state) {
           final loading = state is AuthLoading;
+          final l10n = AppLocalizations.of(context);
           return SafeArea(
             child: Center(
               child: SingleChildScrollView(
@@ -74,19 +76,19 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Raise your voice for your city.\nSign in with your phone number.',
+                        l10n.loginSubtitle,
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                       const SizedBox(height: 32),
                       TextFormField(
                         controller: _phoneController,
-                        decoration: const InputDecoration(
-                          labelText: 'Phone number',
-                          prefixIcon: Icon(Icons.phone_outlined),
+                        decoration: InputDecoration(
+                          labelText: l10n.loginPhoneLabel,
+                          prefixIcon: const Icon(Icons.phone_outlined),
                         ),
                         keyboardType: TextInputType.phone,
-                        validator: Validators.phone,
+                        validator: (value) => Validators.phone(value, l10n),
                       ),
                       const SizedBox(height: 16),
                       FilledButton(
@@ -97,7 +99,7 @@ class _LoginPageState extends State<LoginPage> {
                                 width: 20,
                                 child: CircularProgressIndicator(strokeWidth: 2),
                               )
-                            : const Text('Send OTP'),
+                            : Text(l10n.loginSendOtp),
                       ),
                     ],
                   ),

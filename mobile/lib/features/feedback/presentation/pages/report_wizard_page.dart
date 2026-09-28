@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
 
 import 'package:feedback_app/core/errors/failures.dart';
+import 'package:feedback_app/l10n/gen/app_localizations.dart';
 import 'package:feedback_app/features/feedback/domain/entities/feedback.dart';
 import 'package:feedback_app/features/feedback/presentation/bloc/feedback_bloc.dart';
 import 'package:feedback_app/features/feedback/presentation/pages/feedback_detail_page.dart';
@@ -37,14 +38,21 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
   final List<String> _photoPaths = [];
   bool _uploading = false;
 
-  static const _categories = [
-    (FeedbackCategory.roads, 'Roads', Icons.construction),
-    (FeedbackCategory.electricity, 'Street Lights', Icons.lightbulb_outline),
-    (FeedbackCategory.sanitation, 'Waste', Icons.delete_outline),
-    (FeedbackCategory.water, 'Water', Icons.water_drop_outlined),
-    (FeedbackCategory.transport, 'Traffic', Icons.traffic_outlined),
-    (FeedbackCategory.other, 'Public Spaces', Icons.park_outlined),
-  ];
+  List<(FeedbackCategory, String, IconData)> _categories(
+          AppLocalizations l10n) =>
+      [
+        (FeedbackCategory.roads, l10n.wizardCategoryRoads, Icons.construction),
+        (FeedbackCategory.electricity, l10n.wizardCategoryStreetLights,
+            Icons.lightbulb_outline),
+        (FeedbackCategory.sanitation, l10n.wizardCategoryWaste,
+            Icons.delete_outline),
+        (FeedbackCategory.water, l10n.wizardCategoryWater,
+            Icons.water_drop_outlined),
+        (FeedbackCategory.transport, l10n.wizardCategoryTraffic,
+            Icons.traffic_outlined),
+        (FeedbackCategory.other, l10n.wizardCategoryPublicSpaces,
+            Icons.park_outlined),
+      ];
 
   @override
   void dispose() {
@@ -66,19 +74,20 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
       };
 
   Future<void> _useMyLocation() async {
+    final l10n = AppLocalizations.of(context);
     setState(() => _locating = true);
     try {
       final permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.deniedForever) {
         _snackWithAction(
-          'Location is blocked for this app.',
-          actionLabel: 'Open Settings',
+          l10n.wizardLocationBlocked,
+          actionLabel: l10n.wizardOpenSettings,
           onAction: () => Geolocator.openAppSettings(),
         );
         return;
       }
       if (permission == LocationPermission.denied) {
-        _snack('Location permission denied — enter coordinates below.');
+        _snack(l10n.wizardLocationDenied);
         return;
       }
       final position = await Geolocator.getCurrentPosition(
@@ -94,7 +103,7 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
         _lngController.text = position.longitude.toStringAsFixed(6);
       });
     } catch (_) {
-      _snack('Could not get your location. Enter coordinates below.');
+      _snack(l10n.wizardLocationFailed);
     } finally {
       if (mounted) setState(() => _locating = false);
     }
@@ -186,7 +195,7 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
                       : done / _photoBytes.length,
                 ),
                 const SizedBox(height: 14),
-                const Text('Uploading photos…'),
+                Text(AppLocalizations.of(dialogContext).wizardUploadingPhotos),
               ],
             ),
           );
@@ -236,6 +245,7 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
         }
       },
       builder: (context, state) {
+        final l10n = AppLocalizations.of(context);
         if (state is FeedbackSubmitting) {
           return const Center(child: CircularProgressIndicator());
         }
@@ -246,7 +256,7 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                 child: Align(
                   alignment: Alignment.centerLeft,
-                  child: Text('Report an Issue',
+                  child: Text(l10n.wizardTitle,
                       style: Theme.of(context)
                           .textTheme
                           .headlineSmall
@@ -297,7 +307,7 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
                             _step--;
                             if (_step < 4) _similarChecked = false;
                           }),
-                          child: const Text('Back'),
+                          child: Text(l10n.commonBack),
                         ),
                       ),
                     if (_step > 0) const SizedBox(width: 12),
@@ -313,7 +323,9 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
                                   _submit();
                                 }
                               },
-                        child: Text(_step < 3 ? 'Continue' : 'Submit Report'),
+                        child: Text(_step < 3
+                            ? l10n.commonContinue
+                            : l10n.wizardSubmitReport),
                       ),
                     ),
                   ],
@@ -342,11 +354,12 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
   }
 
   Widget _stepCategory() {
+    final l10n = AppLocalizations.of(context);
     return Column(
       key: const ValueKey(0),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('What is the problem?',
+        Text(l10n.wizardCategoryQuestion,
             style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 14),
         GridView.count(
@@ -356,7 +369,7 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
           mainAxisSpacing: 10,
           crossAxisSpacing: 10,
           childAspectRatio: 1.1,
-          children: _categories.map((entry) {
+          children: _categories(l10n).map((entry) {
             final (category, label, icon) = entry;
             final selected = _category == category;
             final scheme = Theme.of(context).colorScheme;
@@ -398,25 +411,25 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
   }
 
   Widget _stepDescribe() {
+    final l10n = AppLocalizations.of(context);
     return Column(
       key: const ValueKey(1),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text("What's happening?",
+        Text(l10n.wizardDescribeTitle,
             style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 14),
         TextFormField(
           controller: _titleController,
-          decoration: const InputDecoration(
-              hintText: 'Short title, e.g. "Large pothole near the bus stop"'),
+          decoration: InputDecoration(hintText: l10n.wizardTitleHint),
           maxLength: 200,
           onChanged: (_) => setState(() {}),
         ),
         const SizedBox(height: 8),
         TextFormField(
           controller: _descriptionController,
-          decoration: const InputDecoration(
-              hintText: 'Describe the issue — what, where exactly, since when…',
+          decoration: InputDecoration(
+              hintText: l10n.wizardDescriptionHint,
               alignLabelWithHint: true),
           maxLines: 5,
           maxLength: 5000,
@@ -428,6 +441,7 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
 
   Future<void> _pickPhoto(ImageSource source) async {
     if (_photoBytes.length >= 3) return;
+    final l10n = AppLocalizations.of(context);
     try {
       final picked = await ImagePicker().pickImage(
         source: source,
@@ -441,20 +455,21 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
         _photoPaths.add(picked.path);
       });
     } catch (_) {
-      _snack('Could not pick the photo — try again.');
+      _snack(l10n.wizardPickPhotoError);
     }
   }
 
   Widget _stepPhotos() {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     return Column(
       key: const ValueKey(2),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Add photos',
+        Text(l10n.wizardAddPhotos,
             style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 6),
-        Text('Up to 3 photos — clear photos get reports fixed faster.',
+        Text(l10n.wizardPhotosHint,
             style: Theme.of(context).textTheme.bodySmall),
         const SizedBox(height: 14),
         Row(
@@ -507,13 +522,13 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
                         children: [
                           ListTile(
                             leading: const Icon(Icons.camera_alt_outlined),
-                            title: const Text('Take a photo'),
+                            title: Text(l10n.wizardTakePhoto),
                             onTap: () =>
                                 Navigator.of(sheetContext).pop(ImageSource.camera),
                           ),
                           ListTile(
                             leading: const Icon(Icons.photo_outlined),
-                            title: const Text('Choose from gallery'),
+                            title: Text(l10n.wizardChooseGallery),
                             onTap: () =>
                                 Navigator.of(sheetContext).pop(ImageSource.gallery),
                           ),
@@ -542,13 +557,14 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
   }
 
   Widget _stepLocation() {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final hasLocation = _lat != null && _lng != null;
     return Column(
       key: const ValueKey(3),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Where is the issue?',
+        Text(l10n.wizardLocationQuestion,
             style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 14),
         Card(
@@ -563,7 +579,7 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
                 Text(
                   hasLocation
                       ? '${_lat!.toStringAsFixed(5)}, ${_lng!.toStringAsFixed(5)}'
-                      : 'No location set yet',
+                      : l10n.wizardNoLocationYet,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                       color: hasLocation ? scheme.primary : null),
@@ -577,14 +593,14 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
                           width: 16,
                           child: CircularProgressIndicator(strokeWidth: 2))
                       : const Icon(Icons.my_location),
-                  label: const Text('Use my current location'),
+                  label: Text(l10n.wizardUseMyLocation),
                 ),
               ],
             ),
           ),
         ),
         const SizedBox(height: 16),
-        Text('No GPS? Enter coordinates manually',
+        Text(l10n.wizardManualEntryTitle,
             style: Theme.of(context).textTheme.titleSmall),
         const SizedBox(height: 10),
         Row(
@@ -596,9 +612,9 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
                 keyboardType: const TextInputType.numberWithOptions(
                     decimal: true, signed: true),
                 decoration: InputDecoration(
-                  labelText: 'Latitude',
+                  labelText: l10n.wizardLatitude,
                   hintText: '18.52043',
-                  errorText: _latError,
+                  errorText: _latError(l10n),
                 ),
                 onChanged: (_) => _onManualCoordsChanged(),
               ),
@@ -610,9 +626,9 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
                 keyboardType: const TextInputType.numberWithOptions(
                     decimal: true, signed: true),
                 decoration: InputDecoration(
-                  labelText: 'Longitude',
+                  labelText: l10n.wizardLongitude,
                   hintText: '73.85674',
-                  errorText: _lngError,
+                  errorText: _lngError(l10n),
                 ),
                 onChanged: (_) => _onManualCoordsChanged(),
               ),
@@ -621,52 +637,51 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Your location is used only for this report and helps the '
-          'municipality find and fix the issue faster. You can copy '
-          'coordinates from any maps app.',
+          l10n.wizardLocationNote,
           style: Theme.of(context).textTheme.bodySmall,
         ),
       ],
     );
   }
 
-  String? get _latError {
+  String? _latError(AppLocalizations l10n) {
     final text = _latController.text.trim();
     if (text.isEmpty) return null;
     final value = double.tryParse(text);
-    if (value == null || value.abs() > 90) return 'Invalid';
+    if (value == null || value.abs() > 90) return l10n.wizardInvalid;
     return null;
   }
 
-  String? get _lngError {
+  String? _lngError(AppLocalizations l10n) {
     final text = _lngController.text.trim();
     if (text.isEmpty) return null;
     final value = double.tryParse(text);
-    if (value == null || value.abs() > 180) return 'Invalid';
+    if (value == null || value.abs() > 180) return l10n.wizardInvalid;
     return null;
   }
 
   Widget _stepSimilar() {
+    final l10n = AppLocalizations.of(context);
     return Column(
       key: const ValueKey(4),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Similar reports nearby',
+        Text(l10n.wizardSimilarTitle,
             style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 6),
-        Text('Reports within 300 m of your location, same category.',
+        Text(l10n.wizardSimilarSubtitle,
             style: Theme.of(context).textTheme.bodySmall),
         const SizedBox(height: 14),
         if (!_similarChecked)
-          const EmptyState(
+          EmptyState(
             icon: Icons.search,
-            title: 'Checking nearby reports…',
+            title: l10n.wizardCheckingNearby,
           )
         else if (_similar.isEmpty)
-          const EmptyState(
+          EmptyState(
             icon: Icons.task_alt,
-            title: 'No similar reports',
-            subtitle: 'You seem to be the first to spot this here.',
+            title: l10n.wizardNoSimilarTitle,
+            subtitle: l10n.wizardNoSimilarSubtitle,
           )
         else ...[
           Container(
@@ -681,8 +696,7 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'We found ${_similar.length} similar report${_similar.length == 1 ? '' : 's'} nearby. '
-                    'Supporting an existing report gets it fixed faster.',
+                    l10n.wizardSimilarFound(_similar.length),
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ),
@@ -696,7 +710,7 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
                   children: [
                     ReportCard(
                       item: item,
-                      distanceLabel: '<300 m',
+                      distanceLabel: l10n.wizardSimilarDistance,
                       onTap: () => Navigator.of(context).push(MaterialPageRoute(
                         builder: (_) => FeedbackDetailPage(feedbackId: item.id),
                       )),
@@ -716,9 +730,7 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
                   const Icon(Icons.edit_note, size: 20),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: Text(
-                        'Still want to file your report? Submit below — '
-                        'more reports raise priority.',
+                    child: Text(l10n.wizardStillFileReport,
                         style: Theme.of(context).textTheme.bodySmall),
                   ),
                 ],
@@ -735,6 +747,7 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
       Navigator.of(context).maybePop();
       return;
     }
+    final l10n = AppLocalizations.of(context);
     showModalBottomSheet<void>(
       context: context,
       isDismissible: false,
@@ -753,13 +766,13 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
                   size: 40, color: Theme.of(context).colorScheme.primary),
             ),
             const SizedBox(height: 16),
-            Text('Report submitted!',
+            Text(l10n.wizardSubmittedTitle,
                 style: Theme.of(context)
                     .textTheme
                     .titleLarge
                     ?.copyWith(fontWeight: FontWeight.w800)),
             const SizedBox(height: 6),
-            Text('Report #${created.id} · track it from Alerts or Profile',
+            Text(l10n.wizardSubmittedTrack(created.id),
                 style: Theme.of(context).textTheme.bodyMedium),
             const SizedBox(height: 20),
             FilledButton(
@@ -769,7 +782,7 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
                   builder: (_) => FeedbackDetailPage(feedbackId: created.id),
                 ));
               },
-              child: const Text('Track your report'),
+              child: Text(l10n.wizardTrackReport),
             ),
             const SizedBox(height: 8),
             TextButton(
@@ -777,7 +790,7 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
                 Navigator.of(sheetContext).pop();
                 Navigator.of(context).maybePop();
               },
-              child: const Text('Back to home'),
+              child: Text(l10n.wizardBackHome),
             ),
           ],
         ),

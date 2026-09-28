@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:feedback_app/core/utils/validators.dart';
 import 'package:feedback_app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:feedback_app/features/home_shell.dart';
+import 'package:feedback_app/l10n/gen/app_localizations.dart';
 
 /// Second step of OTP login: enter the 6-digit code (and name on first login).
 class OtpVerificationPage extends StatefulWidget {
@@ -39,8 +40,9 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Verify OTP')),
+      appBar: AppBar(title: Text(l10n.otpTitle)),
       body: BlocConsumer<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is Authenticated) {
@@ -67,7 +69,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
-                        'We sent a code to ${widget.phone}',
+                        l10n.otpSentTo(widget.phone),
                         style: Theme.of(context).textTheme.bodyLarge,
                       ),
                       if (widget.devOtp != null) ...[
@@ -90,7 +92,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
                               children: [
                                 const Icon(Icons.developer_mode, size: 16),
                                 const SizedBox(width: 8),
-                                Text('Dev OTP: ${widget.devOtp} — tap to fill',
+                                Text(l10n.otpDevChip(widget.devOtp!),
                                     style:
                                         Theme.of(context).textTheme.bodySmall),
                               ],
@@ -101,24 +103,24 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
                       const SizedBox(height: 24),
                       TextFormField(
                         controller: _codeController,
-                        decoration: const InputDecoration(
-                          labelText: '6-digit OTP',
-                          prefixIcon: Icon(Icons.lock_outline),
+                        decoration: InputDecoration(
+                          labelText: l10n.otpCodeLabel,
+                          prefixIcon: const Icon(Icons.lock_outline),
                         ),
                         keyboardType: TextInputType.number,
                         maxLength: 6,
-                        validator: Validators.otp,
+                        validator: (value) => Validators.otp(value, l10n),
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _nameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Your name (new users)',
-                          prefixIcon: Icon(Icons.person_outline),
+                        decoration: InputDecoration(
+                          labelText: l10n.otpNameLabel,
+                          prefixIcon: const Icon(Icons.person_outline),
                         ),
                         textCapitalization: TextCapitalization.words,
                         validator: (value) =>
-                            value == null || value.trim().isEmpty ? null : Validators.name(value),
+                            value == null || value.trim().isEmpty ? null : Validators.name(value, l10n),
                       ),
                       const SizedBox(height: 24),
                       FilledButton(
@@ -129,7 +131,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
                                 width: 20,
                                 child: CircularProgressIndicator(strokeWidth: 2),
                               )
-                            : const Text('Verify & Sign in'),
+                            : Text(l10n.otpVerifySignIn),
                       ),
                     ],
                   ),

@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:stomp_dart_client/stomp_dart_client.dart';
 
 import 'package:feedback_app/core/constants/api_constants.dart';
+import 'package:feedback_app/l10n/gen/app_localizations.dart';
 import 'package:feedback_app/features/polls/data/models/poll_model.dart';
 import 'package:feedback_app/features/polls/domain/entities/poll.dart';
 import 'package:feedback_app/features/polls/presentation/bloc/polls_bloc.dart';
@@ -81,8 +82,9 @@ class _PollDetailPageState extends State<PollDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Poll')),
+      appBar: AppBar(title: Text(l10n.pollDetailTitle)),
       body: BlocConsumer<PollsBloc, PollsState>(
         listener: (context, state) {
           if (state is PollsFailure) {
@@ -123,7 +125,7 @@ class _PollDetailPageState extends State<PollDetailPage> {
                 ],
                 const SizedBox(height: 8),
                 Text(
-                  '${poll.totalVotes} votes · ${poll.status == 'ACTIVE' ? 'open until' : 'closed'} ${_fmt(poll.endTime)}${poll.anonymous ? ' · anonymous' : ''}',
+                  '${l10n.pollVotesCount(poll.totalVotes)} · ${poll.status == 'ACTIVE' ? l10n.pollOpenUntil : l10n.pollClosedLabel} ${_fmt(poll.endTime)}${poll.anonymous ? l10n.pollAnonymousSuffix : ''}',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 const SizedBox(height: 24),
@@ -149,7 +151,7 @@ class _PollDetailPageState extends State<PollDetailPage> {
                         ? const SizedBox(
                             height: 20, width: 20,
                             child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Text('Cast vote'),
+                        : Text(l10n.pollCastVote),
                   ),
                   const SizedBox(height: 24),
                 ] else if (voted) ...[
@@ -162,9 +164,8 @@ class _PollDetailPageState extends State<PollDetailPage> {
                           Icon(Icons.check_circle_outline,
                               color: Theme.of(context).colorScheme.primary),
                           const SizedBox(width: 10),
-                          const Expanded(
-                            child: Text(
-                                'You already voted in this poll — thanks for participating!'),
+                          Expanded(
+                            child: Text(l10n.pollAlreadyVoted),
                           ),
                         ],
                       ),
@@ -172,7 +173,7 @@ class _PollDetailPageState extends State<PollDetailPage> {
                   ),
                   const SizedBox(height: 16),
                 ],
-                Text(poll.isActive ? 'Live results' : 'Results',
+                Text(poll.isActive ? l10n.pollLiveResults : l10n.pollResults,
                     style: Theme.of(context).textTheme.titleSmall),
                 const SizedBox(height: 8),
                 ...poll.options.map((option) => ResultBar(
@@ -183,7 +184,7 @@ class _PollDetailPageState extends State<PollDetailPage> {
                 // ---- poll insights ----
                 if (poll.options.isNotEmpty) ...[
                   const SizedBox(height: 20),
-                  Text('Poll insights',
+                  Text(l10n.pollInsights,
                       style: Theme.of(context).textTheme.titleSmall),
                   const SizedBox(height: 8),
                   Card(
@@ -196,7 +197,7 @@ class _PollDetailPageState extends State<PollDetailPage> {
                               const Icon(Icons.trending_up, size: 16),
                               const SizedBox(width: 8),
                               Expanded(
-                                  child: Text('Top choice',
+                                  child: Text(l10n.pollTopChoice,
                                       style: Theme.of(context)
                                           .textTheme
                                           .bodySmall)),
@@ -212,11 +213,11 @@ class _PollDetailPageState extends State<PollDetailPage> {
                               const Icon(Icons.groups_outlined, size: 16),
                               const SizedBox(width: 8),
                               Expanded(
-                                  child: Text('Participation',
+                                  child: Text(l10n.pollParticipation,
                                       style: Theme.of(context)
                                           .textTheme
                                           .bodySmall)),
-                              Text('${poll.totalVotes} citizens',
+                              Text(l10n.pollCitizensCount(poll.totalVotes),
                                   style: const TextStyle(
                                       fontWeight: FontWeight.w700,
                                       fontSize: 13)),
@@ -227,11 +228,11 @@ class _PollDetailPageState extends State<PollDetailPage> {
                               const Icon(Icons.schedule, size: 16),
                               const SizedBox(width: 8),
                               Expanded(
-                                  child: Text('Poll ends',
+                                  child: Text(l10n.pollEnds,
                                       style: Theme.of(context)
                                           .textTheme
                                           .bodySmall)),
-                              Text(_endsLabel(poll),
+                              Text(_endsLabel(l10n, poll),
                                   style: const TextStyle(
                                       fontWeight: FontWeight.w700,
                                       fontSize: 13)),
@@ -248,7 +249,7 @@ class _PollDetailPageState extends State<PollDetailPage> {
                     onPressed: () =>
                         context.read<PollsBloc>().add(PollResultsRefreshed(widget.pollId)),
                     icon: const Icon(Icons.refresh),
-                    label: const Text('Refresh results'),
+                    label: Text(l10n.pollRefreshResults),
                   ),
                 ],
               ],
@@ -265,12 +266,14 @@ class _PollDetailPageState extends State<PollDetailPage> {
     return top.text;
   }
 
-  String _endsLabel(Poll poll) {
+  String _endsLabel(AppLocalizations l10n, Poll poll) {
     final diff = poll.endTime.difference(DateTime.now());
-    if (diff.isNegative) return 'Ended';
-    if (diff.inDays >= 1) return 'in ${diff.inDays}d ${diff.inHours % 24}h';
-    if (diff.inHours >= 1) return 'in ${diff.inHours}h';
-    return 'in ${diff.inMinutes}m';
+    if (diff.isNegative) return l10n.pollEnded;
+    if (diff.inDays >= 1) {
+      return l10n.pollEndsInDaysHours(diff.inDays, diff.inHours % 24);
+    }
+    if (diff.inHours >= 1) return l10n.pollEndsInHours(diff.inHours);
+    return l10n.pollEndsInMinutes(diff.inMinutes);
   }
 
   String _fmt(DateTime time) {
@@ -296,7 +299,7 @@ class _LiveBadge extends StatelessWidget {
         children: [
           Icon(Icons.circle, size: 8, color: scheme.primary),
           const SizedBox(width: 4),
-          Text('LIVE',
+          Text(AppLocalizations.of(context).pollStatusLive,
               style: TextStyle(
                   fontSize: 11, fontWeight: FontWeight.bold, color: scheme.primary)),
         ],
@@ -334,7 +337,8 @@ class ResultBar extends StatelessWidget {
                   ),
                 ),
               ),
-              Text('${result.votes} votes',
+              Text(
+                  AppLocalizations.of(context).pollVotesCount(result.votes),
                   style: Theme.of(context).textTheme.bodySmall),
             ],
           ),

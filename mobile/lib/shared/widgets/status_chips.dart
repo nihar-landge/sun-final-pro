@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'package:feedback_app/core/l10n/entity_labels.dart';
 import 'package:feedback_app/core/theme/status_colors.dart';
+import 'package:feedback_app/l10n/gen/app_localizations.dart';
 
 /// Colored pill showing a feedback status (Open / In Review / Resolved).
 class StatusChip extends StatelessWidget {
@@ -19,7 +21,7 @@ class StatusChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
-        StatusColors.label(status).toUpperCase(),
+        feedbackStatusLabel(context, status).toUpperCase(),
         style: TextStyle(
           fontSize: 10.5,
           fontWeight: FontWeight.w700,
@@ -40,11 +42,12 @@ class PollStatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final (color, label) = switch (status) {
-      'ACTIVE' => (scheme.primary, 'LIVE'),
-      'SCHEDULED' => (scheme.tertiary, 'UPCOMING'),
-      _ => (scheme.outline, 'CLOSED'),
+    final color = switch (status) {
+      'ACTIVE' => scheme.primary,
+      'SCHEDULED' => scheme.tertiary,
+      _ => scheme.outline,
     };
+    final label = pollStatusLabel(context, status);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -79,7 +82,7 @@ class VotedChip extends StatelessWidget {
         children: [
           Icon(Icons.check_circle, size: 12, color: scheme.secondary),
           const SizedBox(width: 4),
-          Text('VOTED',
+          Text(AppLocalizations.of(context).pollVotedBadge,
               style: TextStyle(
                   fontSize: 10.5,
                   fontWeight: FontWeight.w700,

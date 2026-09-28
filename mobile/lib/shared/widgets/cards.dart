@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import 'package:feedback_app/core/l10n/entity_labels.dart';
 import 'package:feedback_app/features/feedback/domain/entities/feedback.dart';
 import 'package:feedback_app/features/polls/domain/entities/poll.dart';
+import 'package:feedback_app/l10n/gen/app_localizations.dart';
 import 'package:feedback_app/shared/widgets/status_chips.dart';
 
 /// Poll card with result preview bars, vote count and countdown —
@@ -18,17 +20,18 @@ class PollCard extends StatelessWidget {
     required this.onTap,
   });
 
-  String get _countdown {
+  String _countdown(AppLocalizations l10n) {
     final diff = poll.endTime.difference(DateTime.now());
-    if (diff.isNegative) return 'Ended';
-    if (diff.inDays >= 1) return 'Ends in ${diff.inDays}d';
-    if (diff.inHours >= 1) return 'Ends in ${diff.inHours}h';
-    return 'Ends in ${diff.inMinutes}m';
+    if (diff.isNegative) return l10n.pollEnded;
+    if (diff.inDays >= 1) return l10n.pollEndsInDays(diff.inDays);
+    if (diff.inHours >= 1) return l10n.pollEndsInHours(diff.inHours);
+    return l10n.pollEndsInMinutes(diff.inMinutes);
   }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     return Card(
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -46,7 +49,7 @@ class PollCard extends StatelessWidget {
                     const VotedChip(),
                   ],
                   const Spacer(),
-                  Text('${poll.totalVotes} votes',
+                  Text(l10n.pollVotesCount(poll.totalVotes),
                       style: Theme.of(context)
                           .textTheme
                           .bodySmall
@@ -72,7 +75,8 @@ class PollCard extends StatelessWidget {
                     child: _MiniBar(option: option, hasVoted: hasVoted),
                   )),
               if (poll.options.isEmpty)
-                Text('${poll.options.length} options · $_countdown',
+                Text(l10n.pollOptionsWithCountdown(
+                    poll.options.length, _countdown(l10n)),
                     style: Theme.of(context).textTheme.bodySmall)
               else
                 Row(
@@ -80,10 +84,12 @@ class PollCard extends StatelessWidget {
                     Icon(Icons.how_to_vote_outlined,
                         size: 14, color: scheme.outline),
                     const SizedBox(width: 4),
-                    Text('${poll.totalVotes} participating  •  $_countdown',
+                    Text(
+                        l10n.pollParticipatingWithCountdown(
+                            poll.totalVotes, _countdown(l10n)),
                         style: Theme.of(context).textTheme.bodySmall),
                     const Spacer(),
-                    Text('VIEW',
+                    Text(l10n.commonView,
                         style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
@@ -174,7 +180,7 @@ class ReportCard extends StatelessWidget {
                 children: [
                   Icon(_categoryIcon, size: 18, color: scheme.primary),
                   const SizedBox(width: 6),
-                  Text(item.category.name.toUpperCase(),
+                  Text(feedbackCategoryLabel(context, item.category).toUpperCase(),
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
                           letterSpacing: 0.6,
                           color: scheme.onSurfaceVariant,

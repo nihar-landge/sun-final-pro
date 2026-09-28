@@ -22,15 +22,3 @@ class ThemeCubit extends Cubit<ThemeMode> {
     emit(mode);
   }
 }
-
-/// Preference shown in Profile; only English is wired for now.
-enum AppLanguage {
-  english('English', 'English'),
-  hindi('हिन्दी', 'Hindi — coming soon'),
-  marathi('मराठी', 'Marathi — coming soon');
-
-  const AppLanguage(this.nativeName, this.subtitle);
-
-  final String nativeName;
-  final String subtitle;
-}
