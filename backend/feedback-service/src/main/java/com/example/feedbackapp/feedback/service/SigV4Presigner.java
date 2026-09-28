@@ -11,14 +11,15 @@ import java.nio.charset.StandardCharsets;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Base64;
 
 /**
  * Manual AWS SigV4 query-string presigner for S3-compatible storage
- * (Cloudflare R2, MinIO, AWS S3). Implemented directly instead of via an
- * SDK because presigned-URL signature styles differ between SDK versions
- * and providers — this form (UNSIGNED-PAYLOAD, host-signed, path-style) is
- * the one every provider accepts.
+ * (Cloudflare R2, SeaweedFS, MinIO, AWS S3). Implemented directly instead of
+ * via an SDK because presigned-URL signature styles differ between SDK
+ * versions and providers — this form (UNSIGNED-PAYLOAD, host-signed,
+ * path-style, canonical query string included in the signature,
+ * Content-Type signed on uploads) is byte-for-byte the one boto3 emits,
+ * which is the form Cloudflare R2 accepts (see scripts/r2-presign-vector.py).
  *
  * Credentials come from configuration; keys are never logged.
  */
@@ -33,7 +34,7 @@ public class SigV4Presigner {
     private final String endpoint;      // e.g. https://<account>.r2.cloudflarestorage.com
     private final String accessKey;
     private final String secretKey;
-    private final String region;
+    private final String region;        // "auto" for R2
 
     public SigV4Presigner(@Value("${minio.public-url}") String endpoint,
                           @Value("${minio.access-key}") String accessKey,
@@ -48,31 +49,53 @@ public class SigV4Presigner {
     public record PresignedUrl(String url, String host) {
     }
 
-    /** Presigned PUT URL valid for the given duration. */
-    public PresignedUrl presignPut(String bucket, String key, int expirySeconds) {
-        return presign("PUT", bucket, key, expirySeconds);
+    /**
+     * Presigned PUT URL valid for the given duration. The client must send
+     * exactly this Content-Type — it is part of the signature, and R2 rejects
+     * presigned PUTs that carry an unsigned Content-Type header.
+     */
+    public PresignedUrl presignPut(String bucket, String key, int expirySeconds, String contentType) {
+        return presign("PUT", bucket, key, expirySeconds, contentType, ZonedDateTime.now(ZoneOffset.UTC));
     }
 
     /** Presigned GET URL valid for the given duration. */
     public PresignedUrl presignGet(String bucket, String key, int expirySeconds) {
-        return presign("GET", bucket, key, expirySeconds);
+        return presign("GET", bucket, key, expirySeconds, null, ZonedDateTime.now(ZoneOffset.UTC));
     }
 
-    private synchronized PresignedUrl presign(String method, String bucket, String key, int expirySeconds) {
-        ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC);
+    PresignedUrl presign(String method, String bucket, String key, int expirySeconds,
+                         String contentType, ZonedDateTime now) {
         String amzDate = now.format(AMZ_DATE);
         String dateScope = now.format(DATE_SCOPE);
 
         String host = URI.create(endpoint).getHost();
         String canonicalUri = "/" + bucket + "/" + encodePath(key);
-
         String scope = dateScope + "/" + region + "/s3/aws4_request";
-        String canonicalHeaders = "host:" + host + "\n";
-        String signedHeaders = "host";
-        String payloadHash = "UNSIGNED-PAYLOAD";
+
+        String signedHeaders;
+        String canonicalHeaders;
+        if (contentType == null) {
+            signedHeaders = "host";
+            canonicalHeaders = "host:" + host + "\n";
+        } else {
+            signedHeaders = "content-type;host";
+            canonicalHeaders = "content-type:" + contentType.toLowerCase() + "\nhost:" + host + "\n";
+        }
+
+        // Every parameter except the signature is part of the signed canonical
+        // query string; providers recompute the signature from the URL they
+        // receive, so signing an empty query makes every strict SigV4
+        // validator (AWS S3, R2) reject the request. Keys are sorted: here
+        // Algorithm < Credential < Date < Expires < SignedHeaders.
+        String canonicalQuery = String.join("&",
+                "X-Amz-Algorithm=AWS4-HMAC-SHA256",
+                "X-Amz-Credential=" + urlEncode(accessKey + "/" + scope),
+                "X-Amz-Date=" + amzDate,
+                "X-Amz-Expires=" + expirySeconds,
+                "X-Amz-SignedHeaders=" + urlEncode(signedHeaders));
 
         String canonicalRequest = String.join("\n",
-                method, canonicalUri, "", canonicalHeaders, signedHeaders, payloadHash);
+                method, canonicalUri, canonicalQuery, canonicalHeaders, signedHeaders, "UNSIGNED-PAYLOAD");
 
         String stringToSign = String.join("\n",
                 "AWS4-HMAC-SHA256", amzDate, scope,
@@ -81,15 +104,9 @@ public class SigV4Presigner {
         byte[] signingKey = hmacChain(secretKey, dateScope, region, "s3");
         String signature = hex(hmac(signingKey, stringToSign));
 
-        String credential = accessKey + "/" + scope;
-        String query = "?X-Amz-Algorithm=AWS4-HMAC-SHA256"
-                + "&X-Amz-Credential=" + urlEncode(credential)
-                + "&X-Amz-Date=" + amzDate
-                + "&X-Amz-Expires=" + expirySeconds
-                + "&X-Amz-SignedHeaders=" + signedHeaders
-                + "&X-Amz-Signature=" + signature;
-
-        return new PresignedUrl(endpoint + canonicalUri + query, host);
+        return new PresignedUrl(
+                endpoint + canonicalUri + "?" + canonicalQuery + "&X-Amz-Signature=" + signature,
+                host);
     }
 
     static String urlEncode(String value) {

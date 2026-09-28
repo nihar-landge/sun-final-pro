@@ -41,3 +41,4 @@ minio:
   access-key: ${MINIO_ACCESS_KEY:minioadmin}
   secret-key: ${MINIO_SECRET_KEY:minioadmin123}
   bucket: ${MINIO_BUCKET:feedback-photos}
+  region: ${MINIO_REGION:us-east-1}   # "auto" for Cloudflare R2

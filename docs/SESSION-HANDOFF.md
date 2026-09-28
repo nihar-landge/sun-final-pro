@@ -36,14 +36,14 @@
 - **Admin console** (`admin/`, Flutter Web) — sidebar shell: Dashboard (6 KPIs, distribution charts, 14-day trend, live event feed), Reports triage (search/filter table, multi-select + bulk status, **CSV export**, right-side drawer: photos/status/assignment/public+internal notes/timeline/comments), Poll builder (+duplicate, close), Map (OSM pins → drawer), Analytics, Users (admin-only; moderator gating), Audit Log.
 
 ### Data layer (Docker Compose)
-PostgreSQL 16 + PostGIS (4 DBs: authdb, polldb, feedbackdb, **notificationdb**) · Redis 7 (AOF) · **SeaweedFS 3.80** (S3 API :9000 — replaced MinIO, which archived its open-source distribution) · RabbitMQ 3.13 + management · Prometheus (scrapes all services) · Grafana (provisioned).
+PostgreSQL 16 + PostGIS (4 DBs: authdb, polldb, feedbackdb, **notificationdb**) · Redis 7 (AOF) · **Cloudflare R2** (photo storage, live since 2026-09-27 — see W14) · SeaweedFS 3.80 (S3 API :9000, local fallback — replaced MinIO, which archived its open-source distribution) · RabbitMQ 3.13 + management · Prometheus (scrapes all services) · Grafana (provisioned).
 
 ### Kubernetes (kind v1.35, cluster `civicpulse`)
 6 Deployments + Services + HPA (1→4, CPU 70%) on the gateway; ConfigMap + Secret; startupProbe (5-min slow-boot grace) + readiness + liveness; JVM tuned (`MaxRAMPercentage=55`, `MaxMetaspaceSize=110m`, 460Mi limits). Data layer stays in Compose via `host.docker.internal` (documented swap point).
 
 ### Public endpoints (Cloudflare Tunnel — brickbyte.me)
 - **https://api.brickbyte.me** → Kubernetes gateway (E2E 27/27 verified over public HTTPS)
-- **https://photos.brickbyte.me** → reserved (routes to SeaweedFS; unused while R2 is deferred)
+- **https://photos.brickbyte.me** → still unused: R2 presigned URLs must use the `*.r2.cloudflarestorage.com` endpoint (custom domains can't carry presigned signatures), so photo URLs point straight at R2
 - `infra/cloudflare/tunnel-up.sh` — auto-restart loops for port-forward + tunnel
 
 ### CI/CD (GitHub Actions)
@@ -120,10 +120,13 @@ These are the viva gold. Each one was hit **in reality**, diagnosed, and fixed.
 - **Symptom:** api.brickbyte.me returned 502 while the cluster was healthy.
 - **Fix:** `infra/cloudflare/tunnel-up.sh` — auto-restart loops for both processes; run it after every Docker restart.
 
-### W14. Cloudflare R2 rejects Java-SDK presigned URLs (documented, deferred) ⭐
-- **Symptom:** presigned PUT minted by the AWS Java SDK v2 presigner → `AccessDenied` from R2, while the **identical** presigned URL minted by Python boto3 → 200 (same credentials, bucket, key path, expiry). Verified by recomputing signatures across 8 canonical-form/secret variants.
-- **Status:** reverted photo storage to SeaweedFS (fully working, E2E 27/27); findings + three candidate fixes documented in `infra/README.md` (account-scoped token, AWS SDK v1 `generatePresignedUrl`, or completing the manual SigV4 presigner that now lives in `SigV4Presigner.java` — its canonical query string needs one more pass).
-- **Lesson:** S3 "compatibility" is not uniform; presigned-URL canonical forms differ between SDK generations and providers.
+### W14. Cloudflare R2 rejects Java presigned URLs (FIXED + verified live, cluster on R2) ⭐
+- **Symptom:** presigned PUT minted by the AWS Java SDK v2 presigner → `AccessDenied` from R2, while the **identical** presigned URL minted by Python boto3 → 200 (same credentials, bucket, key path, expiry).
+- **Root cause (three defects in the manual SigV4 presigner):** the canonical query string was empty (SigV4 signs every `X-Amz-*` param), region defaulted to `us-east-1` (R2 requires `auto`), and `Content-Type` — which the Flutter client always sends on the direct PUT — was not signed. Invisible locally because SeaweedFS's S3 gateway runs unauthenticated; R2 was the first strict signature validator.
+- **Fix:** `SigV4Presigner` rewritten and proven **byte-for-byte against frozen-clock boto3 vectors** (`scripts/r2-presign-vector.py` + `SigV4PresignerTest` — boto3 is the implementation that provably worked against R2). Region configurable via `MINIO_REGION`; PUT presigns sign the exact Content-Type the client must send.
+- **Verified live (2026-09-27):** `R2PresignLiveTest` round-trip on real R2 (presigned PUT → statObject register → presigned GET, byte-exact) — then the live cluster was switched to R2 via env only (live ConfigMap + Secret: R2 endpoint, `MINIO_BUCKET=civicpulse-photos`, `MINIO_REGION=auto`, R2 keys) and **E2E passed 27/27 with photos on R2**, plus a manual presigned-GET fetch over the public internet (200, `image/png`, byte-exact).
+- **Gotcha found during the switch:** the app's bucket default is `feedback-photos`; the R2 bucket is `civicpulse-photos`. The bucket-scoped R2 token made `bucketExists` on the wrong name fail with *Access denied* — caught by the non-fatal storage bootstrap (W-safety net from the earlier migration prep), visible as one WARN in logs. `MINIO_BUCKET` must be set in the live ConfigMap.
+- **Lesson:** S3 "compatibility" is not uniform; pin your canonical form against a known-good reference with frozen-clock vectors, and test against a strict validator early — an unauthenticated local gateway will happily accept garbage signatures.
 
 ### W15. Minor-but-real ones
 - `Mockito.doNothing()` on a non-void `RedisTemplate.delete` → use lenient mocks/verify instead.
@@ -170,7 +173,7 @@ kubectl delete pods -n feedbackapp --all --force --grace-period=0
 # → https://api.brickbyte.me  (gateway)  https://photos.brickbyte.me (storage)
 
 # 4. Verify — all 27 guarantees, over the public domain
-scripts/e2e.sh api.brickbyte.me        # or: localhost:8090 via port-forward
+scripts/e2e.sh https://api.brickbyte.me  # or: localhost:8090 via port-forward
 
 # 5. Apps
 cd mobile && flutter run --dart-define=API_BASE_URL=https://api.brickbyte.me/api/v1
@@ -189,8 +192,8 @@ cd admin  && flutter run -d chrome
 | What | Where | Committed? |
 |---|---|---|
 | Dev DB creds, JWT secret, storage keys (k8s) | `k8s/base/secret.yaml` (placeholders) + live Secret (real values) | placeholders only |
-| R2 endpoint (not secret) | `k8s/base/configmap.yaml` is currently reverted to SeaweedFS values; live cluster holds R2 values | no — live only |
-| **R2 token** (pasted in chat) | lives only in the live Secret | ⚠️ rotate before any real use |
+| Storage config (R2, current) | `k8s/base/configmap.yaml` has SeaweedFS dev placeholders; the **live** ConfigMap holds R2 values (endpoint ×2, `MINIO_BUCKET=civicpulse-photos`, `MINIO_REGION=auto`) | placeholders only |
+| **R2 token** (bucket-scoped: read/write/list on `civicpulse-photos`) | lives only in the live Secret; was pasted in chat → ⚠️ rotate before any real use | never commit — live Secret only |
 | Firebase client config | `mobile/android/app/google-services.json` | yes (safe by design — client key, package-name enforced) |
 | FCM service-account JSON | **NOT YET PROVIDED** — Firebase console → Project settings → Service accounts → Generate new private key | must NOT be committed |
 | Dev OTP echo | `OTP_DEV_ECHO` env (default true) | documented "never in prod" |
@@ -203,11 +206,12 @@ cd admin  && flutter run -d chrome
    `FCM_SERVICE_ACCOUNT=/path/to/key.json` for a host run, or add it to the k8s Secret + deployment env.
    Everything else (token registry, sender, event wiring, mobile permission/deep-links) is already built.
    ⚠️ If the Android app was installed before Firebase was added, uninstall + reinstall so the google-services plugin values apply cleanly.
-2. **R2 presign fix (options in infra/README):** try an *account-scoped* R2 token (bucket-scoped may be the blocker), or AWS SDK v1 `generatePresignedUrl`, or finish the manual SigV4 presigner (`SigV4Presigner.java` — its canonical query string needs the parameters included; see W14).
-3. **Hindi/Marathi localization:** Flutter gen_l10n + 3 ARBs; ~15 screens of strings; the language selector UI already exists in Profile.
-4. **Sentiment ONNX (optional):** user is learning mini-model training; sentiment-service + schema are ready. Model: small quantized classifier; serve via the stub or a FastAPI sidecar.
-5. **Demo video + slides + user manual:** blueprint deliverables not yet produced.
-6. **Ongoing:** commit early/often — the session pattern of one mega-commit early on cost history granularity later (fixed: recent work is in clean commits).
+2. **Hindi/Marathi localization:** Flutter gen_l10n + 3 ARBs; ~15 screens of strings; the language selector UI already exists in Profile.
+3. **Sentiment ONNX (optional):** user is learning mini-model training; sentiment-service + schema are ready. Model: small quantized classifier; serve via the stub or a FastAPI sidecar.
+4. **Demo video + slides + user manual:** blueprint deliverables not yet produced.
+5. **Ongoing:** commit early/often — the session pattern of one mega-commit early on cost history granularity later (fixed: recent work is in clean commits).
+
+*(Done 2026-09-27: R2 — presign fix verified live and cluster switched; see W14. Revert path if R2 is ever unwanted: restore the four `MINIO_*` ConfigMap values to the git placeholders + SeaweedFS keys into the live Secret, then rollout-restart feedback-service.)*
 
 ---
 
@@ -216,8 +220,8 @@ cd admin  && flutter run -d chrome
 - **"How do you ensure one person votes once?"** → Composite PK `(poll_id, user_id)` + `Persistable.isNew()` so JPA INSERTs (W1 — we caught a real bypass) + integration test on real PostgreSQL.
 - **"How do services know who the caller is?"** → Gateway validates JWT, strips client-spoofed headers, injects verified `X-User-*`; services use `@CurrentUser` (common module auto-config).
 - **"What happens if RabbitMQ is down?"** → Publishing is try/catch-wrapped (API never fails); consumers retry; inbox persists independently of push.
-- **"How are photos stored?"** → Pre-signed direct-to-storage uploads (bytes never transit services), 3-photo cap server-enforced, 1-hour presigned view URLs.
-- **"How did you handle an S3 provider disappearing?"** → MinIO archived upstream mid-project (W7); migrated to SeaweedFS with zero code change because storage is behind the S3 API.
+- **"How are photos stored?"** → Pre-signed direct-to-storage uploads (bytes never transit services), 3-photo cap server-enforced, 1-hour presigned view URLs; storage is Cloudflare R2 since 2026-09-27 (W14).
+- **"How did you handle an S3 provider disappearing?"** → MinIO archived upstream mid-project (W7); migrated to SeaweedFS with zero code change because storage is behind the S3 API — and later to R2 the same way (env-only swap).
 - **"What did Kubernetes give you?"** → Real deployment on kind (v1.35), HPA pattern, probes tuned for slow JVM boots (startupProbe — W9), public HTTPS via Cloudflare Tunnel with zero open ports.
 - **"How do you know it all still works?"** → 27-check E2E suite run against the live platform (and in CI on every push).
 
@@ -225,8 +229,8 @@ cd admin  && flutter run -d chrome
 
 ## 8. Known current limitations (honesty list)
 
-- R2 presign from Java deferred (SeaweedFS works; see W14)
 - FCM inactive until the service-account JSON is provided
+- R2 token is bucket-scoped and was pasted in chat — rotate before any real use
 - Hindi/Marathi are scaffolded, not wired
 - Notification inbox caps at 50 rows per user in list responses
 - Poll analytics loads all polls into memory (fine at demo scale)

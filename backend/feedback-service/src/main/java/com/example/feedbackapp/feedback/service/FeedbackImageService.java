@@ -70,7 +70,7 @@ public class FeedbackImageService {
         String objectKey = "reports/%d/%s.%s".formatted(feedbackId, UUID.randomUUID(), ext);
         try {
             SigV4Presigner.PresignedUrl presigned =
-                    sigV4Presigner.presignPut(props.bucket(), objectKey, 600);
+                    sigV4Presigner.presignPut(props.bucket(), objectKey, 600, contentType);
             return new PresignResult(presigned.url(), objectKey);
         } catch (Exception e) {
             log.error("Presign failed for report {}", feedbackId, e);

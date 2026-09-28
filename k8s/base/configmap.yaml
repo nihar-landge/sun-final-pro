@@ -12,6 +12,11 @@ data:
   REDIS_HOST: "host.docker.internal"
   MINIO_URL: "http://host.docker.internal:9000"
   MINIO_PUBLIC_URL: "http://localhost:9000"
+  # Dev defaults below; the LIVE cluster overrides all four MINIO_* keys to
+  # point at Cloudflare R2 (endpoint, endpoint, civicpulse-photos, auto).
+  # Live-only values must never be committed here (see SESSION-HANDOFF W11).
+  MINIO_BUCKET: "feedback-photos"
+  MINIO_REGION: "us-east-1"
   RABBITMQ_HOST: "host.docker.internal"
   AUTH_SERVICE_URL: "http://auth-service.feedbackapp.svc.cluster.local:8081"
   POLL_SERVICE_URL: "http://poll-service.feedbackapp.svc.cluster.local:8082"
