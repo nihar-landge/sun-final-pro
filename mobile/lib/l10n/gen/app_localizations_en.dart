@@ -21,6 +21,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonView => 'VIEW';
 
   @override
+  String get navHome => 'Home';
+
+  @override
+  String get navPolls => 'Polls';
+
+  @override
+  String get navReport => 'Report';
+
+  @override
+  String get navAlerts => 'Alerts';
+
+  @override
+  String get navProfile => 'Profile';
+
+  @override
   String get statusOpen => 'Open';
 
   @override

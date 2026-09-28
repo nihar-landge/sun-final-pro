@@ -146,19 +146,21 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
   /// submitting, using the PostGIS near-me query (~300 m, same category).
   Future<void> _checkSimilar() async {
     if (_lat == null || _lng == null) return;
-    setState(() => _similarChecked = true);
     try {
       final nearby = await context
           .read<FeedbackBloc>()
           .repository
           .nearMe(lat: _lat!, lng: _lng!, radiusKm: 0.3);
+      if (!mounted) return;
       setState(() {
+        _similarChecked = true;
         _similar = nearby
             .where((r) => r.category == _category && r.status != FeedbackStatus.resolved)
             .toList();
       });
     } on Failure {
       // Similar-report check is best-effort — never block submission.
+      if (mounted) setState(() => _similarChecked = true);
     }
   }
 
@@ -316,14 +318,14 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
                         onPressed: !_canContinue
                             ? null
                             : () {
-                                if (_step < 3) {
-                                  if (_step == 2) _checkSimilar();
+                                if (_step < 4) {
+                                  if (_step == 3) _checkSimilar();
                                   setState(() => _step++);
                                 } else {
                                   _submit();
                                 }
                               },
-                        child: Text(_step < 3
+                        child: Text(_step < 4
                             ? l10n.commonContinue
                             : l10n.wizardSubmitReport),
                       ),

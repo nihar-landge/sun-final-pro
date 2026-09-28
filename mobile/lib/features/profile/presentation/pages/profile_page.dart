@@ -158,8 +158,15 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-class _MyReportsCard extends StatelessWidget {
+class _MyReportsCard extends StatefulWidget {
   const _MyReportsCard();
+
+  @override
+  State<_MyReportsCard> createState() => _MyReportsCardState();
+}
+
+class _MyReportsCardState extends State<_MyReportsCard> {
+  bool _showAll = false;
 
   @override
   Widget build(BuildContext context) {
@@ -174,6 +181,7 @@ class _MyReportsCard extends StatelessWidget {
           FeedbackLoaded s when s.mine => s.items,
           _ => const <FeedbackItem>[],
         };
+        final visible = _showAll ? items : items.take(3);
         return Card(
           child: Padding(
             padding: const EdgeInsets.all(14),
@@ -192,7 +200,7 @@ class _MyReportsCard extends StatelessWidget {
                 ),
                 if (items.isNotEmpty) ...[
                   const SizedBox(height: 10),
-                  ...items.take(3).map((item) => ListTile(
+                  ...visible.map((item) => ListTile(
                         contentPadding: EdgeInsets.zero,
                         dense: true,
                         leading: const Icon(Icons.description_outlined,
@@ -217,9 +225,9 @@ class _MyReportsCard extends StatelessWidget {
                           ),
                         ),
                       )),
-                  if (items.length > 3)
+                  if (!_showAll && items.length > 3)
                     TextButton(
-                      onPressed: () {},
+                      onPressed: () => setState(() => _showAll = true),
                       child: Text(l10n.profileViewAllReports(items.length)),
                     ),
                 ],

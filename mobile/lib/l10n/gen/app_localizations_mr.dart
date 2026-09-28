@@ -21,6 +21,21 @@ class AppLocalizationsMr extends AppLocalizations {
   String get commonView => 'पहा';
 
   @override
+  String get navHome => 'होम';
+
+  @override
+  String get navPolls => 'पोल';
+
+  @override
+  String get navReport => 'रिपोर्ट';
+
+  @override
+  String get navAlerts => 'अलर्ट';
+
+  @override
+  String get navProfile => 'प्रोफाइल';
+
+  @override
   String get statusOpen => 'खुले';
 
   @override

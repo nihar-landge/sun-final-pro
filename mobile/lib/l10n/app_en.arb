@@ -7,6 +7,12 @@
   "commonSomethingWentWrong": "Something went wrong",
   "commonView": "VIEW",
 
+  "navHome": "Home",
+  "navPolls": "Polls",
+  "navReport": "Report",
+  "navAlerts": "Alerts",
+  "navProfile": "Profile",
+
   "statusOpen": "Open",
   "statusInReview": "In Review",
   "statusResolved": "Resolved",

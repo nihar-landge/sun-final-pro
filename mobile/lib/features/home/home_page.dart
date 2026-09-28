@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:geolocator/geolocator.dart';
 
 import 'package:feedback_app/core/network/api_client.dart' as api;
 import 'package:feedback_app/features/feedback/data/datasources/feedback_remote_data_source.dart';
@@ -39,8 +40,33 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     // Refresh everything the dashboard shows.
     context.read<PollsBloc>().add(const PollsRequested(status: 'active'));
-    context.read<FeedbackBloc>().add(const NearbyFeedbackRequested(lat: 18.5204, lng: 73.8567));
+    _loadNearby();
     context.read<FeedbackBloc>().add(const MyReportsRequested());
+  }
+
+  /// Loads nearby reports around the device position; falls back to the
+  /// demo coordinates (Pune) when the location is unavailable.
+  Future<void> _loadNearby() async {
+    var lat = 18.5204;
+    var lng = 73.8567;
+    try {
+      final permission = await Geolocator.requestPermission();
+      if (permission != LocationPermission.denied &&
+          permission != LocationPermission.deniedForever) {
+        final position = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.medium,
+            timeLimit: Duration(seconds: 15),
+          ),
+        );
+        lat = position.latitude;
+        lng = position.longitude;
+      }
+    } catch (_) {
+      // Keep the demo coordinates — the nearby section still loads.
+    }
+    if (!mounted) return;
+    context.read<FeedbackBloc>().add(NearbyFeedbackRequested(lat: lat, lng: lng));
   }
 
   @override
@@ -50,9 +76,10 @@ class _HomePageState extends State<HomePage> {
     return SafeArea(
       child: RefreshIndicator(
         onRefresh: () async {
+          final feedbackBloc = context.read<FeedbackBloc>();
           context.read<PollsBloc>().add(const PollsRequested(status: 'active'));
-          context.read<FeedbackBloc>().add(const NearbyFeedbackRequested(lat: 18.5204, lng: 73.8567));
-          context.read<FeedbackBloc>().add(const MyReportsRequested());
+          await _loadNearby();
+          feedbackBloc.add(const MyReportsRequested());
         },
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),

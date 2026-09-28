@@ -124,6 +124,36 @@ abstract class AppLocalizations {
   /// **'VIEW'**
   String get commonView;
 
+  /// No description provided for @navHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get navHome;
+
+  /// No description provided for @navPolls.
+  ///
+  /// In en, this message translates to:
+  /// **'Polls'**
+  String get navPolls;
+
+  /// No description provided for @navReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Report'**
+  String get navReport;
+
+  /// No description provided for @navAlerts.
+  ///
+  /// In en, this message translates to:
+  /// **'Alerts'**
+  String get navAlerts;
+
+  /// No description provided for @navProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get navProfile;
+
   /// No description provided for @statusOpen.
   ///
   /// In en, this message translates to:

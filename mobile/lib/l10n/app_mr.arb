@@ -7,6 +7,12 @@
   "commonSomethingWentWrong": "काहीतरी चुकले",
   "commonView": "पहा",
 
+  "navHome": "होम",
+  "navPolls": "पोल",
+  "navReport": "रिपोर्ट",
+  "navAlerts": "अलर्ट",
+  "navProfile": "प्रोफाइल",
+
   "statusOpen": "खुले",
   "statusInReview": "पुनरावलोकनात",
   "statusResolved": "सोडवले",

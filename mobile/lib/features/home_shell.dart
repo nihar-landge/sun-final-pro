@@ -7,6 +7,7 @@ import 'package:feedback_app/features/feedback/presentation/pages/report_wizard_
 import 'package:feedback_app/features/home/home_page.dart';
 import 'package:feedback_app/features/polls/presentation/pages/polls_list_page.dart';
 import 'package:feedback_app/features/profile/presentation/pages/profile_page.dart';
+import 'package:feedback_app/l10n/gen/app_localizations.dart';
 
 /// CivicPulse shell — 5 tabs: Home · Polls · Report · Alerts · Profile.
 /// IndexedStack keeps each tab's scroll position and bloc state alive.
@@ -20,12 +21,11 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   int _index = 0;
 
-  static const _titles = ['Home', 'Polls', 'Report', 'Alerts', 'Profile'];
-
   void _go(int i) => setState(() => _index = i);
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       body: IndexedStack(
         index: _index,
@@ -43,11 +43,11 @@ class _HomeShellState extends State<HomeShell> {
         destinations: [
           NavigationDestination(
             icon: Icon(_index == 0 ? Icons.home_rounded : Icons.home_outlined),
-            label: _titles[0],
+            label: l10n.navHome,
           ),
           NavigationDestination(
             icon: Icon(_index == 1 ? Icons.how_to_vote_rounded : Icons.how_to_vote_outlined),
-            label: _titles[1],
+            label: l10n.navPolls,
           ),
           NavigationDestination(
             icon: Container(
@@ -64,7 +64,7 @@ class _HomeShellState extends State<HomeShell> {
                       ? Theme.of(context).colorScheme.onPrimary
                       : Theme.of(context).colorScheme.primary),
             ),
-            label: _titles[2],
+            label: l10n.navReport,
           ),
           NavigationDestination(
             icon: BlocBuilder<AlertsBloc, AlertsState>(
@@ -80,11 +80,11 @@ class _HomeShellState extends State<HomeShell> {
                 );
               },
             ),
-            label: _titles[3],
+            label: l10n.navAlerts,
           ),
           NavigationDestination(
             icon: Icon(_index == 4 ? Icons.person_rounded : Icons.person_outline_rounded),
-            label: _titles[4],
+            label: l10n.navProfile,
           ),
         ],
       ),
