@@ -83,8 +83,8 @@ public class FcmSender {
         }
     }
 
-    /** JWT assertion → OAuth2 access token, cached until near expiry. */
-    private synchronized String accessToken() throws Exception {
+    /** JWT assertion → OAuth2 access token, cached until near expiry (package-private: asserted by FcmSenderLiveTest). */
+    synchronized String accessToken() throws Exception {
         loadAccountIfNeeded();
         if (Instant.now().isBefore(tokenExpiry.minusSeconds(60))) {
             return cachedAccessToken;
@@ -92,7 +92,8 @@ public class FcmSender {
         Instant now = Instant.now();
         String jwt = Jwts.builder()
                 .issuer(clientEmail)
-                .audience().add("https://oauth2.googleapis.com/token").and()
+                // Google rejects an array-valued aud ("Failed audience check") — single() emits a JSON string.
+                .audience().single(TOKEN_URL)
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plusSeconds(3600)))
                 .claim("scope", SCOPE)

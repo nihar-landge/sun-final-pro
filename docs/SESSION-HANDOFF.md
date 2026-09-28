@@ -9,7 +9,7 @@
 **Project:** CivicPulse — Public Feedback & Polling System (CDAC Final Project, Mobile Computing)
 **Repo:** github.com/nihar-landge/sun-final-pro · branch `master`
 **Scale:** ~15,600 lines hand-written code (4,675 Java main · 913 Java tests · 10,074 Dart) · 338+ files · 260 lines Flyway SQL · 18 docs
-**Verification:** 35 backend unit tests + 2 gated Testcontainers integration tests + 27-check live E2E suite + 4 Dart tests + k6 load script
+**Verification:** 37 backend unit tests + 4 env-gated live/integration suites (2 Testcontainers, R2 presign round-trip, FCM token mint) + 27-check live E2E suite + 4 Dart tests + k6 load script
 
 ---
 
@@ -136,6 +136,13 @@ These are the viva gold. Each one was hit **in reality**, diagnosed, and fixed.
 - Flutter: RadioGroup replaced per-button groupValue (v3.32+ API), unused-import churn across refactors.
 - Dev OTP used to require grepping logs → now surfaced in-app as a tap-to-fill chip (dev-echo only).
 
+### W16. jjwt emitted `aud` as a JSON array — Google rejected every FCM token mint (found + fixed + verified live) ⭐
+- **Symptom:** the very first live FCM credential test failed: `invalid_grant — Invalid JWT: Failed audience check. The right audience is https://oauth2.googleapis.com/token`. The sender had compiled since the push feature landed — it had just never touched a real Google endpoint.
+- **Root cause:** jjwt 0.12's `.audience().add(url).and()` serializes the JWT `aud` claim as a JSON **array** (`["…/token"]`); Google's OAuth2 endpoint requires a plain **string**. Proven with a hand-signed curl probe (openssl RS256): string `aud` → token minted; array `aud` → the exact production error.
+- **Fix:** `.audience().single(TOKEN_URL)` — jjwt's string-emitting API; never `.add()` for a single audience.
+- **Verification:** `FcmSenderLiveTest` with the real key mints a live OAuth2 token (2 pass / 1 skip; the send check skips without `FCM_TEST_DEVICE_TOKEN`). Env-gated, so CI stays green without credentials.
+- **Lesson:** "compiles + mocks pass" ≠ "the remote endpoint agrees". One live credential check against the real provider caught a bug that would have made every push fail silently in production.
+
 ---
 
 ## 3. Architecture decisions worth defending in the viva
@@ -195,15 +202,28 @@ cd admin  && flutter run -d chrome
 | Storage config (R2, current) | `k8s/base/configmap.yaml` has SeaweedFS dev placeholders; the **live** ConfigMap holds R2 values (endpoint ×2, `MINIO_BUCKET=civicpulse-photos`, `MINIO_REGION=auto`) | placeholders only |
 | **R2 token** (bucket-scoped: read/write/list on `civicpulse-photos`) | lives only in the live Secret; was pasted in chat → ⚠️ rotate before any real use | never commit — live Secret only |
 | Firebase client config | `mobile/android/app/google-services.json` | yes (safe by design — client key, package-name enforced) |
-| FCM service-account JSON | **NOT YET PROVIDED** — Firebase console → Project settings → Service accounts → Generate new private key | must NOT be committed |
+| FCM service-account JSON | **Minted 2026-09-28** via `gcloud iam service-accounts keys create` (no console needed; project `feedback-5c79b`, SA `firebase-adminsdk-fbsvc@…`). Stored at `~/.config/civicpulse/fcm-service-account.json` (chmod 600, outside the repo). Seam: optional k8s secret `fcm-service-account` → `/etc/fcm/service-account.json`; **cluster wiring still pending — commands in §6** | must NOT be committed |
 | Dev OTP echo | `OTP_DEV_ECHO` env (default true) | documented "never in prod" |
 
 ---
 
 ## 6. Remaining roadmap (precise next steps)
 
-1. **FCM activation (blocked on you, 10 min):** download the service-account JSON, then either
-   `FCM_SERVICE_ACCOUNT=/path/to/key.json` for a host run, or add it to the k8s Secret + deployment env.
+1. **FCM activation — key minted 2026-09-28; four cluster commands left.** The service-account key exists at `~/.config/civicpulse/fcm-service-account.json` (project `feedback-5c79b`, minted via `gcloud iam service-accounts keys create` — no console needed) and the sender is **verified against live Google** (`FcmSenderLiveTest` mints a real OAuth2 token; 2 pass / 1 skip). Remaining, from the repo root:
+   ```bash
+   kubectl -n feedbackapp create secret generic fcm-service-account \
+     --from-file=service-account.json="$HOME/.config/civicpulse/fcm-service-account.json" \
+     --dry-run=client -o yaml | kubectl apply -f -     # idempotent — safe to re-run
+   kubectl apply -f k8s/base/notification-service.yaml   # THIS FILE only — never the whole dir (W11)
+   kubectl -n feedbackapp rollout restart deploy/notification-service
+   kubectl -n feedbackapp rollout status  deploy/notification-service
+   ```
+   End-to-end on a real device: sign in, change a report's status in admin → push arrives; confirm via `kubectl -n feedbackapp logs deploy/notification-service | grep "FCM push sent"` (optional direct-send check: rerun the live test with `FCM_TEST_DEVICE_TOKEN=<token from app logs>`).
+   Re-verify credentials any time (no cluster needed):
+   ```bash
+   FCM_LIVE_TEST=true FCM_SERVICE_ACCOUNT="$HOME/.config/civicpulse/fcm-service-account.json" \
+     ./mvnw -pl notification-service -am test -Dtest=FcmSenderLiveTest -Dsurefire.failIfNoSpecifiedTests=false
+   ```
    Everything else (token registry, sender, event wiring, mobile permission/deep-links) is already built.
    ⚠️ If the Android app was installed before Firebase was added, uninstall + reinstall so the google-services plugin values apply cleanly.
 2. **Hindi/Marathi localization:** Flutter gen_l10n + 3 ARBs; ~15 screens of strings; the language selector UI already exists in Profile.
@@ -229,7 +249,7 @@ cd admin  && flutter run -d chrome
 
 ## 8. Known current limitations (honesty list)
 
-- FCM inactive until the service-account JSON is provided
+- FCM: key minted + sender verified against live Google (2026-09-28); cluster wiring (secret + manifest + restart) still pending — commands in §6
 - R2 token is bucket-scoped and was pasted in chat — rotate before any real use
 - Hindi/Marathi are scaffolded, not wired
 - Notification inbox caps at 50 rows per user in list responses
@@ -240,4 +260,4 @@ cd admin  && flutter run -d chrome
 
 ---
 
-*Last updated: end of the finalization session (commit b5184f0+). Docker Desktop was crash-prone at the end of this session — if the platform is down when you return, start from section 4.*
+*Last updated: 2026-09-28 — FCM activation: service-account key minted, W16 `aud` bug found + fixed + live-verified; cluster wiring commands in §6. Docker Desktop was crash-prone at the end of the finalization session — if the platform is down when you return, start from section 4.*

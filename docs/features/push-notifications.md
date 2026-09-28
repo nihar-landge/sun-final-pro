@@ -40,7 +40,9 @@ Citizen's phone: system notification
 - **No Admin SDK** — the FCM sender signs a service-account JWT with the
   jjwt library the platform already carries, exchanges it at
   `oauth2.googleapis.com/token`, and calls the FCM v1 REST API. Lighter
-  image, same official flow.
+  image, same official flow. Gotcha: the `aud` claim must be a plain string
+  (`.audience().single(...)`) — jjwt's `.add()` emits a JSON array, which
+  Google rejects ("Failed audience check"; see SESSION-HANDOFF W16).
 - **Graceful when unconfigured** — without the service-account file, pushes
   are skipped with a log line; token registration and the whole Alerts
   system keep working.
@@ -55,15 +57,40 @@ Citizen's phone: system notification
 
 The backend cannot send until it has a **service-account private key**:
 
-1. Firebase console → your project → ⚙ Project settings → **Service accounts**
-2. **Generate new private key** → downloads a JSON file
-3. Point notification-service at it:
+1. Get the JSON — Firebase console → your project → ⚙ Project settings →
+   **Service accounts** → **Generate new private key**, or without the console:
+   ```bash
+   gcloud iam service-accounts keys create key.json \
+     --iam-account=<sa>@<project>.iam.gserviceaccount.com --project=<project>
+   ```
+2. Verify it before wiring anything (mints a real OAuth token; the send test
+   is skipped unless `FCM_TEST_DEVICE_TOKEN` is also set):
+   ```bash
+   FCM_LIVE_TEST=true FCM_SERVICE_ACCOUNT=/path/to/service-account.json \
+     ./mvnw -pl notification-service -am test -Dtest=FcmSenderLiveTest
+   ```
+3. Point notification-service at it — **host run:**
    ```bash
    FCM_SERVICE_ACCOUNT=/path/to/service-account.json java -jar notification-service.jar
    ```
-   (or add it to the Kubernetes secret + deployment env)
+   **Kubernetes** — the manifest mounts the *optional* `fcm-service-account`
+   secret at `/etc/fcm/service-account.json`; the pod boots with push disabled
+   while the secret is absent:
+   ```bash
+   kubectl -n feedbackapp create secret generic fcm-service-account \
+     --from-file=service-account.json=/path/to/service-account.json \
+     --dry-run=client -o yaml | kubectl apply -f -     # idempotent — safe to re-run
+   kubectl apply -f k8s/base/notification-service.yaml
+   kubectl -n feedbackapp rollout restart deploy/notification-service
+   ```
 
-Without this file everything works except the actual send — by design.
+The JSON is a private key — it goes into the cluster Secret (or a local path),
+never into git. Without it everything works except the actual send — by design.
+
+**Status (2026-09-28):** credentials minted; the sender is verified against
+Google's real OAuth2 endpoint (`FcmSenderLiveTest`: 2 pass / 1 skip). The first
+live run caught the `aud`-array bug — see SESSION-HANDOFF W16. Cluster secret
+wiring is the remaining step.
 
 ## Verify
 
