@@ -26,6 +26,8 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
   FeedbackCategory? _category;
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
+  final _latController = TextEditingController();
+  final _lngController = TextEditingController();
   double? _lat;
   double? _lng;
   bool _locating = false;
@@ -48,6 +50,8 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
+    _latController.dispose();
+    _lngController.dispose();
     super.dispose();
   }
 
@@ -65,21 +69,44 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
     setState(() => _locating = true);
     try {
       final permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
-        _snack('Location permission denied — enter coordinates manually.');
+      if (permission == LocationPermission.deniedForever) {
+        _snackWithAction(
+          'Location is blocked for this app.',
+          actionLabel: 'Open Settings',
+          onAction: () => Geolocator.openAppSettings(),
+        );
         return;
       }
-      final position = await Geolocator.getCurrentPosition();
+      if (permission == LocationPermission.denied) {
+        _snack('Location permission denied — enter coordinates below.');
+        return;
+      }
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.medium,
+          timeLimit: Duration(seconds: 15),
+        ),
+      );
       setState(() {
         _lat = position.latitude;
         _lng = position.longitude;
+        _latController.text = position.latitude.toStringAsFixed(6);
+        _lngController.text = position.longitude.toStringAsFixed(6);
       });
     } catch (_) {
-      _snack('Could not get your location. Enter coordinates manually.');
+      _snack('Could not get your location. Enter coordinates below.');
     } finally {
       if (mounted) setState(() => _locating = false);
     }
+  }
+
+  void _onManualCoordsChanged() {
+    final lat = double.tryParse(_latController.text.trim());
+    final lng = double.tryParse(_lngController.text.trim());
+    setState(() {
+      _lat = (lat != null && lat.abs() <= 90) ? lat : null;
+      _lng = (lng != null && lng.abs() <= 180) ? lng : null;
+    });
   }
 
   void _snack(String message) {
@@ -87,6 +114,23 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _snackWithAction(String message,
+      {required String actionLabel,
+      required Future<void> Function() onAction}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content: Text(message),
+        action: SnackBarAction(
+          label: actionLabel,
+          onPressed: () async {
+            await onAction();
+          },
+        ),
+      ));
   }
 
   /// The differentiating step: check for similar reports nearby before
@@ -499,8 +543,9 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
 
   Widget _stepLocation() {
     final scheme = Theme.of(context).colorScheme;
+    final hasLocation = _lat != null && _lng != null;
     return Column(
-      key: const ValueKey(2),
+      key: const ValueKey(3),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Where is the issue?',
@@ -513,16 +558,15 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
               children: [
                 Icon(Icons.location_on_rounded,
                     size: 44,
-                    color:
-                        _lat != null ? scheme.primary : scheme.outline),
+                    color: hasLocation ? scheme.primary : scheme.outline),
                 const SizedBox(height: 8),
                 Text(
-                  _lat != null
+                  hasLocation
                       ? '${_lat!.toStringAsFixed(5)}, ${_lng!.toStringAsFixed(5)}'
                       : 'No location set yet',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: _lat != null ? scheme.primary : null),
+                      color: hasLocation ? scheme.primary : null),
                 ),
                 const SizedBox(height: 12),
                 FilledButton.tonalIcon(
@@ -539,19 +583,72 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
             ),
           ),
         ),
+        const SizedBox(height: 16),
+        Text('No GPS? Enter coordinates manually',
+            style: Theme.of(context).textTheme.titleSmall),
+        const SizedBox(height: 10),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: TextFormField(
+                controller: _latController,
+                keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true, signed: true),
+                decoration: InputDecoration(
+                  labelText: 'Latitude',
+                  hintText: '18.52043',
+                  errorText: _latError,
+                ),
+                onChanged: (_) => _onManualCoordsChanged(),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: TextFormField(
+                controller: _lngController,
+                keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true, signed: true),
+                decoration: InputDecoration(
+                  labelText: 'Longitude',
+                  hintText: '73.85674',
+                  errorText: _lngError,
+                ),
+                onChanged: (_) => _onManualCoordsChanged(),
+              ),
+            ),
+          ],
+        ),
         const SizedBox(height: 8),
         Text(
           'Your location is used only for this report and helps the '
-          'municipality find and fix the issue faster.',
+          'municipality find and fix the issue faster. You can copy '
+          'coordinates from any maps app.',
           style: Theme.of(context).textTheme.bodySmall,
         ),
       ],
     );
   }
 
+  String? get _latError {
+    final text = _latController.text.trim();
+    if (text.isEmpty) return null;
+    final value = double.tryParse(text);
+    if (value == null || value.abs() > 90) return 'Invalid';
+    return null;
+  }
+
+  String? get _lngError {
+    final text = _lngController.text.trim();
+    if (text.isEmpty) return null;
+    final value = double.tryParse(text);
+    if (value == null || value.abs() > 180) return 'Invalid';
+    return null;
+  }
+
   Widget _stepSimilar() {
     return Column(
-      key: const ValueKey(3),
+      key: const ValueKey(4),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Similar reports nearby',

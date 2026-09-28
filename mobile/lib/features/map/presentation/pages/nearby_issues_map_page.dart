@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'package:feedback_app/core/theme/status_colors.dart';
@@ -20,17 +21,45 @@ class NearbyIssuesMapPage extends StatefulWidget {
 }
 
 class _NearbyIssuesMapPageState extends State<NearbyIssuesMapPage> {
-  static const _center = LatLng(18.5204, 73.8567); // demo: Pune
+  static const _fallbackCenter = LatLng(18.5204, 73.8567); // demo: Pune
+  static const _radiusKm = 10.0;
+
+  final _mapController = MapController();
+  bool _mapReady = false;
+  LatLng _center = _fallbackCenter;
 
   @override
   void initState() {
     super.initState();
-    // Load a wide radius around the demo center.
-    context.read<FeedbackBloc>().add(const NearbyFeedbackRequested(lat: 18.5204, lng: 73.8567, radiusKm: 10));
+    _loadNearby();
   }
 
-  void _refresh() {
-    context.read<FeedbackBloc>().add(const NearbyFeedbackRequested(lat: 18.5204, lng: 73.8567, radiusKm: 10));
+  /// Loads a wide radius around the device position; falls back to the
+  /// demo center when the location is unavailable (denied, timeout, error).
+  Future<void> _loadNearby() async {
+    var center = _fallbackCenter;
+    try {
+      final permission = await Geolocator.requestPermission();
+      if (permission != LocationPermission.denied &&
+          permission != LocationPermission.deniedForever) {
+        final position = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.medium,
+            timeLimit: Duration(seconds: 15),
+          ),
+        );
+        center = LatLng(position.latitude, position.longitude);
+      }
+    } catch (_) {
+      // Keep the demo center — the map still loads.
+    }
+    if (!mounted) return;
+    _center = center;
+    if (_mapReady) {
+      _mapController.move(center, _mapController.camera.zoom);
+    }
+    context.read<FeedbackBloc>().add(NearbyFeedbackRequested(
+        lat: center.latitude, lng: center.longitude, radiusKm: _radiusKm));
   }
 
   @override
@@ -60,15 +89,23 @@ class _NearbyIssuesMapPageState extends State<NearbyIssuesMapPage> {
             return const Center(child: CircularProgressIndicator());
           }
           if (state is FeedbackFailure && geoItems.isEmpty) {
-            return ErrorState(message: state.message, onRetry: _refresh);
+            return ErrorState(message: state.message, onRetry: _loadNearby);
           }
 
           return Stack(
             children: [
               FlutterMap(
-                options: const MapOptions(
+                mapController: _mapController,
+                options: MapOptions(
                   initialCenter: _center,
                   initialZoom: 13,
+                  onMapReady: () {
+                    _mapReady = true;
+                    if (_center != _fallbackCenter) {
+                      _mapController.move(
+                          _center, _mapController.camera.zoom);
+                    }
+                  },
                 ),
                 children: [
                   TileLayer(
@@ -124,8 +161,9 @@ class _NearbyIssuesMapPageState extends State<NearbyIssuesMapPage> {
                   children: [
                     FloatingActionButton.small(
                       heroTag: 'recenter',
-                      onPressed: _refresh,
-                      child: const Icon(Icons.refresh),
+                      onPressed: _loadNearby,
+                      tooltip: 'Center on my location',
+                      child: const Icon(Icons.my_location),
                     ),
                     const SizedBox(height: 8),
                     Container(
