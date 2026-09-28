@@ -8,7 +8,7 @@
 
 **Project:** CivicPulse — Public Feedback & Polling System (CDAC Final Project, Mobile Computing)
 **Repo:** github.com/nihar-landge/sun-final-pro · branch `master`
-**Scale:** ~15,600 lines hand-written code (4,675 Java main · 913 Java tests · 10,074 Dart) · 338+ files · 260 lines Flyway SQL · 18 docs
+**Scale:** ~15,900 lines hand-written code (4,675 Java main · 913 Java tests · 10,340 Dart — plus ~3,200 generated gen_l10n classes) · 338+ files · 260 lines Flyway SQL · 18 docs
 **Verification:** 37 backend unit tests + 4 env-gated live/integration suites (2 Testcontainers, R2 presign round-trip, FCM token mint) + 27-check live E2E suite + 4 Dart tests + k6 load script
 
 ---
@@ -29,7 +29,7 @@
 **Shared `common` module:** ApiResponse envelope, ErrorCode enum + typed exceptions, FeedbackEvent contract, `@CurrentUser` argument resolver (gateway-trust model), shared GlobalExceptionHandler.
 
 ### Flutter apps
-- **Citizen app** (`mobile/`) — 5 tabs: Home (greeting, featured poll, quick actions, nearby issues, own reports, **community impact card**), Polls (Active/Upcoming/Closed, preview bars, countdowns, **Poll Insights**), Report (**5-step wizard**: category → describe → **photos (max 3, direct-to-S3 upload)** → GPS/manual location → **similar-report detection within 300 m** → submit → track), Alerts (**persistent inbox**, unread badge, mark-read), Profile (theme System/Light/Dark persisted, language selector EN live / हिन्दी / मराठी scaffolded, privacy notes, **About CivicPulse screen**, sign out).
+- **Citizen app** (`mobile/`) — 5 tabs: Home (greeting, featured poll, quick actions, nearby issues, own reports, **community impact card**), Polls (Active/Upcoming/Closed, preview bars, countdowns, **Poll Insights**), Report (**5-step wizard**: category → describe → **photos (max 3, direct-to-S3 upload)** → GPS/manual location → **similar-report detection within 300 m** → submit → track), Alerts (**persistent inbox**, unread badge, mark-read), Profile (theme System/Light/Dark persisted, **trilingual UI — English / हिन्दी / मराठी via gen_l10n (183 keys × 3 ARBs) with a live language selector**, privacy notes, **About CivicPulse screen**, sign out).
   - Report detail: photo carousel, status chip, upvote, **progress timeline from audited history**, **Official Update card (staff public note)**, **Resolved celebration card (duration + supporters)**, comments with composer, OSM mini-map.
   - Poll detail: vote form → "You already voted" card (server `hasVoted`), **LIVE badge + STOMP real-time result bars**, Poll Insights.
   - Clean Architecture per feature: domain (entities/interfaces/use cases) ← data (models, data sources, repo impls mapping exceptions→Failures) → presentation (blocs + pages). Manual DI in main.dart.
@@ -226,11 +226,11 @@ cd admin  && flutter run -d chrome
    ```
    Everything else (token registry, sender, event wiring, mobile permission/deep-links) is already built.
    ⚠️ If the Android app was installed before Firebase was added, uninstall + reinstall so the google-services plugin values apply cleanly.
-2. **Hindi/Marathi localization:** Flutter gen_l10n + 3 ARBs; ~15 screens of strings; the language selector UI already exists in Profile.
-3. **Sentiment ONNX (optional):** user is learning mini-model training; sentiment-service + schema are ready. Model: small quantized classifier; serve via the stub or a FastAPI sidecar.
-4. **Demo video + slides + user manual:** blueprint deliverables not yet produced.
-5. **Ongoing:** commit early/often — the session pattern of one mega-commit early on cost history granularity later (fixed: recent work is in clean commits).
+2. **Sentiment ONNX (optional):** user is learning mini-model training; sentiment-service + schema are ready. Model: small quantized classifier; serve via the stub or a FastAPI sidecar.
+3. **Demo video + slides + user manual:** blueprint deliverables not yet produced.
+4. **Ongoing:** commit early/often — the session pattern of one mega-commit early on cost history granularity later (fixed: recent work is in clean commits).
 
+*(Done 2026-09-28: trilingual localization shipped — commit `bce3bee`, all screens' strings in 3 ARBs (183 keys), Profile language selector live, CI + e2e green on master; hi/mr are AI drafts awaiting native-speaker review — see §8.)*
 *(Done 2026-09-27: R2 — presign fix verified live and cluster switched; see W14. Revert path if R2 is ever unwanted: restore the four `MINIO_*` ConfigMap values to the git placeholders + SeaweedFS keys into the live Secret, then rollout-restart feedback-service.)*
 
 ---
@@ -251,7 +251,7 @@ cd admin  && flutter run -d chrome
 
 - FCM: key minted + sender verified against live Google (2026-09-28); cluster wiring (secret + manifest + restart) still pending — commands in §6
 - R2 token is bucket-scoped and was pasted in chat — rotate before any real use
-- Hindi/Marathi are scaffolded, not wired
+- Hindi/Marathi UI is live (`bce3bee`), but the translations are AI drafts awaiting native-speaker review (especially the poll open/closed label wording and the two plural messages); month abbreviations in feedback detail still render in English (`intl` DateFormat deferred)
 - Notification inbox caps at 50 rows per user in list responses
 - Poll analytics loads all polls into memory (fine at demo scale)
 - No pagination caps on some admin tables beyond size=100
@@ -260,4 +260,4 @@ cd admin  && flutter run -d chrome
 
 ---
 
-*Last updated: 2026-09-28 — FCM activation: service-account key minted, W16 `aud` bug found + fixed + live-verified; cluster wiring commands in §6. Docker Desktop was crash-prone at the end of the finalization session — if the platform is down when you return, start from section 4.*
+*Last updated: 2026-09-28 — trilingual localization shipped + pushed (`bce3bee`, CI + e2e green); FCM activation: service-account key minted, W16 `aud` bug found + fixed + live-verified, cluster wiring commands in §6. Docker Desktop was crash-prone at the end of the finalization session — if the platform is down when you return, start from section 4.*

@@ -85,7 +85,8 @@ how to demo it)
    similar-report detection before submission**, full report detail with
    progress timeline + comments, **OpenStreetMap issue map** with
    status-colored pins, alerts feed derived from own reports + closing polls,
-   Material 3 teal design system with **dark mode** and semantic status
+   Material 3 teal design system with **dark mode**, **trilingual UI
+   (English · हिन्दी · मराठी)**, and semantic status
    colors. Secure token storage + transparent refresh throughout.
 9. **Flutter admin console — municipal operations dashboard** (desktop-first
    sidebar shell): Dashboard (6 KPI cards + charts + live event feed),

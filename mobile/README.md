@@ -67,6 +67,7 @@ subclasses, blocs catch `Failure` and emit failure states the pages render.
 | `errors/exceptions.dart` | Data-layer exceptions (Network/Server/Cache) |
 | `errors/failures.dart` | Domain-layer failures (sealed) — what blocs catch |
 | `themes/app_theme.dart` | Material 3 light/dark theme from one seed color |
+| `l10n/` | gen_l10n ARBs (English / हिन्दी / मराठी) → generated `AppLocalizations`; language persisted by `LocaleCubit` |
 | `utils/validators.dart` | Phone (10–15 digits), OTP (6 digits), name validation |
 
 ## Features
