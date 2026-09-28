@@ -67,7 +67,7 @@ class AdminApiClient {
     final request = http.Request(method, uri)..headers.addAll(headers);
     if (body != null) request.body = jsonEncode(body);
     try {
-      return http.Response.fromStream(await _client.send(request));
+      return await http.Response.fromStream(await _client.send(request));
     } catch (_) {
       throw const AdminApiException('Could not reach the server');
     }
