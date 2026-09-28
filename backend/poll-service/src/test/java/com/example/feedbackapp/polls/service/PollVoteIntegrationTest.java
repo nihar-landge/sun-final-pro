@@ -39,7 +39,8 @@ class PollVoteIntegrationTest {
 
     @Container
     @ServiceConnection
-    static final GenericContainer<?> REDIS = new GenericContainer<>("redis:7-alpine");
+    static final GenericContainer<?> REDIS = new GenericContainer<>("redis:7-alpine")
+            .withExposedPorts(6379);
 
     @Autowired
     private PollService pollService;
