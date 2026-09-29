@@ -43,12 +43,6 @@ public class Feedback {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Column(name = "sentiment_score")
-    private Float sentimentScore;
-
-    @Column(name = "sentiment_label", length = 10)
-    private String sentimentLabel;
-
     @Column(nullable = false)
     private int upvotes = 0;
 
@@ -135,22 +129,6 @@ public class Feedback {
 
     public void setUserId(Long userId) {
         this.userId = userId;
-    }
-
-    public Float getSentimentScore() {
-        return sentimentScore;
-    }
-
-    public void setSentimentScore(Float sentimentScore) {
-        this.sentimentScore = sentimentScore;
-    }
-
-    public String getSentimentLabel() {
-        return sentimentLabel;
-    }
-
-    public void setSentimentLabel(String sentimentLabel) {
-        this.sentimentLabel = sentimentLabel;
     }
 
     public int getUpvotes() {

@@ -29,6 +29,24 @@ class AdminApiClient {
     await _storage.delete(key: _refreshKey);
   }
 
+  /// Revokes the refresh token server-side (best-effort) so it cannot be
+  /// replayed, then clears the local session.
+  Future<void> logout() async {
+    final refresh = await _storage.read(key: _refreshKey);
+    if (refresh != null) {
+      try {
+        await _client.post(
+          Uri.parse('$_baseUrl/auth/logout'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'refreshToken': refresh}),
+        );
+      } catch (_) {
+        // Offline or server unreachable: still clear the local session.
+      }
+    }
+    await clearTokens();
+  }
+
   Future<String?> _readAccess() => _storage.read(key: _accessKey);
 
   /// Returns the `data` of a successful ApiResponse.

@@ -46,21 +46,6 @@ class AdminReport extends Equatable {
         createdAt: json['createdAt'] as String? ?? '',
       );
 
-  AdminReport copyWith({String? status, String? assignedTo, bool? hidden}) =>
-      AdminReport(
-        id: id,
-        title: title,
-        description: description,
-        category: category,
-        status: status ?? this.status,
-        upvotes: upvotes,
-        assignedTo: assignedTo ?? this.assignedTo,
-        hidden: hidden ?? this.hidden,
-        latitude: latitude,
-        longitude: longitude,
-        createdAt: createdAt,
-      );
-
   @override
   List<Object?> get props =>
       [id, title, category, status, upvotes, assignedTo, hidden, createdAt];
@@ -100,17 +85,15 @@ class ReportsFilterChanged extends ReportsEvent {
   final String search;
   final String? status;
   final String? category;
-  final String? assignedTo;
 
   const ReportsFilterChanged({
     this.search = '',
     this.status,
     this.category,
-    this.assignedTo,
   });
 
   @override
-  List<Object?> get props => [search, status, category, assignedTo];
+  List<Object?> get props => [search, status, category];
 }
 
 class ReportOpened extends ReportsEvent {
@@ -143,10 +126,6 @@ class ReportsBulkStatusChanged extends ReportsEvent {
 
   @override
   List<Object?> get props => [newStatus];
-}
-
-class ReportsRefreshed extends ReportsEvent {
-  const ReportsRefreshed();
 }
 
 class ReportSaved extends ReportsEvent {
@@ -187,7 +166,6 @@ class ReportsLoaded extends ReportsState {
   final String search;
   final String? status;
   final String? category;
-  final String? assignedTo;
   final Set<int> selected;
   final AdminReportDetail? openDetail;
   final String? message;
@@ -198,7 +176,6 @@ class ReportsLoaded extends ReportsState {
     this.search = '',
     this.status,
     this.category,
-    this.assignedTo,
     this.selected = const {},
     this.openDetail,
     this.message,
@@ -207,7 +184,7 @@ class ReportsLoaded extends ReportsState {
 
   @override
   List<Object?> get props =>
-      [reports, search, status, category, assignedTo, selected, openDetail, message, loading];
+      [reports, search, status, category, selected, openDetail, message, loading];
 }
 
 class ReportsFailure extends ReportsState {
@@ -228,7 +205,6 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
     on<ReportsToggled>(_onToggle);
     on<ReportsSelectionCleared>(_onClearSelection);
     on<ReportsBulkStatusChanged>(_onBulkStatus);
-    on<ReportsRefreshed>(_onRefreshEvent);
     on<ReportSaved>(_onSave);
     on<DrawerClosed>(_onDrawerClosed);
     add(ReportsFilterChanged());
@@ -238,7 +214,6 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
     String search = '',
     String? status,
     String? category,
-    String? assignedTo,
   }) async {
     final params = <String>[
       'size=100',
@@ -249,17 +224,10 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
     ];
     final data = await apiClient.request('/feedback?${params.join('&')}');
     final content = data is Map<String, dynamic> ? data['content'] : data;
-    var reports = (content as List? ?? [])
+    return (content as List? ?? [])
         .whereType<Map<String, dynamic>>()
         .map(AdminReport.fromJson)
         .toList();
-    if (assignedTo != null && assignedTo.isNotEmpty) {
-      reports = reports
-          .where((r) =>
-              (r.assignedTo ?? '').toLowerCase().contains(assignedTo.toLowerCase()))
-          .toList();
-    }
-    return reports;
   }
 
   ReportsLoaded _current() =>
@@ -271,7 +239,6 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
       search: event.search,
       status: event.status,
       category: event.category,
-      assignedTo: event.assignedTo,
       loading: true,
     ));
     try {
@@ -279,14 +246,12 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
         search: event.search,
         status: event.status,
         category: event.category,
-        assignedTo: event.assignedTo,
       );
       emit(ReportsLoaded(
         reports: reports,
         search: event.search,
         status: event.status,
         category: event.category,
-        assignedTo: event.assignedTo,
         openDetail: _current().openDetail,
       ));
     } on AdminApiException catch (e) {
@@ -299,7 +264,7 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
     emit(ReportsLoaded(
       reports: current.reports,
       search: current.search, status: current.status,
-      category: current.category, assignedTo: current.assignedTo,
+      category: current.category,
       selected: current.selected, loading: true,
     ));
     try {
@@ -350,8 +315,7 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
     emit(current.copyWith(
         selected: {}, message: 'Bulk update: $changed changed${failed == 0 ? '' : ', $failed skipped'}'));
     add(ReportsFilterChanged(
-        search: current.search, status: current.status,
-        category: current.category, assignedTo: current.assignedTo));
+        search: current.search, status: current.status, category: current.category));
   }
 
   Future<void> _onSave(ReportSaved event, Emitter<ReportsState> emit) async {
@@ -377,19 +341,11 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
     emit(ReportsLoaded(
       reports: current.reports,
       search: current.search, status: current.status,
-      category: current.category, assignedTo: current.assignedTo,
+      category: current.category,
       selected: current.selected,
     ));
     add(ReportsFilterChanged(
-        search: current.search, status: current.status,
-        category: current.category, assignedTo: current.assignedTo));
-  }
-
-  Future<void> _onRefreshEvent(ReportsRefreshed event, Emitter<ReportsState> emit) async {
-    final current = _current();
-    add(ReportsFilterChanged(
-        search: current.search, status: current.status,
-        category: current.category, assignedTo: current.assignedTo));
+        search: current.search, status: current.status, category: current.category));
   }
 
   /// CSV of the current table view (client-side export).
@@ -415,7 +371,7 @@ extension on ReportsLoaded {
   }) =>
       ReportsLoaded(
         reports: reports,
-        search: search, status: status, category: category, assignedTo: assignedTo,
+        search: search, status: status, category: category,
         selected: selected ?? this.selected,
         openDetail: openDetail ?? this.openDetail,
         message: message,

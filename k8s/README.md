@@ -10,12 +10,11 @@ in-cluster gateway.
 Phone (adb reverse 8080→8090)  /  laptop curl :8090
         │ kubectl port-forward svc/api-gateway
         ▼
-api-gateway  (Deployment + Service + HPA, NodePort 30000)
+api-gateway  (Deployment + Service + HPA)
    ├─ auth-service           ─┐
    ├─ poll-service           │ Pods (1–3 replicas each, startupProbe +
    ├─ feedback-service       │ readinessProbe + livenessProbe)
-   ├─ notification-service   │
-   └─ sentiment-service      ┘
+   └─ notification-service   ┘
         │  host.docker.internal
         ▼
 Docker Compose data layer: PostgreSQL+PostGIS · Redis · SeaweedFS (S3) · RabbitMQ · Prometheus
@@ -26,8 +25,8 @@ Docker Compose data layer: PostgreSQL+PostGIS · Redis · SeaweedFS (S3) · Rabb
 - **Stateful layer stays in Compose** (reached via `host.docker.internal`).
   In a real deployment these become in-cluster StatefulSets or managed
   services — see `configmap.yaml` for the single point that changes.
-- **Memory tuning**: pods run with `MaxRAMPercentage=70`,
-  `MaxMetaspaceSize=128m`, 384Mi limits; `startupProbe` gives slow JVM boots
+- **Memory tuning**: pods run with `MaxRAMPercentage=55.0`,
+  `MaxMetaspaceSize=110m`, 460Mi limits; `startupProbe` gives slow JVM boots
   up to 5 minutes before liveness kicks in.
 
 ## Operating it

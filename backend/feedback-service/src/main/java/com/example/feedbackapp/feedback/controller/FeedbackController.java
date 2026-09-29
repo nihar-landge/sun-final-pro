@@ -53,15 +53,16 @@ public class FeedbackController {
 
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
-    @Operation(summary = "List feedback with optional category/status filters (paged)")
+    @Operation(summary = "List feedback with optional category/status/search filters (paged)")
     public ApiResponse<Page<FeedbackSummaryResponse>> list(
             @RequestParam(required = false) FeedbackCategory category,
             @RequestParam(required = false) FeedbackStatus status,
+            @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @CurrentUser(required = false) GatewayUser user,
             @RequestParam(defaultValue = "false") boolean includeHidden) {
-        return ApiResponse.ok(feedbackService.list(category, status, page, size, user, includeHidden));
+        return ApiResponse.ok(feedbackService.list(category, status, search, page, size, user, includeHidden));
     }
 
     @PatchMapping("/{id}")

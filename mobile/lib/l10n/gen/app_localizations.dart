@@ -604,6 +604,12 @@ abstract class AppLocalizations {
   /// **'View Report'**
   String get mapViewReport;
 
+  /// No description provided for @locationFallbackNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Location unavailable — showing a default area'**
+  String get locationFallbackNotice;
+
   /// No description provided for @commonBack.
   ///
   /// In en, this message translates to:

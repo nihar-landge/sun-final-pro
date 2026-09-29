@@ -29,7 +29,8 @@ import java.util.Optional;
  * identity to downstream services via trusted X-User-* headers (any
  * client-supplied X-User-* header is stripped first).
  *
- * Public: OTP endpoints, token refresh, actuator and API docs.
+ * Public: OTP endpoints, token refresh, the community-stats teaser,
+ * WebSocket upgrades and actuator.
  */
 @Component
 public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
@@ -40,10 +41,7 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
             "/api/v1/auth/token/refresh",
             "/api/v1/feedback/community-stats",
             "/ws/**",
-            "/actuator/**",
-            "/v3/api-docs/**",
-            "/swagger-ui/**",
-            "/swagger-ui.html");
+            "/actuator/**");
 
     private static final String BEARER_PREFIX = "Bearer ";
 

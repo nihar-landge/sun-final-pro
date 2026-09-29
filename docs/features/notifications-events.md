@@ -3,7 +3,7 @@
 When something happens in feedback-land, other services find out through a
 message broker instead of direct calls. Today notification-service consumes
 those events and exposes an admin feed; tomorrow the same pipeline feeds
-sentiment scoring and push notifications.
+push notifications.
 
 ## Topology
 
@@ -86,8 +86,6 @@ curl -s -u guest:guest localhost:15672/api/queues/%2F/notifications.feedback
 
 ## Future consumers (why this design pays off)
 
-- **sentiment-service** (planned, ONNX model): listens to `feedback.created`,
-  scores the text, writes `sentiment_score/label` back to the feedback row.
 - **Push notifications (FCM)**: listens to `feedback.status.changed` and
   notifies the report's author that their issue moved ("Your report was
   resolved!"). The author's `userId` is already in the event.

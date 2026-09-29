@@ -39,9 +39,8 @@ PollsBloc buildPollsBloc() => PollsBloc(
       repository: PollRepositoryImpl(PollRemoteDataSource(apiClient)),
     );
 
-FeedbackBloc buildFeedbackBloc() => FeedbackBloc(
-      repository: FeedbackRepositoryImpl(FeedbackRemoteDataSource(apiClient)),
-    );
+FeedbackBloc buildFeedbackBloc(FeedbackRepositoryImpl repository) =>
+    FeedbackBloc(repository: repository);
 
 AlertsBloc buildAlertsBloc() => AlertsBloc(
       remoteDataSource: NotificationRemoteDataSource(apiClient),
@@ -69,11 +68,17 @@ class FeedbackApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
+        RepositoryProvider<FeedbackRepositoryImpl>(
+          create: (_) =>
+              FeedbackRepositoryImpl(FeedbackRemoteDataSource(apiClient)),
+        ),
         BlocProvider(
             create: (_) => buildAuthBloc()..add(const AuthSessionRequested())),
         BlocProvider(create: (_) => buildPollsBloc()),
         BlocProvider(
-            create: (_) => buildFeedbackBloc()..add(const MyReportsRequested())),
+            create: (context) => buildFeedbackBloc(
+                context.read<FeedbackRepositoryImpl>())
+              ..add(const MyReportsRequested())),
         BlocProvider(create: (_) => buildAlertsBloc()),
       ],
       child: BlocBuilder<ThemeCubit, ThemeMode>(

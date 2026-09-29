@@ -192,4 +192,49 @@ class PollServiceTest {
 
         assertThat(response.hasVoted()).isTrue();
     }
+
+    @Test
+    @DisplayName("closePoll ends an active poll immediately")
+    void closePollEndsActivePoll() {
+        Poll poll = activePoll();
+        when(pollRepository.findById(10L)).thenReturn(Optional.of(poll));
+
+        PollResponse response = pollService.closePoll(10L, ADMIN);
+
+        assertThat(response.status()).isEqualTo("CLOSED");
+        assertThat(poll.getEndTime()).isBefore(LocalDateTime.now().plusSeconds(1));
+        verify(redis).delete("poll:results:10");
+    }
+
+    @Test
+    @DisplayName("closePoll rejects a SCHEDULED poll instead of violating the time window")
+    void closePollRejectsScheduledPoll() {
+        Poll poll = activePoll();
+        LocalDateTime originalEnd = LocalDateTime.now().plusDays(3);
+        poll.setStartTime(LocalDateTime.now().plusDays(2));
+        poll.setEndTime(originalEnd);
+        when(pollRepository.findById(10L)).thenReturn(Optional.of(poll));
+
+        assertThatThrownBy(() -> pollService.closePoll(10L, ADMIN))
+                .isInstanceOf(ConflictException.class);
+        assertThat(poll.getEndTime()).isEqualTo(originalEnd);
+        verify(redis, never()).delete(anyString());
+    }
+
+    @Test
+    @DisplayName("listPolls supports the all/scheduled/closed/active filters")
+    void listPollsFilters() {
+        Poll poll = activePoll();
+        when(pollRepository.findAll()).thenReturn(List.of(poll));
+        when(pollRepository.findActivePolls(any(LocalDateTime.class))).thenReturn(List.of(poll));
+        when(pollRepository.findClosedPolls(any(LocalDateTime.class))).thenReturn(List.of());
+
+        assertThat(pollService.listPolls("all")).hasSize(1);
+        assertThat(pollService.listPolls(null)).hasSize(1);
+        assertThat(pollService.listPolls("scheduled")).isEmpty();
+        assertThat(pollService.listPolls("closed")).isEmpty();
+
+        verify(pollRepository).findActivePolls(any(LocalDateTime.class));
+        verify(pollRepository).findClosedPolls(any(LocalDateTime.class));
+    }
 }

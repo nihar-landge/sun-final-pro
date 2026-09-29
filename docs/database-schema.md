@@ -67,8 +67,6 @@ erDiagram
         varchar status
         geography location "PostGIS point"
         bigint user_id "users.id (authdb)"
-        float sentiment_score
-        varchar sentiment_label
         integer upvotes
     }
 

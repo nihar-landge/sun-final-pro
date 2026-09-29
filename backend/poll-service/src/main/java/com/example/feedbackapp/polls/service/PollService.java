@@ -91,6 +91,7 @@ public class PollService {
     public List<PollSummaryResponse> listPolls(String status) {
         LocalDateTime now = LocalDateTime.now();
         List<Poll> polls = switch (status == null ? "active" : status.toLowerCase()) {
+            case "all" -> pollRepository.findAll();
             case "scheduled" -> pollRepository.findAll().stream()
                     .filter(p -> "SCHEDULED".equals(p.status(now))).toList();
             case "closed" -> pollRepository.findClosedPolls(now);
@@ -173,8 +174,16 @@ public class PollService {
     public PollResponse closePoll(Long pollId, GatewayUser admin) {
         requireAdmin(admin);
         Poll poll = getPollOrThrow(pollId);
-        if (!"CLOSED".equals(poll.status(LocalDateTime.now()))) {
-            poll.setEndTime(LocalDateTime.now());
+        LocalDateTime now = LocalDateTime.now();
+        String status = poll.status(now);
+        if ("SCHEDULED".equals(status)) {
+            // end_time = now would fall before start_time and violate the
+            // polls time-window constraint — scheduled polls must be edited,
+            // not closed.
+            throw new ConflictException("Poll has not started yet — only active polls can be closed");
+        }
+        if (!"CLOSED".equals(status)) {
+            poll.setEndTime(now);
         }
         redis.delete(RESULTS_CACHE_KEY.formatted(pollId));
         return toDetailResponse(poll);

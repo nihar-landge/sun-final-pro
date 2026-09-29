@@ -6,6 +6,7 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
 /** MinIO object-storage settings (see application.yml under `minio:`). */
 @ConfigurationProperties(prefix = "minio")
 public record MinioProperties(
+        @DefaultValue("true") boolean enabled,
         String url,
         String publicUrl,
         String accessKey,

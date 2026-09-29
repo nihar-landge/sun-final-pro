@@ -12,11 +12,11 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  * MinIO (S3-compatible) client for report photo storage. The bucket is
- * created on first boot so the environment is self-healing. Disable the
- * whole image feature with minio.enabled=false (e.g. CI without storage).
+ * created on first boot so the environment is self-healing. minio.enabled=false
+ * (e.g. CI without storage) skips the bucket bootstrap and disables photo
+ * operations; the client bean still exists so the context boots either way.
  */
 @Configuration
-@ConditionalOnProperty(prefix = "minio", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class MinioConfig {
 
     private static final Logger log = LoggerFactory.getLogger(MinioConfig.class);
@@ -33,6 +33,7 @@ public class MinioConfig {
     }
 
     @Bean
+    @ConditionalOnProperty(prefix = "minio", name = "enabled", havingValue = "true", matchIfMissing = true)
     public ApplicationRunner bucketBootstrap(
             @org.springframework.beans.factory.annotation.Qualifier("minioClient") MinioClient client,
             MinioProperties props) {

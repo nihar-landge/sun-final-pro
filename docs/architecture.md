@@ -18,7 +18,6 @@ flowchart TD
         E[Poll Service :8082]
         F[Feedback Service :8083]
         G[Notification Service :8084]
-        H[Sentiment Service :8085]
     end
 
     subgraph Data Layer
@@ -42,7 +41,6 @@ flowchart TD
     F --> K
     F --> M
     G --> N
-    H --> N
 ```
 
 ## Vertical slice (current)
@@ -75,7 +73,8 @@ sequenceDiagram
 ## Gateway edge security
 
 - Public paths: `/api/v1/auth/otp/**`, `/api/v1/auth/token/refresh`,
-  `/actuator/**`, API docs. Everything else requires a valid Bearer JWT.
+  `/api/v1/feedback/community-stats`, `/ws/**`, `/actuator/**`.
+  Everything else requires a valid Bearer JWT.
 - The filter strips any client-supplied `X-User-*` header, validates the JWT
   (same HS256 secret as auth-service), then injects `X-User-Id`,
   `X-User-Role`, `X-User-Name` before routing downstream.
@@ -102,8 +101,8 @@ so duplicates are impossible even under concurrency. Ballots are anonymous.
 - **Async** (done for feedback): feedback-service publishes
   `feedback.created` / `feedback.status.changed` to the
   `feedbackapp.events` topic exchange; notification-service consumes them
-  and exposes `/api/v1/notifications/recent` (admin). Sentiment scoring and
-  FCM push will consume the same events.
+  and exposes `/api/v1/notifications/recent` (admin). FCM push will consume
+  the same events.
 - **Real-time** (done for polls): STOMP WebSocket at `/ws` (routed by the
   gateway with `ws://` scheme, public handshake). Vote transactions publish
   an AFTER_COMMIT event that broadcasts fresh results to

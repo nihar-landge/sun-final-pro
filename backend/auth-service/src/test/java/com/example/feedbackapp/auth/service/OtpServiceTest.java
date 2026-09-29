@@ -59,11 +59,22 @@ class OtpServiceTest {
     @Test
     @DisplayName("sendOtp is rate-limited when the cooldown marker already exists")
     void sendOtpRateLimited() {
-        when(valueOps.setIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(null);
+        // NX-fail: the key already existed, so Redis returns FALSE.
+        when(valueOps.setIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(false);
 
         assertThatThrownBy(() -> otpService.sendOtp("9876543210"))
                 .isInstanceOf(OtpService.OtpRateLimitedException.class);
         verify(smsSender, never()).sendOtp(anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("sendOtp arms the cooldown marker with the configured TTL")
+    void sendOtpArmsCooldownTtl() {
+        when(valueOps.setIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
+
+        otpService.sendOtp("9876543210");
+
+        verify(valueOps).setIfAbsent("otp:rl:9876543210", "1", Duration.ofSeconds(60));
     }
 
     @Test

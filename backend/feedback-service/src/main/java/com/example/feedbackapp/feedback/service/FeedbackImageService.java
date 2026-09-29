@@ -54,6 +54,7 @@ public class FeedbackImageService {
     }
 
     public PresignResult presignUpload(Long feedbackId, String contentType, GatewayUser user) {
+        requirePhotoStorageEnabled();
         requireAccess(feedbackId, user);
         if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType)) {
             throw new ValidationFailedException("Only JPEG, PNG or WebP photos are allowed");
@@ -80,6 +81,7 @@ public class FeedbackImageService {
 
     /** Verifies the bytes actually arrived in MinIO, then records the reference. */
     public void register(Long feedbackId, String objectKey, GatewayUser user) {
+        requirePhotoStorageEnabled();
         requireAccess(feedbackId, user);
         if (objectKey == null || !objectKey.startsWith("reports/" + feedbackId + "/")) {
             throw new ValidationFailedException("Invalid object key");
@@ -96,10 +98,18 @@ public class FeedbackImageService {
 
     /** Pre-signed read URLs (1 h) for the report's photos. */
     public List<String> viewUrls(Long feedbackId) {
+        if (!props.enabled()) {
+            return List.of();
+        }
         return imageRepository.findByFeedbackIdOrderByIdAsc(feedbackId).stream()
                 .map(image -> sigV4Presigner.presignGet(props.bucket(), image.getObjectKey(), 3600).url())
-                .filter(url -> url != null)
                 .toList();
+    }
+
+    private void requirePhotoStorageEnabled() {
+        if (!props.enabled()) {
+            throw new ConflictException("Photo storage is disabled on this deployment");
+        }
     }
 
     private void requireAccess(Long feedbackId, GatewayUser user) {

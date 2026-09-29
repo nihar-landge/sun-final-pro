@@ -26,15 +26,13 @@ Baseline of what exists after the foundation phase, then the phased roadmap.
 - [ ] WebSocket (STOMP) live poll results; Redis pub/sub fan-out
 - [x] Geo-tagging: PostGIS `ST_DWithin` "issues near me"; image upload via
   pre-signed URLs (Cloudflare R2 live / SeaweedFS local)
-- [ ] sentiment-service: score feedback text on `feedback.created` events
-  from RabbitMQ; store score/label on feedback rows
 - [ ] notification-service: consume events, push/in-app notifications
 - [ ] community upvoting with `feedback_upvotes` PK enforcement
 
 ## Phase 3 — Analytics & admin (weeks 7-8)
 
 - [ ] Admin analytics dashboard: polls participation, feedback resolution
-  times, sentiment distribution (Flutter web + charts)
+  times (Flutter web + charts)
 - [ ] Advanced search/filter/pagination for feedback list
 - [ ] Moderator role flows (status transitions audited in
   `feedback_status_history`)
@@ -63,4 +61,3 @@ Baseline of what exists after the foundation phase, then the phased roadmap.
 | Vote processing | < 100 ms |
 | WebSocket connection success | > 99.5% |
 | System uptime | > 99.9% |
-| Sentiment accuracy | > 85% vs manual |

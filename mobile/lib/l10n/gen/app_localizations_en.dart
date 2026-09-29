@@ -296,6 +296,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mapViewReport => 'View Report';
 
   @override
+  String get locationFallbackNotice =>
+      'Location unavailable — showing a default area';
+
+  @override
   String get commonBack => 'Back';
 
   @override

@@ -8,7 +8,6 @@ import 'package:feedback_admin/features/reports/reports_bloc.dart';
 import 'package:feedback_admin/features/shell/admin_shell.dart';
 import 'package:feedback_admin/features/analytics/admin_analytics_bloc.dart';
 import 'package:feedback_admin/features/auth/admin_auth_bloc.dart';
-import 'package:feedback_admin/features/feedback/admin_feedback_bloc.dart';
 import 'package:feedback_admin/features/polls/admin_polls_bloc.dart';
 import 'package:feedback_admin/features/users/admin_users_bloc.dart';
 
@@ -27,7 +26,6 @@ class FeedbackAdminApp extends StatelessWidget {
       providers: [
         BlocProvider(create: (_) => AdminAuthBloc(apiClient: apiClient)),
         BlocProvider(create: (_) => AdminPollsBloc(apiClient: apiClient)),
-        BlocProvider(create: (_) => AdminFeedbackBloc(apiClient: apiClient)),
         BlocProvider(create: (_) => AdminAnalyticsBloc(apiClient: apiClient)),
         BlocProvider(create: (_) => AdminUsersBloc(apiClient: apiClient)),
         BlocProvider(create: (_) => ReportsBloc(apiClient: apiClient)),
@@ -56,7 +54,11 @@ class AdminGate extends StatelessWidget {
             ..showSnackBar(SnackBar(content: Text(state.message)));
         } else if (state is AdminAuthenticated) {
           context.read<AdminUsersBloc>().setCurrentAdminId(state.userId);
-          context.read<AdminUsersBloc>().add(const AdminUsersSearched());
+          // The users list is ADMIN-only on the server; skip the prefetch for
+          // moderators so they don't get a 403 snackbar on login.
+          if (state.isAdmin) {
+            context.read<AdminUsersBloc>().add(const AdminUsersSearched());
+          }
         }
       },
       builder: (context, state) {

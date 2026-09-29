@@ -296,6 +296,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get mapViewReport => 'रिपोर्ट देखें';
 
   @override
+  String get locationFallbackNotice =>
+      'स्थान उपलब्ध नहीं — डिफ़ॉल्ट क्षेत्र दिखाया जा रहा है';
+
+  @override
   String get commonBack => 'वापस';
 
   @override

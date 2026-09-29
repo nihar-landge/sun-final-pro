@@ -72,7 +72,7 @@ Admin-only: non-admin callers get **403** at every one of these endpoints
 The bars are `Stack` + `FractionallySizedBox` widgets colored per status —
 no `fl_chart` dependency, no version churn, fully theme-aware. Each bar row
 shows the absolute count and percentage share. If richer charts (time
-series, sentiment distribution) arrive later, swapping in a chart package
+series) arrive later, swapping in a chart package
 only touches `_DistributionBars`.
 
 ## Where the code lives
@@ -95,6 +95,5 @@ curl -s localhost:8080/api/v1/feedback/analytics/summary -H "Authorization: Bear
 # citizen token → 403 on both (role gate)
 ```
 
-Future additions that slot straight in: sentiment distribution (once
-sentiment-service writes `sentiment_score/label`), resolution-time trends
-per category, and votes-per-hour time series for live polls.
+Future additions that slot straight in: resolution-time trends
+per category and votes-per-hour time series for live polls.

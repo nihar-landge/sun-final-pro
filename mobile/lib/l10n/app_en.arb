@@ -139,6 +139,7 @@
     "placeholders": { "count": { "type": "int" } }
   },
   "mapViewReport": "View Report",
+  "locationFallbackNotice": "Location unavailable — showing a default area",
 
   "commonBack": "Back",
   "commonContinue": "Continue",

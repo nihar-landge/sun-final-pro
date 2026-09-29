@@ -13,7 +13,6 @@ library (`common`) and five runnable services.
 | `poll-service` | 8082 | Polls, one-person-one-vote, live results, STOMP | ✅ working |
 | `feedback-service` | 8083 | Geo-tagged reports, workflow, upvotes, events | ✅ working |
 | `notification-service` | 8084 | Consumes feedback events, recent feed | ✅ working |
-| `sentiment-service` | 8085 | Placeholder stub (ONNX scoring is future work) | 🚧 stub |
 
 ## Build & run
 

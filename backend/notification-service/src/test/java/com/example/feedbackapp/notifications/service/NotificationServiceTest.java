@@ -11,12 +11,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.List;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -69,10 +70,9 @@ class NotificationServiceTest {
     }
 
     @Test
-    @DisplayName("markAllRead counts only the user's unread rows")
+    @DisplayName("markAllRead delegates to the bulk update covering every unread row")
     void markAllRead() {
-        when(repository.findTop50ByUserIdOrderByCreatedAtDesc(2L)).thenReturn(List.of(
-                notification(1, 2L, true), notification(2, 2L, false)));
-        assertThat(service.markAllRead(USER)).isEqualTo(1);
+        when(repository.markAllRead(eq(2L), any(LocalDateTime.class))).thenReturn(3);
+        assertThat(service.markAllRead(USER)).isEqualTo(3);
     }
 }

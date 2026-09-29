@@ -99,7 +99,7 @@ public class FeedbackService {
 
     @Transactional(readOnly = true)
     public Page<FeedbackSummaryResponse> list(FeedbackCategory category, FeedbackStatus status,
-                                              int page, int size, GatewayUser viewer,
+                                              String search, int page, int size, GatewayUser viewer,
                                               boolean includeHidden) {
         boolean staff = viewer != null && (viewer.isAdmin() || "MODERATOR".equals(viewer.role()));
         Specification<Feedback> spec = (root, query, cb) -> {
@@ -112,6 +112,12 @@ public class FeedbackService {
             }
             if (status != null) {
                 predicates.add(cb.equal(root.get("status"), status));
+            }
+            if (search != null && !search.isBlank()) {
+                String term = "%" + search.trim().toLowerCase() + "%";
+                predicates.add(cb.or(
+                        cb.like(cb.lower(root.get("title")), term),
+                        cb.like(cb.lower(cb.coalesce(root.get("description"), "")), term)));
             }
             return cb.and(predicates.toArray(new Predicate[0]));
         };
@@ -131,6 +137,9 @@ public class FeedbackService {
 
     @Transactional
     public void upvote(Long feedbackId, GatewayUser user) {
+        // Check first: the FK violation from a missing target would otherwise
+        // surface as "already upvoted" (409) instead of 404.
+        getFeedbackOrThrow(feedbackId);
         try {
             upvoteRepository.save(new FeedbackUpvote(new FeedbackUpvoteId(feedbackId, user.id())));
             upvoteRepository.flush();
@@ -184,6 +193,9 @@ public class FeedbackService {
             feedback.setStatus(request.newStatus());
             historyRepository.save(new FeedbackStatusHistory(feedbackId, oldStatus,
                     request.newStatus(), operator.id()));
+            publishEvent(new FeedbackEvent(FeedbackEvent.STATUS_CHANGED, feedbackId, feedback.getUserId(),
+                    feedback.getTitle(), feedback.getCategory().name(),
+                    oldStatus.name(), request.newStatus().name(), java.time.Instant.now()));
         }
         if (request.assignedTo() != null) {
             feedback.setAssignedTo(request.assignedTo().isBlank() ? null : request.assignedTo().trim());

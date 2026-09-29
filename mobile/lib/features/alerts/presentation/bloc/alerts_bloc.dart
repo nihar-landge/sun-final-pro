@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:feedback_app/core/errors/failures.dart';
+import 'package:feedback_app/core/errors/exceptions.dart';
 import 'package:feedback_app/features/alerts/data/datasources/notification_remote_data_source.dart';
 
 /// The citizen's notification inbox — persistent rows created by consumed
@@ -109,8 +109,8 @@ class AlertsBloc extends Bloc<AlertsEvent, AlertsState> {
       final items = rows.map(AlertItem.fromJson).toList();
       final unread = items.where((i) => i.unread).length;
       emit(AlertsLoaded(items, unreadCount: unread));
-    } on Failure catch (failure) {
-      emit(AlertsFailure(failure.message));
+    } catch (error) {
+      emit(AlertsFailure(_messageFor(error)));
     }
   }
 
@@ -128,8 +128,8 @@ class AlertsBloc extends Bloc<AlertsEvent, AlertsState> {
           .toList();
       emit(AlertsLoaded(items,
           unreadCount: items.where((i) => i.unread).length));
-    } on Failure catch (failure) {
-      emit(AlertsFailure(failure.message));
+    } catch (error) {
+      emit(AlertsFailure(_messageFor(error)));
     }
   }
 
@@ -144,8 +144,14 @@ class AlertsBloc extends Bloc<AlertsEvent, AlertsState> {
               unread: false, refId: i.refId, createdAt: i.createdAt))
           .toList();
       emit(AlertsLoaded(items, unreadCount: 0));
-    } on Failure catch (failure) {
-      emit(AlertsFailure(failure.message));
+    } catch (error) {
+      emit(AlertsFailure(_messageFor(error)));
     }
   }
+
+  String _messageFor(Object error) => switch (error) {
+        NetworkException(:final message) => message,
+        ServerException(:final message) => message,
+        _ => 'Could not load alerts. Please try again.',
+      };
 }

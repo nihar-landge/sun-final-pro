@@ -47,7 +47,10 @@ public class OtpService {
 
     /** Generates, stores and sends an OTP. Returns the code when dev echo is enabled, else null. */
     public String sendOtp(String phone) {
-        if (redis.opsForValue().setIfAbsent(rateLimitKey(phone), "1", settings.sendCooldown()) == null) {
+        // setIfAbsent returns TRUE when the key was set, FALSE when it already
+        // existed (cooldown active) — only null in pipeline/transaction mode.
+        if (Boolean.FALSE.equals(
+                redis.opsForValue().setIfAbsent(rateLimitKey(phone), "1", settings.sendCooldown()))) {
             throw new OtpRateLimitedException("Please wait before requesting another OTP");
         }
 

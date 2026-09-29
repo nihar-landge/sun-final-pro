@@ -28,6 +28,7 @@ class _NearbyIssuesMapPageState extends State<NearbyIssuesMapPage> {
 
   final _mapController = MapController();
   bool _mapReady = false;
+  bool _usingFallback = false;
   LatLng _center = _fallbackCenter;
 
   @override
@@ -37,9 +38,11 @@ class _NearbyIssuesMapPageState extends State<NearbyIssuesMapPage> {
   }
 
   /// Loads a wide radius around the device position; falls back to the
-  /// demo center when the location is unavailable (denied, timeout, error).
+  /// demo center when the location is unavailable (denied, timeout, error)
+  /// and shows a notice so the fallback is never presented as device-nearby.
   Future<void> _loadNearby() async {
     var center = _fallbackCenter;
+    var usedFallback = true;
     try {
       final permission = await Geolocator.requestPermission();
       if (permission != LocationPermission.denied &&
@@ -51,12 +54,16 @@ class _NearbyIssuesMapPageState extends State<NearbyIssuesMapPage> {
           ),
         );
         center = LatLng(position.latitude, position.longitude);
+        usedFallback = false;
       }
     } catch (_) {
       // Keep the demo center — the map still loads.
     }
     if (!mounted) return;
-    _center = center;
+    setState(() {
+      _usingFallback = usedFallback;
+      _center = center;
+    });
     if (_mapReady) {
       _mapController.move(center, _mapController.camera.zoom);
     }
@@ -186,6 +193,23 @@ class _NearbyIssuesMapPageState extends State<NearbyIssuesMapPage> {
                   ],
                 ),
               ),
+              if (_usingFallback)
+                Positioned(
+                  left: 12,
+                  right: 76,
+                  bottom: 24,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: scheme.surface.withValues(alpha: 0.95),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: scheme.outlineVariant),
+                    ),
+                    child: Text(l10n.locationFallbackNotice,
+                        style: Theme.of(context).textTheme.bodySmall),
+                  ),
+                ),
             ],
           );
         },

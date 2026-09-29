@@ -25,7 +25,6 @@
         <module>poll-service</module>
         <module>feedback-service</module>
         <module>notification-service</module>
-        <module>sentiment-service</module>
     </modules>
 
     <properties>

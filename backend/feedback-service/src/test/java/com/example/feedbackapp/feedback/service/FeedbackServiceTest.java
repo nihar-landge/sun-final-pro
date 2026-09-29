@@ -58,7 +58,9 @@ class FeedbackServiceTest {
     void setUp() {
         feedbackService = new FeedbackService(feedbackRepository, upvoteRepository,
                 commentRepository, historyRepository, imageService, rabbitTemplate,
-                new com.fasterxml.jackson.databind.ObjectMapper());
+                // JavaTimeModule mirrors the Spring Boot-configured mapper (events carry an Instant)
+                new com.fasterxml.jackson.databind.ObjectMapper()
+                        .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule()));
         org.mockito.Mockito.lenient()
                 .when(imageService.viewUrls(org.mockito.ArgumentMatchers.anyLong()))
                 .thenReturn(java.util.List.of());
@@ -101,12 +103,23 @@ class FeedbackServiceTest {
     @Test
     @DisplayName("duplicate upvote is rejected as conflict")
     void duplicateUpvoteRejected() {
+        when(feedbackRepository.findById(7L)).thenReturn(Optional.of(feedback(7L)));
         doThrow(new DataIntegrityViolationException("dup"))
                 .when(upvoteRepository).save(any());
 
         assertThatThrownBy(() -> feedbackService.upvote(7L, CITIZEN))
                 .isInstanceOf(ConflictException.class);
         verify(upvoteRepository).save(any());
+    }
+
+    @Test
+    @DisplayName("upvoting a nonexistent feedback item is a 404, not a bogus conflict")
+    void upvoteOnMissingFeedback() {
+        when(feedbackRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> feedbackService.upvote(99L, CITIZEN))
+                .isInstanceOf(com.example.feedbackapp.common.error.NotFoundException.class);
+        verify(upvoteRepository, org.mockito.Mockito.never()).save(any());
     }
 
     @Test
@@ -166,6 +179,76 @@ class FeedbackServiceTest {
                 7L, new StatusUpdateRequest(FeedbackStatus.IN_REVIEW), CITIZEN))
                 .isInstanceOf(ForbiddenException.class);
         org.mockito.Mockito.verifyNoInteractions(feedbackRepository);
+    }
+
+    @Test
+    @DisplayName("adminUpdate status change writes history and publishes the status event")
+    void adminUpdateStatusChangePublishes() {
+        when(feedbackRepository.findById(7L)).thenReturn(Optional.of(feedback(7L)));
+        when(commentRepository.findByFeedbackIdOrderByCreatedAtAsc(7L)).thenReturn(java.util.List.of());
+        when(historyRepository.findByFeedbackIdOrderByChangedAtAsc(7L)).thenReturn(java.util.List.of());
+
+        var request = new com.example.feedbackapp.feedback.dto.AdminUpdateFeedbackRequest(
+                FeedbackStatus.IN_REVIEW, null, null, null, null);
+        var detail = feedbackService.adminUpdate(7L, request, ADMIN);
+
+        assertThat(detail.status()).isEqualTo("IN_REVIEW");
+        verify(historyRepository).save(any());
+        verify(rabbitTemplate).convertAndSend(
+                org.mockito.ArgumentMatchers.eq(
+                        com.example.feedbackapp.feedback.config.RabbitMqConfig.EXCHANGE),
+                org.mockito.ArgumentMatchers.eq("feedback.status.changed"),
+                org.mockito.ArgumentMatchers.anyString());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    @DisplayName("admin search filters title and description, case-insensitively")
+    void listSearchPredicate() {
+        org.mockito.ArgumentCaptor<org.springframework.data.jpa.domain.Specification<Feedback>> specCaptor =
+                org.mockito.ArgumentCaptor.forClass(org.springframework.data.jpa.domain.Specification.class);
+        when(feedbackRepository.findAll(specCaptor.capture(),
+                org.mockito.ArgumentMatchers.any(org.springframework.data.domain.Pageable.class)))
+                .thenReturn(org.springframework.data.domain.Page.empty());
+
+        feedbackService.list(null, null, "  StreetLight ", 0, 20, ADMIN, true);
+
+        jakarta.persistence.criteria.CriteriaBuilder cb =
+                org.mockito.Mockito.mock(jakarta.persistence.criteria.CriteriaBuilder.class);
+        jakarta.persistence.criteria.Root<Feedback> root =
+                org.mockito.Mockito.mock(jakarta.persistence.criteria.Root.class);
+        specCaptor.getValue().toPredicate(root,
+                org.mockito.Mockito.mock(jakarta.persistence.criteria.CriteriaQuery.class), cb);
+
+        org.mockito.ArgumentCaptor<String> patterns = org.mockito.ArgumentCaptor.forClass(String.class);
+        org.mockito.Mockito.verify(cb, org.mockito.Mockito.times(2))
+                .like(org.mockito.ArgumentMatchers.any(), patterns.capture());
+        assertThat(patterns.getAllValues()).containsExactly("%streetlight%", "%streetlight%");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    @DisplayName("blank admin search adds no filter predicate")
+    void blankSearchIsNoOp() {
+        org.mockito.ArgumentCaptor<org.springframework.data.jpa.domain.Specification<Feedback>> specCaptor =
+                org.mockito.ArgumentCaptor.forClass(org.springframework.data.jpa.domain.Specification.class);
+        when(feedbackRepository.findAll(specCaptor.capture(),
+                org.mockito.ArgumentMatchers.any(org.springframework.data.domain.Pageable.class)))
+                .thenReturn(org.springframework.data.domain.Page.empty());
+
+        feedbackService.list(null, null, "   ", 0, 20, ADMIN, true);
+
+        jakarta.persistence.criteria.CriteriaBuilder cb =
+                org.mockito.Mockito.mock(jakarta.persistence.criteria.CriteriaBuilder.class);
+        jakarta.persistence.criteria.Root<Feedback> root =
+                org.mockito.Mockito.mock(jakarta.persistence.criteria.Root.class);
+        specCaptor.getValue().toPredicate(root,
+                org.mockito.Mockito.mock(jakarta.persistence.criteria.CriteriaQuery.class), cb);
+
+        org.mockito.Mockito.verify(cb, org.mockito.Mockito.never())
+                .like(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyString());
+        org.mockito.Mockito.verify(cb, org.mockito.Mockito.never())
+                .or(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
     }
 
     @Test

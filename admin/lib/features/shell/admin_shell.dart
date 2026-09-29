@@ -172,6 +172,22 @@ class DashboardPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final analytics = context.watch<AdminAnalyticsBloc>().state;
+    if (analytics is AdminAnalyticsFailure) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Could not load the dashboard: ${analytics.message}'),
+            TextButton(
+              onPressed: () => context
+                  .read<AdminAnalyticsBloc>()
+                  .add(const AdminAnalyticsRefreshed()),
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
     if (analytics is! AdminAnalyticsLoaded) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -279,7 +295,7 @@ class DashboardPage extends StatelessWidget {
                       for (final point in a.trend)
                         Expanded(
                           child: Tooltip(
-                            message: '${point.day.substring(5)}: ${point.count}',
+                            message: '${_shortDay(point.day)}: ${point.count}',
                             child: Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 2),
                               child: Column(
@@ -371,7 +387,7 @@ class DashboardPage extends StatelessWidget {
                         subtitle: Text(event.type == 'feedback.status.changed'
                             ? '${event.oldStatus} → ${event.newStatus}'
                             : 'New report submitted'),
-                        trailing: Text(event.occurredAt.substring(11, 19)),
+                        trailing: Text(_clock(event.occurredAt)),
                       )),
               ],
             ),
@@ -387,3 +403,10 @@ double _barHeight(int count, List<TrendPoint> trend) {
   final max = trend.fold<int>(1, (m, p) => p.count > m ? p.count : m);
   return 12.0 + (count / max) * 88.0;
 }
+
+/// ISO "2026-09-01" → "09-01"; falls back to the raw value on short payloads.
+String _shortDay(String day) => day.length >= 10 ? day.substring(5) : day;
+
+/// ISO "2026-09-01T10:00:00Z" → "10:00:00"; falls back on short payloads.
+String _clock(String timestamp) =>
+    timestamp.length >= 19 ? timestamp.substring(11, 19) : timestamp;

@@ -62,7 +62,6 @@ class _ToolbarState extends State<_Toolbar> {
           search: _searchController.text,
           status: status ?? widget.state.status,
           category: category ?? widget.state.category,
-          assignedTo: widget.state.assignedTo,
         ));
   }
 
@@ -263,7 +262,9 @@ class _Table extends StatelessWidget {
                 ])),
                 DataCell(Text('${report.upvotes}')),
                 DataCell(Text(report.assignedTo ?? '—')),
-                DataCell(Text(report.createdAt.substring(0, 10))),
+                DataCell(Text(report.createdAt.length >= 10
+                    ? report.createdAt.substring(0, 10)
+                    : report.createdAt)),
               ],
             );
           }).toList(),

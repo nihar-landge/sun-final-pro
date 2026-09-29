@@ -42,7 +42,7 @@ fi
 CITIZEN=$(token "9876543210"); [ -n "$CITIZEN" ] && { PASS=$((PASS+1)); echo "  ✓ citizen login"; } || { FAIL=$((FAIL+1)); echo "  ✗ citizen login"; }
 ADMIN=$(token "9999999999");   [ -n "$ADMIN" ] &&   { PASS=$((PASS+1)); echo "  ✓ admin login"; }   || { FAIL=$((FAIL+1)); echo "  ✗ admin login"; }
 check "bad token rejected" "401" "$(curl -s -o /dev/null -w '%{http_code}' -m 5 $GW/api/v1/auth/me -H 'Authorization: Bearer garbage')"
-check "no token rejected"  "401" "$(curl -s -o /dev/null -w '%{http_code}' -m 5 $GW/api/v1/polls/health 2>/dev/null || true)"
+check "no token rejected"  "401" "$(curl -s -o /dev/null -w '%{http_code}' -m 5 $GW/api/v1/feedback)"
 
 echo "── 2. One-person-one-vote (composite PK)"
 CREATED=$(curl -s -X POST "$GW/api/v1/polls" -H "Authorization: Bearer $ADMIN" \
@@ -67,7 +67,7 @@ check "near-me returns it" "200" "$(curl -s -o /dev/null -w '%{http_code}' "$GW/
 check "upvote ok" "200" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$GW/api/v1/feedback/$FBID/upvote" -H "Authorization: Bearer $ADMIN")"
 check "duplicate upvote 409" "409" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$GW/api/v1/feedback/$FBID/upvote" -H "Authorization: Bearer $ADMIN")"
 curl -s -o /dev/null -X POST "$GW/api/v1/feedback/$FBID/status" -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' -d '{"newStatus":"IN_REVIEW"}'
-check "OPEN->IN_REVIEW ok" "200" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$GW/api/v1/feedback/$FBID/status" -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' -d '{"newStatus":"RESOLVED"}')"
+check "IN_REVIEW->RESOLVED ok" "200" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$GW/api/v1/feedback/$FBID/status" -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' -d '{"newStatus":"RESOLVED"}')"
 check "illegal transition 409" "409" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$GW/api/v1/feedback/$FBID/status" -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' -d '{"newStatus":"IN_REVIEW"}')"
 check "admin assign+notes" "200" "$(curl -s -o /dev/null -w '%{http_code}' -X PATCH "$GW/api/v1/feedback/$FBID" -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' -d '{"assignedTo":"Amit","publicNote":"Scheduled"}')"
 check "audit trail populated" "200" "$(curl -s -o /dev/null -w '%{http_code}' "$GW/api/v1/feedback/admin/audit?limit=5" -H "Authorization: Bearer $ADMIN")"
@@ -83,7 +83,15 @@ check "register image" "201" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "
 check "detail carries image" "True" "$(curl -s "$GW/api/v1/feedback/$FBID" -H "Authorization: Bearer $ADMIN" | json "print(len(json.load(sys.stdin)['data']['images']) > 0)")"
 
 echo "── 5. Events + analytics + roles"
-check "notification feed (admin)" "200" "$(curl -s -o /dev/null -w '%{http_code}' $GW/api/v1/notifications/recent -H "Authorization: Bearer $ADMIN")"
+# Wait briefly for the async consume to catch up, then assert the events we
+# generated actually landed in the admin feed (status-only checks miss a dead broker).
+FEED=0
+for _ in $(seq 1 10); do
+  FEED=$(curl -s "$GW/api/v1/notifications/recent" -H "Authorization: Bearer $ADMIN" | json "print(len(json.load(sys.stdin)['data']))")
+  [ "${FEED:-0}" -gt 0 ] 2>/dev/null && break
+  sleep 1
+done
+check "event pipeline reached the feed" "True" "$([ "${FEED:-0}" -gt 0 ] 2>/dev/null && echo True || echo False)"
 check "analytics (admin)" "200" "$(curl -s -o /dev/null -w '%{http_code}' $GW/api/v1/polls/analytics/summary -H "Authorization: Bearer $ADMIN")"
 check "citizen blocked from analytics" "403" "$(curl -s -o /dev/null -w '%{http_code}' $GW/api/v1/polls/analytics/summary -H "Authorization: Bearer $CITIZEN")"
 check "citizen blocked from users" "403" "$(curl -s -o /dev/null -w '%{http_code}' "$GW/api/v1/auth/admin/users" -H "Authorization: Bearer $CITIZEN")"

@@ -184,46 +184,63 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
     showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setDialogState) {
-          updateDialog = setDialogState;
-          return AlertDialog(
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(
-                  value: _photoBytes.length == 1
-                      ? null
-                      : done / _photoBytes.length,
-                ),
-                const SizedBox(height: 14),
-                Text(AppLocalizations.of(dialogContext).wizardUploadingPhotos),
-              ],
-            ),
-          );
-        },
+      builder: (dialogContext) => PopScope(
+        canPop: false,
+        child: StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            updateDialog = setDialogState;
+            return AlertDialog(
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(
+                    value: _photoBytes.length == 1
+                        ? null
+                        : done / _photoBytes.length,
+                  ),
+                  const SizedBox(height: 14),
+                  Text(AppLocalizations.of(dialogContext).wizardUploadingPhotos),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
 
-    for (var i = 0; i < _photoBytes.length; i++) {
-      final contentType =
-          _photoPaths[i].endsWith('.png') ? 'image/png' : 'image/jpeg';
-      try {
-        await repository.uploadPhoto(
-          reportId,
-          FeedbackPhoto(
-              path: _photoPaths[i],
-              bytes: _photoBytes[i],
-              contentType: contentType),
-        );
-      } on Failure {
-        // Report is already saved — a photo failure must not lose it.
+    try {
+      for (var i = 0; i < _photoBytes.length; i++) {
+        final contentType =
+            _photoPaths[i].endsWith('.png') ? 'image/png' : 'image/jpeg';
+        try {
+          await repository.uploadPhoto(
+            reportId,
+            FeedbackPhoto(
+                path: _photoPaths[i],
+                bytes: _photoBytes[i],
+                contentType: contentType),
+          );
+        } catch (_) {
+          // Report is already saved — a photo failure must not lose it.
+        }
+        done++;
+        updateDialog?.call(() {});
       }
-      done++;
-      updateDialog?.call(() {});
+    } finally {
+      if (mounted && Navigator.of(context).canPop()) {
+        Navigator.of(context).pop(); // close the progress dialog
+      }
     }
-    if (mounted && Navigator.of(context).canPop()) {
-      Navigator.of(context).pop(); // close the progress dialog
+  }
+
+  Future<void> _submitPhotosThenConfirm(FeedbackItem created) async {
+    try {
+      await _uploadPhotos(created.id);
+    } catch (_) {
+      // Report is already saved — a photo failure must not lose it.
+    } finally {
+      _uploading = false;
+      if (mounted) _showCreated(created);
     }
   }
 
@@ -235,10 +252,7 @@ class _ReportWizardPageState extends State<ReportWizardPage> {
           final created = state.items.isNotEmpty ? state.items.last : null;
           if (created != null && _photoBytes.isNotEmpty && !_uploading) {
             _uploading = true;
-            _uploadPhotos(created.id).then((_) {
-              _uploading = false;
-              if (mounted) _showCreated(created);
-            });
+            _submitPhotosThenConfirm(created);
           } else {
             _showCreated(created);
           }

@@ -28,6 +28,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  bool _usingFallbackLocation = false;
+
   String _greeting(AppLocalizations l10n) {
     final hour = DateTime.now().hour;
     if (hour < 12) return l10n.homeGreetingMorning;
@@ -45,10 +47,12 @@ class _HomePageState extends State<HomePage> {
   }
 
   /// Loads nearby reports around the device position; falls back to the
-  /// demo coordinates (Pune) when the location is unavailable.
+  /// demo coordinates (Pune) when the location is unavailable, and labels
+  /// the section so the fallback is never presented as device-nearby.
   Future<void> _loadNearby() async {
     var lat = 18.5204;
     var lng = 73.8567;
+    var usedFallback = true;
     try {
       final permission = await Geolocator.requestPermission();
       if (permission != LocationPermission.denied &&
@@ -61,11 +65,13 @@ class _HomePageState extends State<HomePage> {
         );
         lat = position.latitude;
         lng = position.longitude;
+        usedFallback = false;
       }
     } catch (_) {
       // Keep the demo coordinates — the nearby section still loads.
     }
     if (!mounted) return;
+    setState(() => _usingFallbackLocation = usedFallback);
     context.read<FeedbackBloc>().add(NearbyFeedbackRequested(lat: lat, lng: lng));
   }
 
@@ -204,6 +210,17 @@ class _HomePageState extends State<HomePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SectionHeader(title: l10n.homeNearbyIssues),
+                    if (_usingFallbackLocation)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Text(
+                          l10n.locationFallbackNotice,
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(color: scheme.outline),
+                        ),
+                      ),
                     if (state is FeedbackLoading && items.isEmpty)
                       const LoadingSkeleton(cards: 2)
                     else if (items.isEmpty)

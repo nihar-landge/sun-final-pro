@@ -23,6 +23,16 @@ spring:
     port: ${RABBITMQ_PORT:5672}
     username: ${RABBITMQ_USER:guest}
     password: ${RABBITMQ_PASSWORD:guest}
+    listener:
+      simple:
+        # Fast in-process retries for transient failures (DB blip). The queue
+        # has no DLX, so once attempts are exhausted the message is rejected
+        # (dropped) and surfaced via the container's warning log.
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 1s
+          multiplier: 2
 
   data:
     redis:

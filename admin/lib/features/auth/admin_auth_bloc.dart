@@ -132,7 +132,7 @@ class AdminAuthBloc extends Bloc<AdminAuthEvent, AdminAuthState> {
   }
 
   Future<void> _onLogout(AdminLogoutRequested event, Emitter<AdminAuthState> emit) async {
-    await apiClient.clearTokens();
+    await apiClient.logout();
     emit(const AdminAuthInitial());
   }
 }

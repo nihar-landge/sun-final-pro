@@ -97,6 +97,7 @@
   "mapRecenter": "माझ्या स्थानावर केंद्रित करा",
   "mapReportsCount": "{count, plural, =1{1 रिपोर्ट} other{{count} रिपोर्ट}}",
   "mapViewReport": "रिपोर्ट पहा",
+  "locationFallbackNotice": "स्थान उपलब्ध नाही — डीफॉल्ट भाग दाखवत आहे",
 
   "commonBack": "मागे",
   "commonContinue": "पुढे",

@@ -7,6 +7,7 @@ import com.example.feedbackapp.notifications.repository.NotificationRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -51,9 +52,6 @@ public class NotificationService {
 
     @Transactional
     public int markAllRead(GatewayUser user) {
-        List<Notification> unread = repository.findTop50ByUserIdOrderByCreatedAtDesc(user.id())
-                .stream().filter(Notification::isUnread).toList();
-        unread.forEach(Notification::markRead);
-        return unread.size();
+        return repository.markAllRead(user.id(), LocalDateTime.now());
     }
 }

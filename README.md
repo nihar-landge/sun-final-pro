@@ -45,10 +45,10 @@ how to demo it)
 
 | Path | Contents |
 |---|---|
-| `backend/` | Maven multi-module: `common`, `api-gateway` (:8080), `auth-service` (:8081), `poll-service` (:8082), `feedback-service` (:8083), `notification-service` (:8084), `sentiment-service` (:8085) |
+| `backend/` | Maven multi-module: `common`, `api-gateway` (:8080), `auth-service` (:8081), `poll-service` (:8082), `feedback-service` (:8083), `notification-service` (:8084) |
 | `mobile/` | Flutter citizen app (clean architecture: core/ + features/{auth,polls,feedback}) |
 | `admin/` | Flutter web admin panel (polls, feedback triage, analytics, user management) |
-| `infra/` | Docker Compose for PostgreSQL+PostGIS, Redis, MinIO, RabbitMQ |
+| `infra/` | Docker Compose for PostgreSQL+PostGIS, Redis, SeaweedFS (S3), RabbitMQ |
 | `k8s/` | Kubernetes manifests (deployed in weeks 9-10) |
 | `docs/` | Architecture, DB schema, setup guide, API specs, 12-week plan |
 | `.github/workflows/ci.yml` | CI: backend tests + Flutter analyze/test |

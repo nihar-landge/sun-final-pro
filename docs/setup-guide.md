@@ -54,7 +54,7 @@ curl -s -X POST localhost:8080/api/v1/auth/otp/verify \
 curl -s localhost:8080/api/v1/auth/me -H "Authorization: Bearer $ACCESS_TOKEN"
 
 # Gateway rejects protected routes without a token
-curl -i localhost:8080/api/v1/polls/health   # -> 401
+curl -i localhost:8080/api/v1/auth/me   # -> 401
 ```
 
 Swagger UI: <http://localhost:8081/swagger-ui.html> (auth-service direct).
@@ -63,7 +63,7 @@ Swagger UI: <http://localhost:8081/swagger-ui.html> (auth-service direct).
 
 ```bash
 cd mobile
-flutter run                      # Android emulator: API base = http://10.0.2.2:8080
+flutter run                      # Android emulator: API base = http://10.0.2.2:8080/api/v1
 flutter run --dart-define=API_BASE_URL=http://localhost:8080/api/v1   # iOS simulator / web
 ```
 

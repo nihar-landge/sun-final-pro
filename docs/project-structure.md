@@ -90,8 +90,6 @@ feedbackapp/                        ← repo root (this project)
 │   │   ├── web/NotificationsController.java      GET /api/v1/notifications/recent (admin)
 │   │   └── config/RabbitMqConfig.java            Same topology as publisher side
 │   │
-│   ├── sentiment-service/ :8085    Placeholder stub — ONNX sentiment scoring is future work
-│   │
 │   └── */Dockerfile                Layered-jar build for each service (temurin 21)
 │
 ├── mobile/                         Flutter CITIZEN app (Android/iOS/Web)
