@@ -82,18 +82,17 @@ check "direct PUT to MinIO" "200" "$(curl -s -o /dev/null -w '%{http_code}' -X P
 check "register image" "201" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$GW/api/v1/feedback/$FBID/images" -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' -d "{\"objectKey\":\"$OKEY\"}")"
 check "detail carries image" "True" "$(curl -s "$GW/api/v1/feedback/$FBID" -H "Authorization: Bearer $ADMIN" | json "print(len(json.load(sys.stdin)['data']['images']) > 0)")"
 
-echo "── 5. Events + analytics + roles"
-# Wait briefly for the async consume to catch up, then assert the events we
-# generated actually landed in the admin feed (status-only checks miss a dead broker).
-FEED=0
+echo "── 5. Notification inbox (transactional — no broker) + analytics + roles"
+# The status transitions above wrote inbox rows in the same transaction.
+INBOX_ROWS=0
 for _ in $(seq 1 10); do
-  FEED=$(curl -s "$GW/api/v1/notifications/recent" -H "Authorization: Bearer $ADMIN" | json "print(len(json.load(sys.stdin)['data']))")
-  [ "${FEED:-0}" -gt 0 ] 2>/dev/null && break
+  INBOX_ROWS=$(curl -s "$GW/api/v1/notifications/inbox" -H "Authorization: Bearer $CITIZEN" | json "print(len(json.load(sys.stdin)['data']))")
+  [ "${INBOX_ROWS:-0}" -gt 0 ] 2>/dev/null && break
   sleep 1
 done
-check "event pipeline reached the feed" "True" "$([ "${FEED:-0}" -gt 0 ] 2>/dev/null && echo True || echo False)"
-check "analytics (admin)" "200" "$(curl -s -o /dev/null -w '%{http_code}' $GW/api/v1/polls/analytics/summary -H "Authorization: Bearer $ADMIN")"
-check "citizen blocked from analytics" "403" "$(curl -s -o /dev/null -w '%{http_code}' $GW/api/v1/polls/analytics/summary -H "Authorization: Bearer $CITIZEN")"
+check "inbox rows created by status changes" "True" "$([ "${INBOX_ROWS:-0}" -gt 0 ] 2>/dev/null && echo True || echo False)"
+UNREAD=$(curl -s "$GW/api/v1/notifications/unread-count" -H "Authorization: Bearer $CITIZEN" | json "print(json.load(sys.stdin)['data'])")
+check "unread count > 0 (FCM pending)" "True" "$([ "${UNREAD:-0}" -gt 0 ] 2>/dev/null && echo True || echo False)"
 check "citizen blocked from users" "403" "$(curl -s -o /dev/null -w '%{http_code}' "$GW/api/v1/auth/admin/users" -H "Authorization: Bearer $CITIZEN")"
 check "self-demotion blocked" "409" "$(ADMIN_ID=$(curl -s $GW/api/v1/auth/me -H "Authorization: Bearer $ADMIN" | json "print(json.load(sys.stdin)['data']['id'])"); curl -s -o /dev/null -w '%{http_code}' -X PATCH "$GW/api/v1/auth/admin/users/$ADMIN_ID/role" -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' -d '{"newRole":"CITIZEN"}')"
 

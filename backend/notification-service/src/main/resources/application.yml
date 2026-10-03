@@ -6,48 +6,26 @@ spring:
     name: notification-service
 
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/notificationdb
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/feedbackdb
     username: ${DB_USER:feedback}
     password: ${DB_PASSWORD:feedback_dev_password}
 
-  jpa:
-    hibernate:
-      ddl-auto: none     # Flyway owns the schema
-    open-in-view: false
-
   flyway:
-    enabled: true
+    enabled: false     # feedback-service owns and migrates the shared tables
 
-  rabbitmq:
-    host: ${RABBITMQ_HOST:localhost}
-    port: ${RABBITMQ_PORT:5672}
-    username: ${RABBITMQ_USER:guest}
-    password: ${RABBITMQ_PASSWORD:guest}
-    listener:
-      simple:
-        # Fast in-process retries for transient failures (DB blip). The queue
-        # has no DLX, so once attempts are exhausted the message is rejected
-        # (dropped) and surfaced via the container's warning log.
-        retry:
-          enabled: true
-          max-attempts: 3
-          initial-interval: 1s
-          multiplier: 2
+fcm:
+  enabled: true
+  # Service-account JSON from Firebase console > Project settings >
+  # Service accounts > Generate new private key. Push is disabled (and the
+  # poller marks rows attempted) when the file is absent.
+  service-account: ${FCM_SERVICE_ACCOUNT:}
+  project-id: ${FCM_PROJECT_ID:feedback-5c79b}
 
-  data:
-    redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
+poll:
+  interval-ms: ${PUSH_POLL_INTERVAL_MS:10000}
 
 management:
   endpoints:
     web:
       exposure:
         include: health,info,prometheus
-
-fcm:
-  # Service-account JSON from Firebase console > Project settings >
-  # Service accounts > Generate new private key. Push is disabled (and the
-  # token registry keeps working) when the file is absent.
-  service-account: ${FCM_SERVICE_ACCOUNT:}
-  project-id: ${FCM_PROJECT_ID:feedback-5c79b}

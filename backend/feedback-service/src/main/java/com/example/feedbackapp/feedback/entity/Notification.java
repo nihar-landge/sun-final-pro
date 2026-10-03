@@ -1,4 +1,4 @@
-package com.example.feedbackapp.notifications.entity;
+package com.example.feedbackapp.feedback.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -10,10 +10,8 @@ import jakarta.persistence.Table;
 
 import java.time.LocalDateTime;
 
-/**
- * One row in the citizen's persistent notification inbox. Created by the
- * event consumer; read state is tracked per notification.
- */
+/** One row in the citizen's notification inbox — created in the same
+ *  transaction as the status change that caused it. */
 @Entity
 @Table(name = "notification")
 public class Notification {
@@ -34,11 +32,12 @@ public class Notification {
     @Column(nullable = false, length = 1000)
     private String body;
 
-    /** Report/poll id for deep-linking. */
     @Column(name = "ref_id")
     private Long refId;
 
-    /** Null = unread. */
+    @Column(name = "pushed_at")
+    private LocalDateTime pushedAt;
+
     @Column(name = "read_at")
     private LocalDateTime readAt;
 
@@ -61,6 +60,10 @@ public class Notification {
         if (this.createdAt == null) {
             this.createdAt = LocalDateTime.now();
         }
+    }
+
+    public void markPushed() {
+        this.pushedAt = LocalDateTime.now();
     }
 
     public void markRead() {
@@ -93,6 +96,10 @@ public class Notification {
 
     public Long getRefId() {
         return refId;
+    }
+
+    public LocalDateTime getPushedAt() {
+        return pushedAt;
     }
 
     public LocalDateTime getReadAt() {

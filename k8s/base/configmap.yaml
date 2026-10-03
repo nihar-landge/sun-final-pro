@@ -17,7 +17,6 @@ data:
   # Live-only values must never be committed here (see SESSION-HANDOFF W11).
   MINIO_BUCKET: "feedback-photos"
   MINIO_REGION: "us-east-1"
-  RABBITMQ_HOST: "host.docker.internal"
   AUTH_SERVICE_URL: "http://auth-service.feedbackapp.svc.cluster.local:8081"
   POLL_SERVICE_URL: "http://poll-service.feedbackapp.svc.cluster.local:8082"
   FEEDBACK_SERVICE_URL: "http://feedback-service.feedbackapp.svc.cluster.local:8083"

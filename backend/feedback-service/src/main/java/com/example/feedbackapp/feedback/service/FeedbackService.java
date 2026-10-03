@@ -1,6 +1,5 @@
 package com.example.feedbackapp.feedback.service;
 
-import com.example.feedbackapp.common.event.FeedbackEvent;
 import com.example.feedbackapp.common.error.ConflictException;
 import com.example.feedbackapp.common.error.ForbiddenException;
 import com.example.feedbackapp.common.error.NotFoundException;
@@ -29,7 +28,6 @@ import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -60,23 +58,20 @@ public class FeedbackService {
     private final CommentRepository commentRepository;
     private final FeedbackStatusHistoryRepository historyRepository;
     private final FeedbackImageService imageService;
-    private final RabbitTemplate rabbitTemplate;
-    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+    private final NotificationInboxService notificationInboxService;
 
     public FeedbackService(FeedbackRepository feedbackRepository,
                            FeedbackUpvoteRepository upvoteRepository,
                            CommentRepository commentRepository,
                            FeedbackStatusHistoryRepository historyRepository,
                            FeedbackImageService imageService,
-                           RabbitTemplate rabbitTemplate,
-                           com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
+                           NotificationInboxService notificationInboxService) {
         this.feedbackRepository = feedbackRepository;
         this.upvoteRepository = upvoteRepository;
         this.commentRepository = commentRepository;
         this.historyRepository = historyRepository;
         this.imageService = imageService;
-        this.rabbitTemplate = rabbitTemplate;
-        this.objectMapper = objectMapper;
+        this.notificationInboxService = notificationInboxService;
     }
 
     @Transactional
@@ -92,8 +87,6 @@ public class FeedbackService {
 
         Feedback saved = feedbackRepository.save(feedback);
         log.info("Feedback {} submitted by user {} ({})", saved.getId(), user.id(), request.category());
-        publishEvent(new FeedbackEvent(FeedbackEvent.CREATED, saved.getId(), saved.getUserId(),
-                saved.getTitle(), saved.getCategory().name(), null, null, java.time.Instant.now()));
         return toSummary(saved);
     }
 
@@ -167,9 +160,17 @@ public class FeedbackService {
         }
         feedback.setStatus(request.newStatus());
         historyRepository.save(new FeedbackStatusHistory(feedbackId, oldStatus, request.newStatus(), admin.id()));
-        publishEvent(new FeedbackEvent(FeedbackEvent.STATUS_CHANGED, feedbackId, feedback.getUserId(),
-                feedback.getTitle(), feedback.getCategory().name(),
-                oldStatus.name(), request.newStatus().name(), java.time.Instant.now()));
+
+        // The author's notification is written in the SAME transaction as the
+        // status change — no broker, no lost notifications.
+        String pushBody = switch (request.newStatus()) {
+            case RESOLVED -> "Your report has been resolved 🎉";
+            case IN_REVIEW -> "Your report is now being reviewed";
+            default -> "Your report status changed to " + request.newStatus().name();
+        };
+        notificationInboxService.create(feedback.getUserId(), "REPORT_STATUS",
+                feedback.getTitle(), pushBody, feedbackId);
+
         return getDetail(feedbackId, admin);
     }
 
@@ -193,9 +194,14 @@ public class FeedbackService {
             feedback.setStatus(request.newStatus());
             historyRepository.save(new FeedbackStatusHistory(feedbackId, oldStatus,
                     request.newStatus(), operator.id()));
-            publishEvent(new FeedbackEvent(FeedbackEvent.STATUS_CHANGED, feedbackId, feedback.getUserId(),
-                    feedback.getTitle(), feedback.getCategory().name(),
-                    oldStatus.name(), request.newStatus().name(), java.time.Instant.now()));
+
+            String pushBody = switch (request.newStatus()) {
+                case RESOLVED -> "Your report has been resolved 🎉";
+                case IN_REVIEW -> "Your report is now being reviewed";
+                default -> "Your report status changed to " + request.newStatus().name();
+            };
+            notificationInboxService.create(feedback.getUserId(), "REPORT_STATUS",
+                    feedback.getTitle(), pushBody, feedbackId);
         }
         if (request.assignedTo() != null) {
             feedback.setAssignedTo(request.assignedTo().isBlank() ? null : request.assignedTo().trim());
@@ -318,19 +324,6 @@ public class FeedbackService {
         return new com.example.feedbackapp.feedback.dto.FeedbackAnalyticsSummary(
                 feedbackRepository.count(), byStatus, byCategory,
                 avgHours == null ? null : Math.round(avgHours * 10.0) / 10.0, last7Days);
-    }
-
-    /** Publishes a domain event; a broker outage must never fail the API call. */
-    private void publishEvent(FeedbackEvent event) {
-        try {
-            rabbitTemplate.convertAndSend(
-                    com.example.feedbackapp.feedback.config.RabbitMqConfig.EXCHANGE,
-                    event.type(), // routing key, e.g. feedback.created
-                    objectMapper.writeValueAsString(event));
-            log.debug("Published {} for feedback {}", event.type(), event.feedbackId());
-        } catch (Exception e) {
-            log.warn("Failed to publish {} for feedback {}: {}", event.type(), event.feedbackId(), e.getMessage());
-        }
     }
 
     private Feedback getFeedbackOrThrow(Long feedbackId) {

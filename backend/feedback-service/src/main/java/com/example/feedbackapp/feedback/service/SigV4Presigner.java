@@ -50,12 +50,13 @@ public class SigV4Presigner {
     }
 
     /**
-     * Presigned PUT URL valid for the given duration. The client must send
-     * exactly this Content-Type — it is part of the signature, and R2 rejects
-     * presigned PUTs that carry an unsigned Content-Type header.
+     * Presigned PUT URL valid for the given duration. Only the host header is
+     * signed: Cloudflare R2 rejects presigned PUTs whose Content-Type is part
+     * of the signature (verified against a working boto3 reference), so the
+     * Content-Type header must stay unsigned — clients may send it or not.
      */
-    public PresignedUrl presignPut(String bucket, String key, int expirySeconds, String contentType) {
-        return presign("PUT", bucket, key, expirySeconds, contentType, ZonedDateTime.now(ZoneOffset.UTC));
+    public PresignedUrl presignPut(String bucket, String key, int expirySeconds) {
+        return presign("PUT", bucket, key, expirySeconds, null, ZonedDateTime.now(ZoneOffset.UTC));
     }
 
     /** Presigned GET URL valid for the given duration. */

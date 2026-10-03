@@ -53,12 +53,12 @@ class ApiClient {
       (token) => _client.get(uri, headers: _headers(headers, token)),
       authenticated: authenticated,
     );
-    final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+    final decoded = _decode(response);
     if (decoded is! Map<String, dynamic> || decoded['success'] != true) {
       throw ServerException(
         decoded is Map<String, dynamic>
             ? decoded['message'] as String? ?? 'Request failed'
-            : 'Request failed',
+            : _plainText(decoded) ?? 'Request failed',
         statusCode: response.statusCode,
       );
     }
@@ -129,9 +129,12 @@ class ApiClient {
 
   /// Returns the `data` payload of the ApiResponse envelope; throws on failure.
   Map<String, dynamic> _unwrap(http.Response response) {
-    final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+    final decoded = _decode(response);
     if (decoded is! Map<String, dynamic>) {
-      throw ServerException('Unexpected response', statusCode: response.statusCode);
+      throw ServerException(
+        _plainText(decoded) ?? 'Unexpected response',
+        statusCode: response.statusCode,
+      );
     }
     final success = decoded['success'] == true;
     if (!success) {
@@ -142,6 +145,25 @@ class ApiClient {
     }
     final data = decoded['data'];
     return data is Map<String, dynamic> ? data : <String, dynamic>{};
+  }
+
+  /// Decodes a response body, falling back to the raw text when it is not JSON
+  /// — the gateway's JWT filter answers `Invalid or expired token` as plain
+  /// text, and that must surface as a typed ServerException, not a
+  /// FormatException that escapes every layer.
+  Object? _decode(http.Response response) {
+    final body = utf8.decode(response.bodyBytes, allowMalformed: true);
+    try {
+      return jsonDecode(body);
+    } on FormatException {
+      return body;
+    }
+  }
+
+  String? _plainText(Object? decoded) {
+    if (decoded is! String) return null;
+    final trimmed = decoded.trim();
+    return trimmed.isEmpty ? null : trimmed;
   }
 
   void dispose() => _client.close();

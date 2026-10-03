@@ -68,7 +68,7 @@ class FeedbackImageServiceTest {
         FeedbackImageService service = service(true);
         when(feedbackRepository.findById(7L)).thenReturn(Optional.of(feedbackOwnedBy(1L)));
         when(imageRepository.countByFeedbackId(7L)).thenReturn(0L);
-        when(presigner.presignPut(eq("feedback-photos"), anyString(), eq(600), eq("image/jpeg")))
+        when(presigner.presignPut(eq("feedback-photos"), anyString(), eq(600)))
                 .thenReturn(new SigV4Presigner.PresignedUrl("https://storage.example/put?sig=x", "host"));
 
         FeedbackImageService.PresignResult result = service.presignUpload(7L, "image/jpeg", ADMIN);

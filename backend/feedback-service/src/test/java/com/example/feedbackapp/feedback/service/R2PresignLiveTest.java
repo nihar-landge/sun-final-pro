@@ -47,7 +47,7 @@ class R2PresignLiveTest {
         bucket = System.getenv("R2_BUCKET");
     }
 
-    private final SigV4Presigner presigner = new SigV4Presigner(endpoint, accessKey, secretKey, "auto");
+    private final SigV4Presigner presigner = new SigV4Presigner(endpoint, accessKey, secretKey, "us-east-1");
     private final HttpClient http = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
             .build();
@@ -57,15 +57,17 @@ class R2PresignLiveTest {
         String key = "presign-live-test/" + java.util.UUID.randomUUID() + ".jpg";
         byte[] bytes = "r2-presign-live-test-bytes".getBytes(java.nio.charset.StandardCharsets.UTF_8);
 
-        String putUrl = presigner.presignPut(bucket, key, 600, "image/jpeg").url();
+        // R2 rejects presigned PUTs with signed Content-Type — host-only
+        // signing is the working form (matches the boto3 reference flow).
+        String putUrl = presigner.presignPut(bucket, key, 600).url();
+        System.out.println("MINTED_PUT_URL=" + putUrl);
         HttpResponse<String> put = http.send(
                 HttpRequest.newBuilder(URI.create(putUrl))
                         .PUT(HttpRequest.BodyPublishers.ofByteArrays(java.util.List.of(bytes)))
-                        .header("Content-Type", "image/jpeg")
                         .build(),
                 HttpResponse.BodyHandlers.ofString());
         assertThat(put.statusCode())
-                .as("presigned PUT with signed Content-Type should be accepted by R2")
+                .as("presigned PUT (host-signed) should be accepted by R2")
                 .isEqualTo(200);
 
         MinioClient client = MinioClient.builder()

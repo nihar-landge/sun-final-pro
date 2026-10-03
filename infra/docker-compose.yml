@@ -8,7 +8,6 @@ volumes:
   postgres_data:
   redis_data:
   storage_data:
-  rabbitmq_data:
   grafana_data:
 
 services:
@@ -91,17 +90,3 @@ services:
     depends_on: [prometheus]
     networks: [app-net]
 
-  rabbitmq:
-    image: rabbitmq:3.13-management
-    container_name: feedbackapp-rabbitmq
-    ports:
-      - "5672:5672"     # AMQP
-      - "15672:15672"   # Management UI (guest/guest)
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-      interval: 15s
-      timeout: 10s
-      retries: 10
-    networks: [app-net]

@@ -4,4 +4,7 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Debug builds talk to the API gateway over plain HTTP on
+         127.0.0.1 (via `adb reverse`) or the host's LAN IP. -->
+    <application android:usesCleartextTraffic="true"/>
 </manifest>
