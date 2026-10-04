@@ -42,7 +42,7 @@ Created on **first boot only** (the entrypoint runs `postgres/init/`):
 ```bash
 docker exec feedbackapp-postgres psql -U feedback -d authdb -c '\dt'
 docker exec feedbackapp-redis redis-cli keys 'otp:*'
-open http://localhost:15672        # RabbitMQ UI (guest/guest) — see queue stats
+open http://localhost:15672        #  UI (guest/guest) — see queue stats
 ```
 
 Service env vars (all have dev defaults in each `application.yml`):

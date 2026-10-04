@@ -17,7 +17,7 @@ api-gateway  (Deployment + Service + HPA)
    └─ notification-service   ┘
         │  host.docker.internal
         ▼
-Docker Compose data layer: PostgreSQL+PostGIS · Redis · SeaweedFS (S3) · RabbitMQ · Prometheus
+Docker Compose data layer: MySQL · Redis · SeaweedFS (S3) ·  · Prometheus
 ```
 
 - **Images**: `civicpulse/<service>:0.1.0`, built from each service's

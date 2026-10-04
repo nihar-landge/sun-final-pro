@@ -1,168 +1,143 @@
-# Public Feedback & Polling System
+# CivicPulse
 
-A civic engagement platform where citizens vote on live city polls and submit
-geo-tagged feedback (roads, water, sanitation...) with photos, while admins
-track resolution and analytics.
+A civic engagement platform where citizens report local issues with photos and
+location, vote in community polls, and track resolutions — while
+administrators triage everything from a web dashboard.
 
-**CDAC Final Project — Mobile Computing** · Flutter + Spring Boot microservices
-+ PostgreSQL/PostGIS + Kubernetes.
+**CDAC Final Project — Mobile Computing**
+Flutter (citizen app) · React (admin) · Spring Boot microservices · MySQL ·
+Node.js/Express email service · Docker / GitHub Actions / Kubernetes
 
-![Architecture](docs/architecture.md)
+> **The story:** the citizen application is developed in Flutter, the
+> administration dashboard in React, and the backend as Spring Boot
+> microservices — auth, polls, feedback and notifications — behind a Spring
+> Cloud Gateway. Each service owns its logical MySQL database. Node.js and
+> Express are used as a supporting email service. Docker, GitHub Actions and
+> Kubernetes make up the DevOps layer.
 
-## Documentation
+## Architecture
 
-Everything is documented so a newcomer can understand the system without
-asking anyone:
+```
+   Flutter Citizen App              React Admin (Vite + react-leaflet)
+            └───────────────┬──────────────────┘
+                            ▼
+              Spring Cloud Gateway  :8080
+              (JWT validation · role headers · routing · CORS)
+                            │
+   ┌──────────────┬─────────┴──────┬───────────────────┐
+   ▼              ▼                ▼                   ▼
+auth-service   poll-service   feedback-service   notification-service
+  :8081         :8082            :8083                :8084
+  authdb        polldb          feedbackdb          notificationdb
+                                                     │ after commit
+                                                     ▼
+                                          Express email-service :8090
+                                                     │
+                                                 SMTP / dev log
+```
 
-**Start here**
+Design highlights (each one explained in [docs/architecture.md](docs/architecture.md)):
 
-- [docs/SESSION-HANDOFF.md](docs/SESSION-HANDOFF.md) — full build history: every bug, fix, decision and war story (viva prep)
-- [docs/project-structure.md](docs/project-structure.md) — annotated map of every folder and key file
-- [docs/architecture.md](docs/architecture.md) — system diagram, request flows, design decisions
-- [docs/setup-guide.md](docs/setup-guide.md) — run everything on a new machine
+- **Database-per-service** — four logical MySQL databases on one server;
+  services reference each other's data by ID, never with cross-database FKs.
+- **JWT at the edge** — the gateway validates the token, strips
+  client-supplied `X-User-*` headers and injects verified ones. One person
+  one vote and one-upvote-per-report are enforced by **composite primary
+  keys**, not application code.
+- **Notifications after commit** — a status change commits first; the
+  notification + email happen strictly afterwards, so a notification- or
+  email-service outage can never fail a report update (verified live).
+- **Multipart photos on local disk** — no cloud storage in the core stack;
+  files are served by feedback-service at `/uploads/**`.
 
-**Feature deep-dives** (what it does, how it works, where the code lives,
-how to demo it)
+## Quickstart
 
-| Feature | Doc |
-|---|---|
-| Phone OTP login, JWT, session restore | [docs/features/authentication.md](docs/features/authentication.md) |
-| Polls & one-person-one-vote | [docs/features/polls.md](docs/features/polls.md) |
-| Live results (WebSocket/STOMP) | [docs/features/live-results.md](docs/features/live-results.md) |
-| Geo-tagged feedback, workflow, upvotes | [docs/features/feedback.md](docs/features/feedback.md) |
-| Event pipeline & notifications (RabbitMQ) | [docs/features/notifications-events.md](docs/features/notifications-events.md) |
-| Admin user & role management | [docs/features/user-management.md](docs/features/user-management.md) |
-| Analytics dashboard | [docs/features/analytics.md](docs/features/analytics.md) |
+Prereqs: Docker Desktop, JDK 21, Flutter (for the app), Node 20 (for the
+admin/email dev servers — the containers already bundle them).
 
-**Reference**
+```bash
+# 1. Full stack: MySQL + gateway + 4 services + email + React admin
+docker compose up -d --build
 
-- [docs/database-schema.md](docs/database-schema.md) — ERD + every table
-- [docs/api/](docs/api/) — OpenAPI specs (auth, polls, feedback)
-- [docs/project-plan.md](docs/project-plan.md) — 12-week roadmap and status
-- Per-folder guides: [services/README.md](services/README.md) · [mobile/README.md](mobile/README.md) · [admin/README.md](admin/README.md) · [infra/README.md](infra/README.md) · [k8s/README.md](k8s/README.md)
+# 2. Wait for the gateway, then run the 27-check guarantee suite
+scripts/e2e.sh localhost:8080          # → E2E: 27 passed, 0 failed
+
+# 3. Admin dashboard
+open http://localhost:4173             # admin@civicpulse.in / Admin@123
+
+# 4. Citizen app on an emulator (10.0.2.2 = host loopback)
+cd mobile && flutter run
+#    …or a physical device over USB:
+adb reverse tcp:8080 tcp:8080
+flutter run --dart-define=API_BASE_URL=http://localhost:8080/api/v1
+```
+
+Optional monitoring profile: `docker compose --profile monitoring up -d`
+(Prometheus :9090, Grafana :3000, admin/admin).
+
+Prefer host-run services? `scripts/run-local.sh` boots the five jars against
+the compose MySQL (port 3307).
 
 ## Repository layout
 
 | Path | Contents |
 |---|---|
 | `services/` | Maven multi-module: `common`, `api-gateway` (:8080), `auth-service` (:8081), `poll-service` (:8082), `feedback-service` (:8083), `notification-service` (:8084) |
-| `mobile/` | Flutter citizen app (clean architecture: core/ + features/{auth,polls,feedback}) |
-| `admin/` | Flutter web admin panel (polls, feedback triage, analytics, user management) |
-| `infra/` | Docker Compose for PostgreSQL+PostGIS, Redis, SeaweedFS (S3), RabbitMQ |
-| `k8s/` | Kubernetes manifests (deployed in weeks 9-10) |
-| `docs/` | Architecture, DB schema, setup guide, API specs, 12-week plan |
-| `.github/workflows/ci.yml` | CI: services tests + Flutter analyze/test |
+| `email-service/` | Node.js + Express supporting email service (:8090, no database) |
+| `mobile/` | Flutter citizen app (auth, home, polls, report wizard, map, alerts, profile) |
+| `admin-react/` | React admin dashboard (Vite, React Router, axios, react-leaflet, Vitest) |
+| `docker-compose.yml` | Full local stack — MySQL + 6 services + nginx-served admin |
+| `infra/` | MySQL init script, Prometheus/Grafana config |
+| `k8s/` | Kubernetes manifests (namespace, configmap, secret, deployments incl. HPA on the gateway) |
+| `.github/workflows/` | `ci.yml` (4 test/build jobs) · `e2e.yml` (compose stack + 27-check suite) |
+| `docs/` | Architecture, database schema, DevOps, setup guide, feature notes |
+| `scripts/` | `e2e.sh` (27 guarantees), `run-local.sh`, k6 load test |
 
-## Current status — core features working end-to-end
+## Features
 
-1. `infra/docker-compose.yml` boots all data services (PostGIS `postgis`
-   extension enabled in `feedbackdb`).
-2. **auth-service**: phone-OTP login (Redis-backed codes, rate limiting,
-   attempt capping), JWT access tokens (15 min) + rotating refresh tokens
-   (30 days), `users` table via Flyway. Swagger UI at
-   <http://localhost:8081/swagger-ui.html>. Dev admin account seeded:
-   phone `9999999999`.
-3. **api-gateway**: routes `/api/v1/{auth,polls,feedback}/**`, validates JWTs
-   at the edge, forwards verified identity as `X-User-*` headers, and
-   rate-limits OTP sends (1/s refill, burst 5 per IP → HTTP 429).
-4. **poll-service**: admin poll creation, one-person-one-vote voting
-   (enforced by the `poll_participation` composite PK), atomic vote counts,
-   live results with a short-TTL Redis cache, early close, and **live result
-   broadcasts over STOMP WebSocket** (`/ws` → `/topic/polls/{id}`).
-5. **feedback-service**: geo-tagged submission (PostGIS), paged listing with
-   filters, `near-me` radius query ordered by real distance, one-upvote-per-
-   citizen, audited admin status workflow, comments — publishing
-   `feedback.created` / `feedback.status.changed` events to RabbitMQ.
-6. **notification-service**: consumes feedback events from RabbitMQ and
-   serves the recent event feed (`/api/v1/notifications/recent`, admin).
-7. **Analytics** (admin-only): poll participation summary and feedback
-   status/category/resolution-time stats powering the admin dashboard's
-   Analytics tab (KPI cards, distribution bars, live event feed).
-8. **Flutter citizen app — CivicPulse** (rebranded): 5-tab navigation
-   (Home / Polls / Report / Alerts / Profile), dashboard home with featured
-   poll + nearby issues + own activity, Active/Upcoming/Closed poll tabs with
-   result previews and countdowns, guided 5-step report wizard **with
-   similar-report detection before submission**, full report detail with
-   progress timeline + comments, **OpenStreetMap issue map** with
-   status-colored pins, alerts feed derived from own reports + closing polls,
-   Material 3 teal design system with **dark mode**, **trilingual UI
-   (English · हिन्दी · मराठी)**, and semantic status
-   colors. Secure token storage + transparent refresh throughout.
-9. **Flutter admin console — municipal operations dashboard** (desktop-first
-   sidebar shell): Dashboard (6 KPI cards + charts + live event feed),
-   **Reports triage** (searchable/filterable table, multi-select with bulk
-   status updates, CSV export, right-side operation drawer with status
-   dropdown, officer assignment, public/internal notes, timeline, comments),
-   **Poll builder** (dynamic options, duplicate, close, results), live issue
-   **map** (OSM, status-colored pins, click-to-drawer), Analytics, user
-   management (admin-only), and an **Audit Log** of every status transition.
-   MODERATOR role supported end-to-end (sees moderation, not users).
-10. **Persistent notification inbox** — status changes land in a
-    `notificationdb` inbox (created by the RabbitMQ consumer) with unread
-    tracking, mark-read/mark-all-read, an unread badge on the Alerts tab,
-    and deep-linking. FCM push rides the same event.
-11. **Community impact & insights** — public community-stats endpoint
-    (reports / resolved / resolution rate) powers a Home gradient card;
-    resolved reports show a celebration card with resolution duration;
-    poll detail gains a Poll Insights card; admin dashboard gains a
-    14-day reports trend chart; About screen in Profile.
-12. **Report photos**: citizens attach up to 3 photos in the report wizard;
-    uploads go **directly to MinIO** via time-limited pre-signed URLs
-    (photo bytes never touch the Java services), view URLs are minted per
-    detail request, and the 3-photo cap is server-enforced (409).
-13. **Observability & testing**: every service exposes Prometheus metrics
-    (`/actuator/prometheus`, scraped by the compose Prometheus at :9090,
-    dashboards at Grafana :3000), `scripts/e2e.sh` verifies 27 system
-    guarantees in one run (also a CI job), and `scripts/load/vote.js` is a
-    k6 load test asserting the blueprint's p95 < 200 ms target.
-14. CI runs the services build plus Testcontainers-PostgreSQL integration
-    tests (`TEST_DOCKER=true`), the E2E suite, and Flutter analyze/test.
+- **Auth** — email + password (BCrypt), single 24 h JWT with email claim,
+  roles CITIZEN / ADMIN. Phone OTP, refresh rotation and Redis are gone.
+- **Polls** — admin create/close/duplicate; one-person-one-vote enforced by
+  the `poll_participation` composite PK; anonymous ballots; results refreshed
+  by 5-second REST polling (WebSocket removed).
+- **Reports** — geo-tagged (MySQL `POINT SRID 4326`), multipart photos served
+  at `/uploads/**`, near-me radius query (`ST_Distance_Sphere`), upvotes and
+  comments with composite-PK uniqueness, similar-report check in the wizard.
+- **Triage** — admin status workflow (OPEN → IN_PROGRESS → RESOLVED) with
+  allowed-transition validation, assignment, public/internal notes, hiding,
+  and a full audit trail.
+- **Notifications** — in-app inbox (unread count, mark read) owned by
+  notification-service; report-status emails via the Express service
+  (dev mode logs them; SMTP via env).
+- **Citizen app extras** — OSM issue map + mini-map, community impact stats,
+  dark mode, English / हिन्दी / मराठी.
+- **Quality gates** — `mvn verify` (unit + Testcontainers MySQL), Flutter
+  analyze/test, Vitest + build, supertest, and the 27-check E2E suite.
 
-## Quickstart
+## Dev credentials (dev only)
 
-```bash
-# 1. Infrastructure (PostgreSQL+PostGIS, Redis, MinIO, RabbitMQ)
-docker compose -f infra/docker-compose.yml up -d
+| What | Value |
+|---|---|
+| Admin login | `admin@civicpulse.in` / `Admin@123` |
+| MySQL root | `mysql_root_devpw` |
+| MySQL app user | `feedback` / `mysql_feedback_pw` |
+| Service key | `dev-service-key` |
 
-# 2. Backend — two terminals
-cd services && ./mvnw -pl auth-service spring-boot:run
-cd services && ./mvnw -pl api-gateway spring-boot:run
+All committed config uses placeholders; real values live only in the local
+environment. See [docs/devops.md](docs/devops.md) for the security boundary.
 
-# 3. Try the vertical slice (dev profile echoes the OTP in the response)
-curl -s -X POST localhost:8080/api/v1/auth/otp/send \
-  -H 'Content-Type: application/json' -d '{"phone":"9876543210"}'
-# -> {"success":true,"data":{...,"devOtp":"123456"},...}
-# In the app itself, the OTP screen shows a "Dev OTP" chip you tap to fill.
-# (Logs live in Kubernetes now: kubectl logs -n feedbackapp deploy/auth-service)
+## Documentation
 
-# 4. Mobile app (Android emulator reaches the host via 10.0.2.2)
-cd mobile && flutter run
-```
+- [docs/architecture.md](docs/architecture.md) — diagram, request flows, failure tolerance
+- [docs/database-schema.md](docs/database-schema.md) — every table, real DDL, relationships
+- [docs/devops.md](docs/devops.md) — Docker, CI/CD, Kubernetes, monitoring
+- [docs/setup-guide.md](docs/setup-guide.md) — fresh-machine walkthrough
+- [docs/features/](docs/features/) — per-feature notes
+- [docs/advanced/](docs/advanced/) — build history and war stories (viva prep)
 
-Full details: [docs/setup-guide.md](docs/setup-guide.md) ·
-Architecture: [docs/architecture.md](docs/architecture.md) ·
-Database: [docs/database-schema.md](docs/database-schema.md) ·
-12-week plan: [docs/project-plan.md](docs/project-plan.md)
+## Branches
 
-## Development principles
-
-- **Microservices data boundary** — each service owns its own database
-  (`authdb`, `polldb`, `feedbackdb`); user IDs are stored without
-  cross-database foreign keys.
-- **Flyway owns the schema** — no JPA auto-DDL; every table change is a
-  versioned migration in the owning service.
-- **One person, one vote** — `poll_participation` composite primary key
-  `(poll_id, user_id)` is the hard enforcement; entities use
-  `Persistable.isNew()` so JPA inserts (never merges) and the PK violation
-  surfaces as HTTP 409. Ballots carry no user ID so results can't be traced
-  back to voters.
-- **JWT at the edge** — the gateway validates tokens once and forwards
-  `X-User-Id` / `X-User-Role`; downstream services trust these headers
-  (network-boundary trust) via the shared `@CurrentUser` resolver.
-- **Dev echo OTP** — `app.otp.dev-echo=true` returns the OTP in the API
-  response so the flow works without an SMS provider. Never enable in prod.
-- **Integration tests in CI** — Testcontainers-PostgreSQL tests
-  (`TEST_DOCKER=true`) prove the uniqueness constraints on a real database;
-  they are skipped locally on Docker Desktop builds that reject the
-  Testcontainers client version (the same guarantees are verified live via
-  the E2E curl flow).
+- `master` — the final, demonstrable architecture (this tree).
+- `advanced` — the earlier infrastructure-heavy exploration (R2 pre-signed
+  uploads, Redis, WebSocket, tunnels), kept for reference; tag
+  `pre-migration-mysql` marks the last commit before simplification.

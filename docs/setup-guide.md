@@ -1,99 +1,80 @@
 # Local Setup Guide
 
-## Prerequisites (as installed on this machine)
+Fresh machine → running stack in ~10 minutes.
 
-| Tool | Version | Used for |
-|---|---|---|
-| JDK | 21 (`/opt/homebrew/opt/openjdk@21`) | services build & run |
-| Maven | 3.9.x (`brew install maven`) + committed `mvnw` wrapper | services build |
-| Docker Desktop | any recent | PostgreSQL/PostGIS, Redis, SeaweedFS, RabbitMQ |
-| Flutter | stable (analyze/test green) | mobile + admin apps |
-| kubectl | any recent | weeks 9-10 deployment |
+## Prerequisites
 
-## 1. Start the infrastructure
-
-```bash
-docker compose -f infra/docker-compose.yml up -d
-docker compose -f infra/docker-compose.yml ps     # all four should be "healthy"
-```
-
-| Service | Endpoint | Credentials (dev only) |
-|---|---|---|
-| PostgreSQL + PostGIS | localhost:5432 | `feedback` / `feedback_dev_password` — dbs: `authdb`, `polldb`, `feedbackdb` |
-| Redis | localhost:6379 | none |
-| SeaweedFS (S3 API) | localhost:9000 | none (no auth in dev) |
-| RabbitMQ | localhost:5672 (AMQP), localhost:15672 (UI) | `guest` / `guest` |
-
-## 2. Run the services
-
-```bash
-cd services
-./mvnw -pl auth-service spring-boot:run      # terminal 1  (port 8081)
-./mvnw -pl api-gateway spring-boot:run       # terminal 2  (port 8080)
-# optional: stub services
-./mvnw -pl poll-service spring-boot:run      # port 8082, applies poll schema
-./mvnw -pl feedback-service spring-boot:run  # port 8083, applies feedback schema
-```
-
-Environment overrides (all optional in dev): `DB_HOST`, `DB_PORT`, `DB_USER`,
-`DB_PASSWORD`, `REDIS_HOST`, `REDIS_PORT`, `JWT_SECRET`, `OTP_DEV_ECHO`.
-
-## 3. Exercise the vertical slice
-
-```bash
-# Send OTP (dev profile echoes the code in devOtp)
-curl -s -X POST localhost:8080/api/v1/auth/otp/send \
-  -H 'Content-Type: application/json' -d '{"phone":"9876543210"}'
-
-# Verify → tokens (replace 123456 with the echoed code)
-curl -s -X POST localhost:8080/api/v1/auth/otp/verify \
-  -H 'Content-Type: application/json' \
-  -d '{"phone":"9876543210","code":"123456","name":"Nihar"}'
-
-# Authenticated call through the gateway (replace $ACCESS_TOKEN)
-curl -s localhost:8080/api/v1/auth/me -H "Authorization: Bearer $ACCESS_TOKEN"
-
-# Gateway rejects protected routes without a token
-curl -i localhost:8080/api/v1/auth/me   # -> 401
-```
-
-Swagger UI: <http://localhost:8081/swagger-ui.html> (auth-service direct).
-
-## 4. Run the Flutter apps
-
-```bash
-cd mobile
-flutter run                      # Android emulator: API base = http://10.0.2.2:8080/api/v1
-flutter run --dart-define=API_BASE_URL=http://localhost:8080/api/v1   # iOS simulator / web
-```
-
-Admin panel: `cd admin && flutter run -d chrome`.
-
-## 5. Tests
-
-```bash
-cd services && ./mvnw verify              # unit tests; add TEST_DOCKER=true for Testcontainers integration tests
-cd mobile && flutter test && flutter analyze
-cd admin && flutter analyze
-```
-
-Note: recent Docker Desktop versions reject the Testcontainers client
-version, so the PostgreSQL integration tests are gated behind
-`TEST_DOCKER=true` (CI runs them). On Docker Desktop 29+, the engine's
-minimum API version (1.40) is above what the Testcontainers client
-negotiates (1.32) — add `-DargLine="-Dapi.version=1.44"` to run them locally:
-
-```bash
-TEST_DOCKER=true ./mvnw -pl poll-service,feedback-service -am test -DargLine="-Dapi.version=1.44"
-```
-
-## Troubleshooting
-
-| Symptom | Fix |
+| Tool | Used for |
 |---|---|
-| `Connection refused :5432` | Docker Desktop not running, or `docker compose up` not executed |
-| Flyway "Validate failed" | volume has an older schema: `docker compose ... down -v` and re-up (destroys dev data) |
-| Android emulator can't reach gateway | use `http://10.0.2.2:8080` (already the default `API_BASE_URL`) |
-| OTP always rate-limited | Redis cooldown is 60s per phone; `docker exec feedbackapp-redis redis-cli flushdb` to reset |
-| "Could not reach the server" on the phone | re-establish `adb reverse tcp:8080 <gateway-port>` after every wireless-adb reconnect — reconnects reset all reverse forwards |
-| Where are the service logs? | Services run in Kubernetes: `kubectl logs -n feedbackapp deploy/auth-service` (etc.) |
+| Docker Desktop | everything containerized (MySQL + 6 services + admin) |
+| JDK 21 + Maven wrapper | building jars (the wrapper needs no global Maven) |
+| Flutter SDK | the citizen app |
+| Node 20 | admin/email dev servers (containers already bundle them) |
+| kubectl + kind (optional) | the Kubernetes demonstration |
+
+## 1. Full stack (recommended)
+
+```bash
+docker compose up -d --build          # mysql + gateway + 4 services + email + react-admin
+scripts/e2e.sh localhost:8080         # 27 guarantees → all pass
+open http://localhost:4173            # React admin
+```
+
+First boot applies every Flyway migration and seeds the dev admin.
+
+## 2. Citizen app
+
+Android emulator (10.0.2.2 = host loopback):
+
+```bash
+cd mobile && flutter run              # API_BASE_URL defaults to http://10.0.2.2:8080/api/v1
+```
+
+Physical device over USB (cleartext HTTP is enabled in the manifest):
+
+```bash
+adb reverse tcp:8080 tcp:8080
+flutter run --dart-define=API_BASE_URL=http://localhost:8080/api/v1
+```
+
+## 3. Host-run services (alternative to containers)
+
+```bash
+docker compose up -d mysql            # or: infra compose — MySQL publishes 3307
+cd services && ./mvnw -DskipTests package
+../scripts/run-local.sh               # boots the 5 jars (DB_PORT=3307)
+```
+
+## Ports
+
+| Port | What |
+|---|---|
+| 8080 | API gateway — the only published application backend |
+| 8081–8084 | auth / poll / feedback / notification (internal; host-run mode only) |
+| 8090 | email-service (internal) |
+| 4173 | React admin (nginx) |
+| 3307 | MySQL for local tooling only |
+| 9090 / 3000 | Prometheus / Grafana (`--profile monitoring`) |
+
+## Dev credentials
+
+| What | Value |
+|---|---|
+| Admin | `admin@civicpulse.in` / `Admin@123` |
+| MySQL root | `mysql_root_devpw` |
+| MySQL app user | `feedback` / `mysql_feedback_pw` |
+| Service key | `dev-service-key` |
+
+## Troubleshooting (lessons baked into the tree)
+
+- **Homebrew MySQL on 3306** shadows the container for host-run jars → compose
+  publishes 3307 and `run-local.sh` sets `DB_PORT=3307`.
+- **Access denied for 'feedback'@'localhost'** → the init script creates the
+  localhost twin explicitly (MySQL 8 does not create users via GRANT).
+- **Containers recreated with new IPs not picked up** → every Java service
+  runs with `-Dnetworkaddress.cache.ttl=10`.
+- **Android blocks plain HTTP** → `usesCleartextTraffic="true"` is set in the
+  app manifest (dev only).
+- **Fresh volume lost uploads** → the feedback image pre-creates and chowns
+  `/app/uploads` so a new named volume inherits ownership.
+- Reset everything: `docker compose down -v && docker compose up -d --build`.

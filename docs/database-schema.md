@@ -1,137 +1,115 @@
 # Database Schema
 
-Three logical databases, one per owning service. PostGIS is enabled in
-`feedbackdb`. Migrations are Flyway SQL files inside each service
-(`src/main/resources/db/migration`).
+Four logical databases on **one MySQL 8.4 container** — one owned per
+service. Every service applies its own **Flyway** SQL migrations at startup
+(`services/*/src/main/resources/db/migration`); there is no JPA auto-DDL.
 
-```mermaid
-erDiagram
-    USERS ||--o{ POLL_PARTICIPATION : "votes in"
-    USERS ||--o{ FEEDBACK : "creates"
-    USERS ||--o{ FEEDBACK_UPVOTES : "upvotes"
-    USERS ||--o{ COMMENTS : "writes"
+Cross-service references are plain IDs (`user_id`, `poll_id`,
+`feedback_id`) — **no foreign keys across databases**. Business rules that
+must never be broken are encoded as **composite primary keys**.
 
-    POLLS ||--o{ POLL_OPTIONS : "has"
-    POLLS ||--o{ POLL_PARTICIPATION : "records participation"
-    POLLS ||--o{ BALLOTS : "contains"
+---
 
-    FEEDBACK ||--o{ FEEDBACK_IMAGES : "has"
-    FEEDBACK ||--o{ FEEDBACK_STATUS_HISTORY : "tracks"
-    FEEDBACK ||--o{ FEEDBACK_UPVOTES : "receives"
+## authdb — auth-service
 
-    USERS {
-        bigint id PK
-        varchar phone UK
-        varchar name
-        varchar avatar_url
-        varchar role
-        timestamp created_at
-        timestamp updated_at
-    }
+### users
+| Column | Type | Constraints |
+|---|---|---|
+| id | BIGINT | PK, AUTO_INCREMENT |
+| email | VARCHAR(255) | NOT NULL, UNIQUE (`uq_users_email`) |
+| password_hash | VARCHAR(100) | NOT NULL — BCrypt |
+| name | VARCHAR(100) | NULL |
+| role | ENUM('CITIZEN','ADMIN') | NOT NULL, DEFAULT 'CITIZEN' |
+| created_at / updated_at | DATETIME | NOT NULL, auto |
 
-    POLLS {
-        bigint id PK
-        varchar title
-        text description
-        timestamp start_time
-        timestamp end_time
-        boolean is_anonymous
-        bigint created_by "users.id (authdb)"
-    }
+Index: `idx_users_role`. Seed (V2): the built-in admin
+`admin@civicpulse.in` (password `Admin@123`, BCrypt) — dev only.
 
-    POLL_OPTIONS {
-        bigint id PK
-        bigint poll_id FK
-        varchar option_text
-        integer votes_count
-    }
+---
 
-    POLL_PARTICIPATION {
-        bigint poll_id PK
-        bigint user_id PK "one-person-one-vote"
-        timestamp voted_at
-    }
+## polldb — poll-service
 
-    BALLOTS {
-        bigint id PK
-        bigint poll_id FK
-        bigint option_id FK
-        timestamp voted_at "anonymous - no user_id"
-    }
+### polls
+id PK · title VARCHAR(200) NOT NULL · description TEXT ·
+start_time/end_time DATETIME NOT NULL with **CHECK (end_time > start_time)** ·
+is_anonymous BOOLEAN DEFAULT FALSE · created_by BIGINT (logical ref → authdb) ·
+created_at. Index `idx_polls_active(start_time, end_time)`.
 
-    FEEDBACK {
-        bigint id PK
-        varchar title
-        text description
-        varchar category
-        varchar status
-        geography location "PostGIS point"
-        bigint user_id "users.id (authdb)"
-        integer upvotes
-    }
+### poll_options
+id PK · poll_id **FK → polls(id) ON DELETE CASCADE** · option_text ·
+votes_count INT DEFAULT 0 (denormalized counter for fast results).
 
-    FEEDBACK_IMAGES {
-        bigint id PK
-        bigint feedback_id FK
-        varchar image_url
-        timestamp uploaded_at
-    }
+### poll_participation ⭐ one-person-one-vote
+**composite PRIMARY KEY (poll_id, user_id)** · voted_at.
+The database itself rejects a second vote → HTTP 409.
 
-    FEEDBACK_STATUS_HISTORY {
-        bigint id PK
-        bigint feedback_id FK
-        varchar old_status
-        varchar new_status
-        bigint changed_by
-        timestamp changed_at
-    }
+### ballots (anonymous)
+id PK · poll_id FK CASCADE · option_id FK CASCADE · voted_at.
+**No user_id** — published results cannot be traced back to voters.
 
-    FEEDBACK_UPVOTES {
-        bigint feedback_id PK
-        bigint user_id PK
-        timestamp voted_at
-    }
+---
 
-    COMMENTS {
-        bigint id PK
-        bigint feedback_id FK
-        bigint user_id
-        text comment_text
-        timestamp created_at
-    }
-```
+## feedbackdb — feedback-service
 
-## Key design decisions
+### feedback (final shape; V1 + V2 + V4, sentiment dropped in V3)
+| Column | Type | Notes |
+|---|---|---|
+| id | BIGINT PK AUTO_INCREMENT | |
+| title | VARCHAR(200) NOT NULL | |
+| description | TEXT | |
+| category | VARCHAR(50) NOT NULL | ROADS, WATER, ELECTRICITY, … |
+| status | VARCHAR(20) DEFAULT 'OPEN' | OPEN / IN_PROGRESS / RESOLVED |
+| **location** | **POINT SRID 4326** | MySQL spatial; near-me uses ST_Distance_Sphere |
+| user_id | BIGINT NOT NULL | reporter (logical ref → authdb) |
+| upvotes | INT DEFAULT 0 | cached counter |
+| assigned_to | VARCHAR(100) NULL | staff member (V2) |
+| public_note / internal_note | TEXT NULL | triage notes (V2) |
+| hidden | BOOLEAN DEFAULT FALSE | soft moderation (V2) |
+| reporter_name / reporter_email | VARCHAR NULL | captured at submit (V4) |
+| created_at / updated_at | DATETIME | auto |
 
-1. **Composite PK on `poll_participation`** — `(poll_id, user_id)` makes a
-   second vote by the same citizen physically impossible; uniqueness is
-   enforced by the database, not application code.
-2. **Anonymous ballots** — `ballots` has no `user_id`. The participation
-   table proves *that* a user voted; ballots record *what* was counted.
-   Published tallies can never be traced to a voter.
-3. **PostGIS `GEOGRAPHY(POINT,4326)` + GIST index** — metro-aware distance
-   queries (`ST_DWithin`) for the "issues near me" map.
-4. **Status audit trail** — every transition of `feedback.status` is a row in
-   `feedback_status_history` (who, when, from, to), giving the admin
-   accountability trail and the data for resolution-time KPIs.
-5. **No cross-database FKs** — `user_id` columns reference users logically;
-   the data boundary matches the service boundary.
+Indexes: category, status, user_id, assigned_to.
 
-## Applying migrations
+### feedback_images
+id PK · feedback_id FK CASCADE · image_url (relative path under `uploads/`) ·
+uploaded_at.
 
-Each service applies its own migrations at startup (`flyway.enabled=true`):
+### feedback_status_history (audit trail)
+id PK · feedback_id FK CASCADE · old_status NULL · new_status · changed_by ·
+changed_at.
 
-```bash
-docker compose -f infra/docker-compose.yml up -d
-cd services
-./mvnw -pl auth-service spring-boot:run        # applies V1__create_users.sql to authdb
-./mvnw -pl poll-service spring-boot:run        # applies V1__create_polls.sql to polldb
-./mvnw -pl feedback-service spring-boot:run    # applies V1__create_feedback.sql to feedbackdb
-```
+### feedback_upvotes ⭐ one-upvote-per-citizen
+**composite PRIMARY KEY (feedback_id, user_id)** · voted_at → 409 on repeat.
 
-Inspect with:
+### comments
+id PK · feedback_id FK CASCADE · user_id · comment_text · created_at.
 
-```bash
-docker exec feedbackapp-postgres psql -U feedback -d authdb -c '\dt'
-docker exec feedbackapp-postgres psql -U feedback -d feedbackdb -c '\d feedback'
-```
+---
+
+## notificationdb — notification-service
+
+### notifications
+id PK · user_id (recipient) · type VARCHAR(50) · title · body ·
+ref_id (the report id, for deep links) · **read_at DATETIME NULL — NULL =
+unread** · created_at.
+Indexes: `idx_notifications_user`, `idx_notifications_unread(user_id, read_at)`
+— the unread-count query is index-covered.
+
+---
+
+## Relationships
+
+Within a database (real FKs, all `ON DELETE CASCADE`):
+
+- polls 1—N poll_options, ballots, poll_participation
+- feedback 1—N feedback_images, feedback_status_history, comments, feedback_upvotes
+
+Across databases (logical references only — draw dashed on the ERD):
+
+- users.id → feedback.user_id, comments.user_id, notifications.user_id,
+  poll_participation.user_id, polls.created_by
+
+> **Schema evolution:** Flyway shows the history — feedback was created with
+> sentiment columns (V1), they were dropped in V3 when the feature was cut,
+> admin triage fields arrived in V2 and reporter contact in V4. The schema
+> evolves as versioned migrations, never by hand.
