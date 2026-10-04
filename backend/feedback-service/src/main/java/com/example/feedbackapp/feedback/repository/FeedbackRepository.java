@@ -17,15 +17,15 @@ public interface FeedbackRepository extends JpaRepository<Feedback, Long>, JpaSp
     @Query("UPDATE Feedback f SET f.upvotes = f.upvotes + 1 WHERE f.id = :id")
     void incrementUpvotes(@Param("id") Long id);
 
-    /** PostGIS radius query — uses the GIST index on location. */
+    /** MySQL spatial radius query — uses the SPATIAL index on location. */
     @Query(value = """
             SELECT f.id, f.title, f.category, f.status, f.upvotes, f.created_at,
-                   ST_Distance(f.location, ST_MakePoint(:lng, :lat)::geography) AS distance_meters,
-                   ST_Y(f.location::geometry) AS latitude,
-                   ST_X(f.location::geometry) AS longitude
+                   ST_Distance_Sphere(f.location, ST_SRID(Point(:lng, :lat), 4326)) AS distance_meters,
+                   ST_X(f.location) AS latitude,
+                   ST_Y(f.location) AS longitude
             FROM feedback f
-            WHERE ST_DWithin(f.location, ST_MakePoint(:lng, :lat)::geography, :radiusMeters)
-              AND f.status = COALESCE(:status, f.status::varchar)
+            WHERE ST_Distance_Sphere(f.location, ST_SRID(Point(:lng, :lat), 4326)) <= :radiusMeters
+              AND f.status = COALESCE(:status, f.status)
             ORDER BY distance_meters ASC
             """, nativeQuery = true)
     List<NearbyFeedbackView> findNearby(@Param("lat") double lat,
@@ -33,19 +33,23 @@ public interface FeedbackRepository extends JpaRepository<Feedback, Long>, JpaSp
                                         @Param("radiusMeters") double radiusMeters,
                                         @Param("status") String status);
 
-    /** Daily submission counts for the admin trend chart. */
+    /** Daily submission counts for the admin trend chart (recursive CTE calendar). */
     @Query(value = """
-            SELECT to_char(d.day, 'YYYY-MM-DD') AS day,
-                   COUNT(f.id) AS count
-            FROM generate_series(CURRENT_DATE - CAST(:days AS int), CURRENT_DATE, '1 day') AS d(day)
-            LEFT JOIN feedback f ON date_trunc('day', f.created_at) = d.day
+            WITH RECURSIVE d(day) AS (
+                SELECT CURDATE() - INTERVAL :days DAY
+                UNION ALL
+                SELECT day + INTERVAL 1 DAY FROM d WHERE day < CURDATE()
+            )
+            SELECT DATE_FORMAT(d.day, '%Y-%m-%d') AS day, COUNT(f.id) AS count
+            FROM d
+            LEFT JOIN feedback f ON DATE(f.created_at) = d.day
             GROUP BY d.day ORDER BY d.day
             """, nativeQuery = true)
     List<Object[]> dailyCounts(@Param("days") int days);
 
     /** Average hours from submission to first RESOLVED transition (null when none resolved). */
     @Query(value = """
-            SELECT AVG(EXTRACT(EPOCH FROM (h.changed_at - f.created_at)) / 3600.0)
+            SELECT AVG(TIMESTAMPDIFF(SECOND, f.created_at, h.changed_at)) / 3600.0
             FROM feedback_status_history h
             JOIN feedback f ON f.id = h.feedback_id
             WHERE h.new_status = 'RESOLVED'

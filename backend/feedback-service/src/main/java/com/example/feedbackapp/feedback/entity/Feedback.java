@@ -37,7 +37,7 @@ public class Feedback {
     private FeedbackStatus status = FeedbackStatus.OPEN;
 
     /** PostGIS geography point (SRID 4326); nullable — feedback need not be geo-tagged. */
-    @Column(columnDefinition = "geography(Point,4326)")
+    @Column(columnDefinition = "POINT SRID 4326")
     private Point location;
 
     @Column(name = "user_id", nullable = false)

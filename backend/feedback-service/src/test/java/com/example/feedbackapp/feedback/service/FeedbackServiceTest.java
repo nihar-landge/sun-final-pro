@@ -2,6 +2,7 @@ package com.example.feedbackapp.feedback.service;
 
 import com.example.feedbackapp.common.error.ConflictException;
 import com.example.feedbackapp.common.error.ForbiddenException;
+import com.example.feedbackapp.common.error.NotFoundException;
 import com.example.feedbackapp.common.web.GatewayUser;
 import com.example.feedbackapp.feedback.dto.FeedbackSummaryResponse;
 import com.example.feedbackapp.feedback.dto.StatusUpdateRequest;
@@ -45,22 +46,21 @@ class FeedbackServiceTest {
     @Mock
     private FeedbackStatusHistoryRepository historyRepository;
     @Mock
-    private org.springframework.amqp.rabbit.core.RabbitTemplate rabbitTemplate;
-    @Mock
     private FeedbackImageService imageService;
+    @Mock
+    private NotificationInboxService notificationInboxService;
 
     private FeedbackService feedbackService;
 
     private static final GatewayUser CITIZEN = new GatewayUser(2L, "CITIZEN", "Nihar");
     private static final GatewayUser ADMIN = new GatewayUser(1L, "ADMIN", "Admin");
+    private static final GatewayUser MODERATOR = new GatewayUser(3L, "MODERATOR", "Mod");
 
     @BeforeEach
     void setUp() {
         feedbackService = new FeedbackService(feedbackRepository, upvoteRepository,
-                commentRepository, historyRepository, imageService, rabbitTemplate,
-                // JavaTimeModule mirrors the Spring Boot-configured mapper (events carry an Instant)
-                new com.fasterxml.jackson.databind.ObjectMapper()
-                        .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule()));
+                commentRepository, historyRepository, imageService,
+                notificationInboxService);
         org.mockito.Mockito.lenient()
                 .when(imageService.viewUrls(org.mockito.ArgumentMatchers.anyLong()))
                 .thenReturn(java.util.List.of());
@@ -73,6 +73,7 @@ class FeedbackServiceTest {
         feedback.setCategory(FeedbackCategory.ELECTRICITY);
         feedback.setStatus(FeedbackStatus.OPEN);
         feedback.setUpvotes(4);
+        ReflectionTestUtils.setField(feedback, "userId", 2L);
         ReflectionTestUtils.setField(feedback, "createdAt", java.time.LocalDateTime.now());
         ReflectionTestUtils.setField(feedback, "updatedAt", java.time.LocalDateTime.now());
         return feedback;
@@ -136,8 +137,6 @@ class FeedbackServiceTest {
         verify(historyRepository).save(any());
     }
 
-    private static final GatewayUser MODERATOR = new GatewayUser(3L, "MODERATOR", "Mod");
-
     @Test
     @DisplayName("moderators can change feedback status (content management)")
     void moderatorCanTransition() {
@@ -182,8 +181,8 @@ class FeedbackServiceTest {
     }
 
     @Test
-    @DisplayName("adminUpdate status change writes history and publishes the status event")
-    void adminUpdateStatusChangePublishes() {
+    @DisplayName("adminUpdate status change writes history and creates an inbox notification")
+    void adminUpdateStatusChangeCreatesNotification() {
         when(feedbackRepository.findById(7L)).thenReturn(Optional.of(feedback(7L)));
         when(commentRepository.findByFeedbackIdOrderByCreatedAtAsc(7L)).thenReturn(java.util.List.of());
         when(historyRepository.findByFeedbackIdOrderByChangedAtAsc(7L)).thenReturn(java.util.List.of());
@@ -194,11 +193,12 @@ class FeedbackServiceTest {
 
         assertThat(detail.status()).isEqualTo("IN_REVIEW");
         verify(historyRepository).save(any());
-        verify(rabbitTemplate).convertAndSend(
-                org.mockito.ArgumentMatchers.eq(
-                        com.example.feedbackapp.feedback.config.RabbitMqConfig.EXCHANGE),
-                org.mockito.ArgumentMatchers.eq("feedback.status.changed"),
-                org.mockito.ArgumentMatchers.anyString());
+        verify(notificationInboxService).create(
+                org.mockito.ArgumentMatchers.eq(2L),
+                org.mockito.ArgumentMatchers.eq("REPORT_STATUS"),
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.eq(7L));
     }
 
     @Test

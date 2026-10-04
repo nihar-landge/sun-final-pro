@@ -5,29 +5,30 @@ networks:
     driver: bridge
 
 volumes:
-  postgres_data:
+  mysql_data:
   redis_data:
   storage_data:
   grafana_data:
 
 services:
-  postgres:
-    image: postgis/postgis:16-3.4
-    container_name: feedbackapp-postgres
+  mysql:
+    image: mysql:8.4
+    container_name: feedbackapp-mysql
     environment:
-      POSTGRES_USER: feedback
-      POSTGRES_PASSWORD: feedback_dev_password
-      POSTGRES_DB: authdb          # default db; polldb + feedbackdb created by init script
+      MYSQL_ROOT_PASSWORD: mysql_root_devpw
+      MYSQL_DATABASE: authdb
+      MYSQL_USER: feedback
+      MYSQL_PASSWORD: mysql_feedback_pw
     ports:
-      - "5432:5432"
+      - "3306:3306"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+      - mysql_data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U feedback -d authdb"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-pmysql_root_devpw"]
       interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 20
     networks: [app-net]
 
   redis:

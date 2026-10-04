@@ -1,40 +1,39 @@
--- Poll domain tables owned by poll-service.
--- user_id columns reference the users table in authdb logically; no cross-database
--- foreign keys exist by design (microservices data boundary).
-
 CREATE TABLE polls (
-    id           BIGSERIAL PRIMARY KEY,
+    id           BIGINT AUTO_INCREMENT PRIMARY KEY,
     title        VARCHAR(200) NOT NULL,
     description  TEXT,
-    start_time   TIMESTAMP NOT NULL,
-    end_time     TIMESTAMP NOT NULL,
+    start_time   DATETIME NOT NULL,
+    end_time     DATETIME NOT NULL,
     is_anonymous BOOLEAN NOT NULL DEFAULT FALSE,
-    created_by   BIGINT NOT NULL,          -- users.id (authdb)
-    created_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT valid_dates CHECK (end_time > start_time)
+    created_by   BIGINT NOT NULL,
+    created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_poll_dates CHECK (end_time > start_time)
 );
 
 CREATE TABLE poll_options (
-    id          BIGSERIAL PRIMARY KEY,
-    poll_id     BIGINT NOT NULL REFERENCES polls(id) ON DELETE CASCADE,
+    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
+    poll_id     BIGINT NOT NULL,
     option_text VARCHAR(200) NOT NULL,
-    votes_count INTEGER NOT NULL DEFAULT 0
+    votes_count INT NOT NULL DEFAULT 0,
+    CONSTRAINT fk_poll_options_poll FOREIGN KEY (poll_id) REFERENCES polls(id) ON DELETE CASCADE
 );
 
 -- The one-person-one-vote rule is enforced by the composite primary key.
 CREATE TABLE poll_participation (
     poll_id  BIGINT NOT NULL,
-    user_id  BIGINT NOT NULL,              -- users.id (authdb)
-    voted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    user_id  BIGINT NOT NULL,
+    voted_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (poll_id, user_id)
 );
 
 -- Ballots are anonymous: no user_id, so published results cannot be traced back.
 CREATE TABLE ballots (
-    id       BIGSERIAL PRIMARY KEY,
-    poll_id  BIGINT NOT NULL REFERENCES polls(id) ON DELETE CASCADE,
-    option_id BIGINT NOT NULL REFERENCES poll_options(id) ON DELETE CASCADE,
-    voted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    id        BIGINT AUTO_INCREMENT PRIMARY KEY,
+    poll_id   BIGINT NOT NULL,
+    option_id BIGINT NOT NULL,
+    voted_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_ballots_poll FOREIGN KEY (poll_id) REFERENCES polls(id) ON DELETE CASCADE,
+    CONSTRAINT fk_ballots_option FOREIGN KEY (option_id) REFERENCES poll_options(id) ON DELETE CASCADE
 );
 
 CREATE INDEX idx_poll_options_poll ON poll_options(poll_id);
