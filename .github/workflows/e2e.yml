@@ -1,9 +1,9 @@
 name: e2e
 
+# Push trigger parked during the architecture-simplification rework;
+# restored (with the compose-based job) once the core gate passes.
 on:
   workflow_dispatch:
-  push:
-    branches: [master]
 
 jobs:
   e2e:
