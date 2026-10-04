@@ -9,10 +9,6 @@ CREATE TABLE feedback (
     sentiment_score FLOAT NULL,
     sentiment_label VARCHAR(10) NULL,
     upvotes         INT NOT NULL DEFAULT 0,
-    assigned_to     VARCHAR(100) NULL,
-    public_note     TEXT NULL,
-    internal_note   TEXT NULL,
-    hidden          BOOLEAN NOT NULL DEFAULT FALSE,
     created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );

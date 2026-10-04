@@ -6,9 +6,9 @@ spring:
     name: poll-service
 
   datasource:
-    url: jdbc:mysql://${DB_HOST:localhost}:3306/polldb?serverTimezone=UTC
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/polldb?serverTimezone=UTC
     username: ${DB_USER:feedback}
-    password: ${DB_PASSWORD:feedback_dev_password}
+    password: ${DB_PASSWORD:mysql_feedback_pw}
 
   jpa:
     hibernate:

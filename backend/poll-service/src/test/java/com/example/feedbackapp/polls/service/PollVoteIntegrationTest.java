@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Proves the one-person-one-vote guarantee against a real PostgreSQL
+ * Proves the one-person-one-vote guarantee against a real MySQL
  * (composite PK on poll_participation), not just mocks.
  *
  * Gated behind TEST_DOCKER=true because recent Docker Desktop releases
@@ -35,7 +35,7 @@ class PollVoteIntegrationTest {
 
     @Container
     @ServiceConnection
-    static final MySQLContainer<?> POSTGRES = new MySQLContainer<>("mysql:8.4");
+    static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.4");
 
     @Container
     @ServiceConnection

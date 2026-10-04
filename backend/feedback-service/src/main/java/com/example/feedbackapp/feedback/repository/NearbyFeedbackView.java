@@ -5,7 +5,7 @@ import org.springframework.data.repository.query.Param;
 import java.time.LocalDateTime;
 
 /**
- * Projection for the PostGIS near-me query. distanceMeters comes from
+ * Projection for the MySQL near-me query. distanceMeters comes from
  * ST_Distance, not a table column.
  */
 public interface NearbyFeedbackView {

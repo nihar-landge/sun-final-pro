@@ -21,10 +21,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Exercises the real PostGIS geography column: submit two geo-tagged items
- * and verify the near-me query orders them by distance, plus the upvote
- * uniqueness constraint. Runs in CI (TEST_DOCKER=true); locally the same
- * guarantees are covered by the live E2E checks against the compose Postgres.
+ * Exercises the real MySQL spatial column (POINT SRID 4326): submit two
+ * geo-tagged items and verify the near-me query orders them by distance,
+ * plus the upvote uniqueness constraint. Runs in CI (TEST_DOCKER=true);
+ * locally the same guarantees are covered by the live E2E checks against
+ * the compose MySQL.
  */
 @SpringBootTest
 @Testcontainers
@@ -33,8 +34,7 @@ class FeedbackNearbyIntegrationTest {
 
     @Container
     @ServiceConnection
-    static final MySQLContainer<?> POSTGRES = new MySQLContainer<>(
-            DockerImageName.parse("postgis/postgis:16-3.4").asCompatibleSubstituteFor("postgres"));
+    static final MySQLContainer<?> MYSQL = new MySQLContainer<>(DockerImageName.parse("mysql:8.4"));
 
     @Autowired
     private FeedbackService feedbackService;

@@ -12,7 +12,7 @@
 
     <artifactId>notification-service</artifactId>
     <name>notification-service</name>
-    <description>Consumes domain events from RabbitMQ and exposes the recent feed</description>
+    <description>Notification inbox and citizen email delivery</description>
 
     <dependencies>
         <dependency>

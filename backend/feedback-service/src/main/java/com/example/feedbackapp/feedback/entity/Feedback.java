@@ -36,7 +36,7 @@ public class Feedback {
     @Column(nullable = false, length = 20)
     private FeedbackStatus status = FeedbackStatus.OPEN;
 
-    /** PostGIS geography point (SRID 4326); nullable — feedback need not be geo-tagged. */
+    /** MySQL spatial point (SRID 4326); nullable — feedback need not be geo-tagged. */
     @Column(columnDefinition = "POINT SRID 4326")
     private Point location;
 

@@ -20,7 +20,10 @@ services:
       MYSQL_USER: feedback
       MYSQL_PASSWORD: mysql_feedback_pw
     ports:
-      - "3306:3306"
+      # 3307 on the host: a local (Homebrew) MySQL can occupy 127.0.0.1:3306
+      # and shadow the container for host-run services. Container-side tools
+      # and Kubernetes (host.docker.internal) are unaffected by this mapping.
+      - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
       - ./mysql/init:/docker-entrypoint-initdb.d:ro

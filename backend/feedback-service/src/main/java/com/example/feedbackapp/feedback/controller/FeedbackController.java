@@ -119,7 +119,7 @@ public class FeedbackController {
 
     @GetMapping("/near-me")
     @ResponseStatus(HttpStatus.OK)
-    @Operation(summary = "Feedback within a radius, nearest first (PostGIS)")
+    @Operation(summary = "Feedback within a radius, nearest first (MySQL spatial)")
     public ApiResponse<List<NearbyFeedbackResponse>> nearMe(
             @RequestParam double lat,
             @RequestParam double lng,
