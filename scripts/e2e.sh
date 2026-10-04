@@ -65,7 +65,7 @@ check "first vote ok" "200" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$
 check "second vote 409" "409" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$GW/api/v1/polls/$PID/vote" -H "Authorization: Bearer $CITIZEN" -H 'Content-Type: application/json' -d "{\"optionId\":$OPT}")"
 check "hasVoted=true for voter" "True" "$(curl -s "$GW/api/v1/polls/$PID/results" -H "Authorization: Bearer $CITIZEN" | json "print(json.load(sys.stdin)['data']['hasVoted'])")"
 
-echo "── 3. Feedback workflow (PostGIS + audit)"
+echo "── 3. Feedback workflow (spatial + audit)"
 NOW=$(date +%Y-%m-%dT%H:%M:%S)
 FB=$(curl -s -X POST "$GW/api/v1/feedback" -H "Authorization: Bearer $CITIZEN" -H 'Content-Type: application/json' \
   -d "{\"title\":\"E2E pothole\",\"description\":\"e2e\",\"category\":\"ROADS\",\"latitude\":18.5290,\"longitude\":73.8620}")
@@ -98,7 +98,7 @@ for _ in $(seq 1 10); do
 done
 check "inbox rows created by status changes" "True" "$([ "${INBOX_ROWS:-0}" -gt 0 ] 2>/dev/null && echo True || echo False)"
 UNREAD=$(curl -s "$GW/api/v1/notifications/unread-count" -H "Authorization: Bearer $CITIZEN" | json "print(json.load(sys.stdin)['data'])")
-check "unread count > 0 (FCM pending)" "True" "$([ "${UNREAD:-0}" -gt 0 ] 2>/dev/null && echo True || echo False)"
+check "unread count > 0" "True" "$([ "${UNREAD:-0}" -gt 0 ] 2>/dev/null && echo True || echo False)"
 check "citizen blocked from users" "403" "$(curl -s -o /dev/null -w '%{http_code}' "$GW/api/v1/auth/admin/users" -H "Authorization: Bearer $CITIZEN")"
 check "self-demotion blocked" "409" "$(ADMIN_ID=$(curl -s $GW/api/v1/auth/me -H "Authorization: Bearer $ADMIN" | json "print(json.load(sys.stdin)['data']['id'])"); curl -s -o /dev/null -w '%{http_code}' -X PATCH "$GW/api/v1/auth/admin/users/$ADMIN_ID/role" -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' -d '{"newRole":"CITIZEN"}')"
 

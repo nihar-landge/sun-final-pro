@@ -1,9 +1,9 @@
 name: e2e
 
-# Push trigger parked during the architecture-simplification rework;
-# restored (with the compose-based job) once the core gate passes.
 on:
   workflow_dispatch:
+  push:
+    branches: [master]
 
 jobs:
   e2e:
@@ -19,40 +19,25 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Start infrastructure (PostgreSQL+PostGIS, Redis, SeaweedFS, RabbitMQ)
-        run: docker compose -f infra/docker-compose.yml up -d
-
-      - name: Build services
+      - name: Build service jars
         working-directory: backend
         run: ./mvnw -B -DskipTests package
 
-      - name: Start all services
-        working-directory: backend
+      - name: Start the full stack (compose)
+        run: docker compose up -d --build
+
+      - name: Wait for the gateway
         run: |
-          for svc in auth-service poll-service feedback-service notification-service api-gateway; do
-            nohup java -jar $svc/target/$svc-0.1.0-SNAPSHOT.jar > /tmp/$svc.log 2>&1 &
-          done
           for i in $(seq 1 60); do
-            ok=true
-            for port in 8080 8081 8082 8083 8084; do
-              code=$(curl -s -o /dev/null -w '%{http_code}' -m 2 localhost:$port/actuator/health || true)
-              [ "$code" = "200" ] || ok=false
-            done
-            $ok && break
-            sleep 2
+            code=$(curl -s -o /dev/null -w '%{http_code}' -m 2 localhost:8080/actuator/health || true)
+            [ "$code" = "200" ] && echo "gateway healthy" && exit 0
+            sleep 5
           done
-          if ! $ok; then
-            echo "Not all services healthy after 120s:"
-            for port in 8080 8081 8082 8083 8084; do
-              echo "  :$port -> $(curl -s -o /dev/null -w '%{http_code}' -m 2 localhost:$port/actuator/health || true)"
-            done
-            tail -n 50 /tmp/*.log || true
-            exit 1
-          fi
+          echo "gateway not healthy after 300s"; docker compose ps; exit 1
 
       - name: Run E2E guarantee checks
         run: scripts/e2e.sh localhost:8080
 
       - name: Dump service logs on failure
         if: failure()
-        run: tail -n 50 /tmp/*.log || true
+        run: docker compose logs --tail 100

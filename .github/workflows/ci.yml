@@ -47,15 +47,48 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Analyze & test (mobile)
+      - name: Analyze & test (citizen app)
         working-directory: mobile
         run: |
           flutter pub get
           flutter analyze
           flutter test
 
-      - name: Analyze (admin)
-        working-directory: admin
+  react-admin:
+    name: React admin test & build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: admin-react/package-lock.json
+
+      - name: Test & build
+        working-directory: admin-react
         run: |
-          flutter pub get
-          flutter analyze
+          npm ci
+          npm test
+          npm run build
+
+  email-service:
+    name: Email service tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: email-service/package-lock.json
+
+      - name: Install & test
+        working-directory: email-service
+        run: |
+          npm install
+          npm test
