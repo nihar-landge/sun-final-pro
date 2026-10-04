@@ -45,7 +45,7 @@ class PollVoteIntegrationTest {
     @Test
     void secondVoteBySameUserIsRejectedByTheDatabase() {
         CreatePollRequest request = new CreatePollRequest(
-                "Flyover now?", "Traffic is unbearable", LocalDateTime.now(),
+                "Flyover now?", "Traffic is unbearable", LocalDateTime.now().minusMinutes(1),
                 LocalDateTime.now().plusDays(2), true, List.of("Yes, build it", "No, wait"));
 
         PollResponse created = pollService.createPoll(request, ADMIN);
