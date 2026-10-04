@@ -1,0 +1,20 @@
+{
+  "name": "civicpulse-email-service",
+  "version": "1.0.0",
+  "description": "CivicPulse supporting service: sends report-status emails. No database, no business logic.",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "jest --runInBand"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.21.2",
+    "nodemailer": "^6.9.16"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^7.0.0"
+  }
+}
