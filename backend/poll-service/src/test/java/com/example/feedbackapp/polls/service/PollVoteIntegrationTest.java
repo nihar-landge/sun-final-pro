@@ -37,11 +37,6 @@ class PollVoteIntegrationTest {
     @ServiceConnection
     static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.4");
 
-    @Container
-    @ServiceConnection
-    static final GenericContainer<?> REDIS = new GenericContainer<>("redis:7-alpine")
-            .withExposedPorts(6379);
-
     @Autowired
     private PollService pollService;
 

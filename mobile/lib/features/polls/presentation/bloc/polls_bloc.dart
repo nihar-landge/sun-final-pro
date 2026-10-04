@@ -46,14 +46,6 @@ class PollResultsRefreshed extends PollsEvent {
 }
 
 /// Pushed by the WebSocket subscription on the poll detail page.
-class PollLiveUpdate extends PollsEvent {
-  final Poll poll;
-
-  const PollLiveUpdate(this.poll);
-
-  @override
-  List<Object?> get props => [poll];
-}
 
 // ---------- States ----------
 
@@ -125,7 +117,6 @@ class PollsBloc extends Bloc<PollsEvent, PollsState> {
     on<PollsRequested>(_onPollsRequested);
     on<VoteRequested>(_onVoteRequested);
     on<PollResultsRefreshed>(_onResultsRefreshed);
-    on<PollLiveUpdate>(_onLiveUpdate);
   }
 
   /// The latest known poll list, preserved across vote/failure states so the
@@ -168,9 +159,4 @@ class PollsBloc extends Bloc<PollsEvent, PollsState> {
   }
 
   /// WebSocket push — no request needed, just swap the poll into state.
-  Future<void> _onLiveUpdate(PollLiveUpdate event, Emitter<PollsState> emit) async {
-    if (state is VoteRecorded && (state as VoteRecorded).poll.id == event.poll.id) {
-      emit(VoteRecorded(event.poll, _currentPolls(state)));
-    }
-  }
 }

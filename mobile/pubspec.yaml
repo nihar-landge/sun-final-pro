@@ -19,7 +19,7 @@ dependencies:
   equatable: ^2.0.7
   flutter_secure_storage: ^9.2.4
   geolocator: ^14.0.0
-  stomp_dart_client: ^2.1.0
+  # stomp_dart_client removed — REST polling on the results endpoint
   flutter_map: ^7.0.2
   latlong2: ^0.9.1
   shared_preferences: ^2.3.2

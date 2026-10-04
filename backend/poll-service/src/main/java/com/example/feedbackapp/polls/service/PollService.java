@@ -16,12 +16,9 @@ import com.example.feedbackapp.polls.repository.BallotRepository;
 import com.example.feedbackapp.polls.repository.PollOptionRepository;
 import com.example.feedbackapp.polls.repository.PollParticipationRepository;
 import com.example.feedbackapp.polls.repository.PollRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,31 +30,20 @@ import java.util.List;
 public class PollService {
 
     private static final Logger log = LoggerFactory.getLogger(PollService.class);
-    private static final String RESULTS_CACHE_KEY = "poll:results:%d";
-    private static final Duration RESULTS_CACHE_TTL = Duration.ofSeconds(3);
 
     private final PollRepository pollRepository;
     private final PollOptionRepository pollOptionRepository;
     private final PollParticipationRepository participationRepository;
     private final BallotRepository ballotRepository;
-    private final StringRedisTemplate redis;
-    private final ObjectMapper objectMapper;
-    private final ApplicationEventPublisher eventPublisher;
 
     public PollService(PollRepository pollRepository,
                        PollOptionRepository pollOptionRepository,
                        PollParticipationRepository participationRepository,
-                       BallotRepository ballotRepository,
-                       StringRedisTemplate redis,
-                       ObjectMapper objectMapper,
-                       ApplicationEventPublisher eventPublisher) {
+                       BallotRepository ballotRepository) {
         this.pollRepository = pollRepository;
         this.pollOptionRepository = pollOptionRepository;
         this.participationRepository = participationRepository;
         this.ballotRepository = ballotRepository;
-        this.redis = redis;
-        this.objectMapper = objectMapper;
-        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -140,34 +126,16 @@ public class PollService {
 
         ballotRepository.save(new Ballot(pollId, optionId));
         pollOptionRepository.incrementVotes(optionId);
-        redis.delete(RESULTS_CACHE_KEY.formatted(pollId));
         log.info("User {} voted in poll {}", user.id(), pollId);
-        // Broadcast to WebSocket subscribers once the transaction commits.
-        eventPublisher.publishEvent(new VoteBroadcastListener.VoteCommittedEvent(pollId));
 
         return getResults(pollId).withHasVoted(true);
     }
 
-    /** Short-TTL read-through Redis cache in front of the vote counts. */
+    /** Live vote counts — clients poll this every few seconds. */
     @Transactional(readOnly = true)
     public PollResponse getResults(Long pollId) {
         Poll poll = getPollOrThrow(pollId);
-        String key = RESULTS_CACHE_KEY.formatted(pollId);
-        String cached = redis.opsForValue().get(key);
-        if (cached != null) {
-            try {
-                return objectMapper.readValue(cached, PollResponse.class);
-            } catch (Exception e) {
-                redis.delete(key); // corrupt cache — recompute
-            }
-        }
-        PollResponse response = toDetailResponse(poll);
-        try {
-            redis.opsForValue().set(key, objectMapper.writeValueAsString(response), RESULTS_CACHE_TTL);
-        } catch (Exception e) {
-            log.warn("Failed to cache results for poll {}", pollId, e);
-        }
-        return response;
+        return toDetailResponse(poll);
     }
 
     @Transactional
@@ -185,7 +153,6 @@ public class PollService {
         if (!"CLOSED".equals(status)) {
             poll.setEndTime(now);
         }
-        redis.delete(RESULTS_CACHE_KEY.formatted(pollId));
         return toDetailResponse(poll);
     }
 

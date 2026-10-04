@@ -27,11 +27,6 @@ spring:
           uri: ${NOTIFICATION_SERVICE_URL:http://localhost:8084}
           predicates:
             - Path=/api/v1/notifications/**
-        # WebSocket upgrade requests are proxied to the STOMP broker endpoint.
-        - id: poll-service-ws
-          uri: ws://${POLL_SERVICE_WS_HOST:localhost}:${POLL_SERVICE_WS_PORT:8082}
-          predicates:
-            - Path=/ws/**
       globalcors:
         cors-configurations:
           '[/**]':

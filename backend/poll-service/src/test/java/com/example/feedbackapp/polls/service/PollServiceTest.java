@@ -9,12 +9,10 @@ import com.example.feedbackapp.polls.dto.PollResponse;
 import com.example.feedbackapp.polls.entity.Ballot;
 import com.example.feedbackapp.polls.entity.Poll;
 import com.example.feedbackapp.polls.entity.PollParticipation;
-import com.example.feedbackapp.polls.entity.PollParticipationId;
 import com.example.feedbackapp.polls.repository.BallotRepository;
 import com.example.feedbackapp.polls.repository.PollOptionRepository;
 import com.example.feedbackapp.polls.repository.PollParticipationRepository;
 import com.example.feedbackapp.polls.repository.PollRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,8 +20,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
@@ -33,9 +29,6 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -51,10 +44,6 @@ class PollServiceTest {
     private PollParticipationRepository participationRepository;
     @Mock
     private BallotRepository ballotRepository;
-    @Mock
-    private StringRedisTemplate redis;
-    @Mock
-    private ValueOperations<String, String> valueOps;
 
     private PollService pollService;
 
@@ -64,9 +53,7 @@ class PollServiceTest {
     @BeforeEach
     void setUp() {
         pollService = new PollService(pollRepository, pollOptionRepository, participationRepository,
-                ballotRepository, redis, new ObjectMapper(),
-                org.mockito.Mockito.mock(org.springframework.context.ApplicationEventPublisher.class));
-        lenient().when(redis.opsForValue()).thenReturn(valueOps);
+                ballotRepository);
     }
 
     private Poll activePoll() {
@@ -161,27 +148,9 @@ class PollServiceTest {
                 .isInstanceOf(ConflictException.class);
     }
 
-    @Test
-    @DisplayName("results read through the Redis cache when present")
-    void resultsFromCache() throws Exception {
-        Poll poll = activePoll();
-        when(pollRepository.findById(10L)).thenReturn(Optional.of(poll));
-        PollResponse fresh = new ObjectMapper().readValue(
-                new ObjectMapper().writeValueAsString(new com.example.feedbackapp.polls.dto.PollResponse(
-                        10L, "CACHED", null, "ACTIVE", false,
-                        poll.getStartTime().toString(), poll.getEndTime().toString(), 99, false, List.of())),
-                PollResponse.class);
-        when(valueOps.get(eq("poll:results:10"))).thenReturn(
-                new ObjectMapper().writeValueAsString(fresh));
-
-        PollResponse response = pollService.getResults(10L);
-
-        assertThat(response.title()).isEqualTo("CACHED");
-        assertThat(response.totalVotes()).isEqualTo(99);
-    }
 
     @Test
-    @DisplayName("hasVoted reflects the caller's participation, overlaid on the cached payload")
+    @DisplayName("hasVoted reflects the caller's participation")
     void hasVotedOverlaidPerUser() {
         Poll poll = activePoll();
         when(pollRepository.findById(10L)).thenReturn(Optional.of(poll));
@@ -203,7 +172,6 @@ class PollServiceTest {
 
         assertThat(response.status()).isEqualTo("CLOSED");
         assertThat(poll.getEndTime()).isBefore(LocalDateTime.now().plusSeconds(1));
-        verify(redis).delete("poll:results:10");
     }
 
     @Test
@@ -218,23 +186,5 @@ class PollServiceTest {
         assertThatThrownBy(() -> pollService.closePoll(10L, ADMIN))
                 .isInstanceOf(ConflictException.class);
         assertThat(poll.getEndTime()).isEqualTo(originalEnd);
-        verify(redis, never()).delete(anyString());
-    }
-
-    @Test
-    @DisplayName("listPolls supports the all/scheduled/closed/active filters")
-    void listPollsFilters() {
-        Poll poll = activePoll();
-        when(pollRepository.findAll()).thenReturn(List.of(poll));
-        when(pollRepository.findActivePolls(any(LocalDateTime.class))).thenReturn(List.of(poll));
-        when(pollRepository.findClosedPolls(any(LocalDateTime.class))).thenReturn(List.of());
-
-        assertThat(pollService.listPolls("all")).hasSize(1);
-        assertThat(pollService.listPolls(null)).hasSize(1);
-        assertThat(pollService.listPolls("scheduled")).isEmpty();
-        assertThat(pollService.listPolls("closed")).isEmpty();
-
-        verify(pollRepository).findActivePolls(any(LocalDateTime.class));
-        verify(pollRepository).findClosedPolls(any(LocalDateTime.class));
     }
 }

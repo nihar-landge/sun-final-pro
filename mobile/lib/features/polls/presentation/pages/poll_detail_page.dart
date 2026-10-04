@@ -1,17 +1,14 @@
-import 'dart:convert';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:stomp_dart_client/stomp_dart_client.dart';
 
-import 'package:feedback_app/core/constants/api_constants.dart';
 import 'package:feedback_app/l10n/gen/app_localizations.dart';
-import 'package:feedback_app/features/polls/data/models/poll_model.dart';
 import 'package:feedback_app/features/polls/domain/entities/poll.dart';
 import 'package:feedback_app/features/polls/presentation/bloc/polls_bloc.dart';
 
-/// Poll detail: vote when active, then watch the animated results update
-/// in real time via the STOMP subscription on /topic/polls/{id}.
+/// Poll detail: vote when active, then refresh the animated results on a
+/// 5-second timer (plain REST polling — no WebSocket needed).
 class PollDetailPage extends StatefulWidget {
   final int pollId;
 
@@ -23,54 +20,23 @@ class PollDetailPage extends StatefulWidget {
 
 class _PollDetailPageState extends State<PollDetailPage> {
   int? _selectedOption;
-  bool _votedLocally = false; // guards against user-neutral WS frames
-  StompClient? _stomp;
-  StompUnsubscribe? _unsubscribe;
+  bool _votedLocally = false; // covers the window before results refresh
+  Timer? _resultsTimer;
 
   @override
   void initState() {
     super.initState();
     context.read<PollsBloc>().add(PollResultsRefreshed(widget.pollId));
-    _connectLive();
-  }
-
-  /// Live results: the STOMP endpoint rides the same gateway (ws://…/ws),
-  /// so the phone and web builds both work through the existing tunnel.
-  void _connectLive() {
-    final wsUrl = ApiConstants.baseUrl.replaceFirst(RegExp(r'^http'), 'ws').replaceFirst(RegExp(r'/api/v1$'), '');
-    _stomp = StompClient(
-      config: StompConfig(
-        url: wsUrl.endsWith('/') ? '${wsUrl}ws' : '$wsUrl/ws',
-        onConnect: (StompFrame frame) {
-          _unsubscribe = _stomp!.subscribe(
-            destination: '/topic/polls/${widget.pollId}',
-            callback: (StompFrame frame) {
-              if (frame.body == null) return;
-              try {
-                final poll = PollModel.fromJson(
-                    jsonDecode(frame.body!) as Map<String, dynamic>);
-                if (mounted) {
-                  context.read<PollsBloc>().add(PollLiveUpdate(poll));
-                }
-              } catch (_) {
-                // Ignore malformed frames; the next vote re-broadcasts.
-              }
-            },
-          );
-        },
-        onWebSocketError: (dynamic error) => debugPrint('WS error: $error'),
-        onStompError: (StompFrame frame) => debugPrint('STOMP error: ${frame.body}'),
-        // Reconnect with backoff so backgrounding the app recovers cleanly.
-        reconnectDelay: const Duration(seconds: 5),
-      ),
-    );
-    _stomp!.activate();
+    _resultsTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (mounted) {
+        context.read<PollsBloc>().add(PollResultsRefreshed(widget.pollId));
+      }
+    });
   }
 
   @override
   void dispose() {
-    _unsubscribe?.call();
-    _stomp?.deactivate();
+    _resultsTimer?.cancel();
     super.dispose();
   }
 
