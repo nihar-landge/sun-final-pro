@@ -16,6 +16,7 @@ import java.util.Optional;
 /**
  * Issues and validates HS256 JWTs. The same secret is shared with the
  * API gateway so it can validate tokens without calling this service.
+ * A single 24-hour access token — no refresh tokens.
  */
 @Component
 public class JwtTokenProvider {
@@ -30,14 +31,14 @@ public class JwtTokenProvider {
         this.accessTtl = props.jwt().accessTtl();
     }
 
-    public String issueAccessToken(Long userId, String phone, String role, String name) {
+    public String issueAccessToken(Long userId, String email, String role, String name) {
         Instant now = Instant.now();
         return Jwts.builder()
                 .subject(String.valueOf(userId))
                 .issuer(issuer)
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plus(accessTtl)))
-                .claim("phone", phone)
+                .claim("email", email)
                 .claim("role", role)
                 .claim("name", name)
                 .signWith(key)

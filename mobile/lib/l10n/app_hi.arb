@@ -1,29 +1,23 @@
 {
   "@@locale": "hi",
-
   "appTagline": "आपकी आवाज़। आपका समुदाय। आपका प्रभाव।",
-
   "commonTryAgain": "फिर से प्रयास करें",
   "commonSomethingWentWrong": "कुछ गलत हो गया",
   "commonView": "देखें",
-
   "navHome": "होम",
   "navPolls": "पोल",
   "navReport": "रिपोर्ट",
   "navAlerts": "अलर्ट",
   "navProfile": "प्रोफ़ाइल",
-
   "statusOpen": "खुला",
   "statusInReview": "समीक्षा में",
   "statusResolved": "हल हो गया",
-
   "categoryRoads": "सड़कें",
   "categoryWater": "पानी",
   "categoryElectricity": "बिजली",
   "categorySanitation": "स्वच्छता",
   "categoryTransport": "परिवहन",
   "categoryOther": "अन्य",
-
   "pollStatusLive": "लाइव",
   "pollStatusUpcoming": "आगामी",
   "pollStatusClosed": "बंद",
@@ -36,7 +30,6 @@
   "pollParticipating": "{count} भाग ले रहे हैं",
   "pollParticipatingWithCountdown": "{count} भाग ले रहे हैं  •  {countdown}",
   "pollOptionsWithCountdown": "{count} विकल्प · {countdown}",
-
   "profileFallbackName": "नागरिक",
   "profileSectionActivity": "मेरी गतिविधि",
   "profileReportsFiled": "रिपोर्ट दर्ज",
@@ -52,27 +45,22 @@
   "profileSectionAbout": "ऐप के बारे में",
   "profileAboutSubtitle": "{tagline}\nCDAC अंतिम परियोजना — मोबाइल कंप्यूटिंग",
   "profileSignOut": "साइन आउट",
-
-  "loginSubtitle": "अपने शहर के लिए आवाज़ उठाएँ।\nअपने फ़ोन नंबर से साइन इन करें।",
-  "loginPhoneLabel": "फ़ोन नंबर",
-  "loginSendOtp": "OTP भेजें",
-
-  "otpTitle": "OTP सत्यापित करें",
-  "otpSentTo": "हमने {phone} पर एक कोड भेजा है",
-  "otpDevChip": "डेव OTP: {code} — भरने के लिए टैप करें",
-  "otpCodeLabel": "6 अंकों का OTP",
-  "otpNameLabel": "आपका नाम (नए उपयोगकर्ता)",
-  "otpVerifySignIn": "सत्यापित करें और साइन इन करें",
-
-  "validationEnterPhone": "अपना फ़ोन नंबर दर्ज करें",
-  "validationPhoneDigits": "फ़ोन नंबर 10-15 अंकों का होना चाहिए",
-  "validationEnterOtp": "OTP दर्ज करें",
-  "validationOtpDigits": "OTP 6 अंकों का होना चाहिए",
+  "loginSubtitle": "अपने शहर के लिए आवाज़ उठाएँ।\nअपने ईमेल से साइन इन करें।",
+  "loginEmailLabel": "ईमेल",
+  "loginPasswordLabel": "पासवर्ड",
+  "loginSignIn": "साइन इन करें",
+  "loginCreateAccount": "नए हैं? खाता बनाएँ",
+  "loginHaveAccount": "पहले से खाता है? साइन इन करें",
+  "registerTitle": "अपना खाता बनाएँ",
+  "registerNameLabel": "आपका नाम",
+  "registerSignUp": "खाता बनाएँ",
+  "validationEnterEmail": "अपना ईमेल दर्ज करें",
+  "validationEmailInvalid": "मान्य ईमेल पता दर्ज करें",
+  "validationEnterPassword": "अपना पासवर्ड दर्ज करें",
+  "validationPasswordLength": "पासवर्ड कम से कम 8 अक्षरों का होना चाहिए",
   "validationEnterName": "अपना नाम दर्ज करें",
   "validationNameLength": "नाम अधिकतम 100 अक्षरों का होना चाहिए",
-
   "commonSeeAll": "सभी देखें",
-
   "homeGreetingMorning": "सुप्रभात",
   "homeGreetingAfternoon": "शुभ दोपहर",
   "homeGreetingEvening": "शुभ संध्या",
@@ -92,16 +80,13 @@
   "homeIssuesReported": "समस्याएँ दर्ज",
   "homeResolved": "हल हुईं",
   "homeResolutionRate": "समाधान दर",
-
   "mapTitle": "आपके आसपास की समस्याएँ",
   "mapRecenter": "मेरे स्थान पर केंद्रित करें",
   "mapReportsCount": "{count, plural, =1{1 रिपोर्ट} other{{count} रिपोर्ट}}",
   "mapViewReport": "रिपोर्ट देखें",
   "locationFallbackNotice": "स्थान उपलब्ध नहीं — डिफ़ॉल्ट क्षेत्र दिखाया जा रहा है",
-
   "commonBack": "वापस",
   "commonContinue": "जारी रखें",
-
   "wizardTitle": "समस्या की रिपोर्ट करें",
   "wizardSubmitReport": "रिपोर्ट सबमिट करें",
   "wizardCategoryQuestion": "समस्या क्या है?",
@@ -144,7 +129,6 @@
   "wizardSubmittedTrack": "रिपोर्ट #{id} · अलर्ट या प्रोफ़ाइल से ट्रैक करें",
   "wizardTrackReport": "अपनी रिपोर्ट ट्रैक करें",
   "wizardBackHome": "होम पर वापस जाएँ",
-
   "detailTitle": "रिपोर्ट",
   "detailCitizen": "नागरिक",
   "detailUpvoteSupport": "{count, plural, =1{1 व्यक्ति इसका समर्थन करता है} other{{count} लोग इसका समर्थन करते हैं}}",
@@ -164,9 +148,7 @@
   "detailTimelineReview": "समीक्षा",
   "detailCitizenNumber": "नागरिक #{id}",
   "detailCommentHint": "टिप्पणी लिखें…",
-
   "commonRefresh": "रीफ़्रेश करें",
-
   "pollsTitle": "पोल",
   "pollsSegmentActive": "सक्रिय",
   "pollsSegmentUpcoming": "आगामी",
@@ -175,7 +157,6 @@
   "pollsEmptyActive": "अभी कोई सक्रिय पोल नहीं",
   "pollsEmptyUpcoming": "कोई आगामी पोल निर्धारित नहीं",
   "pollsEmptyClosed": "अभी कोई बंद पोल नहीं",
-
   "pollDetailTitle": "पोल",
   "pollOpenUntil": "खुला रहेगा:",
   "pollClosedLabel": "बंद हुआ:",
@@ -191,7 +172,6 @@
   "pollCitizensCount": "{count} नागरिक",
   "pollEndsInDaysHours": "{days} दिन {hours} घंटे में समाप्त",
   "pollRefreshResults": "परिणाम रीफ़्रेश करें",
-
   "alertsTitle": "अलर्ट",
   "alertsMarkAllRead": "सभी पढ़ा हुआ चिह्नित करें",
   "alertsNothingNew": "कुछ नया नहीं",
@@ -200,7 +180,6 @@
   "alertsYesterday": "कल",
   "alertsThisWeek": "इस सप्ताह",
   "alertsEarlier": "पहले",
-
   "aboutTitle": "ऐप के बारे में",
   "aboutWhatYouCanDo": "आप क्या कर सकते हैं",
   "aboutBulletPolls": "लाइव परिणामों के साथ सार्वजनिक पोल में भाग लें",

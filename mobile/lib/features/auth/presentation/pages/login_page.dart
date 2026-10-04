@@ -4,11 +4,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:feedback_app/core/constants/app_constants.dart';
 import 'package:feedback_app/core/utils/validators.dart';
 import 'package:feedback_app/features/auth/presentation/bloc/auth_bloc.dart';
-import 'package:feedback_app/features/auth/presentation/pages/otp_verification_page.dart';
 import 'package:feedback_app/features/home_shell.dart';
 import 'package:feedback_app/l10n/gen/app_localizations.dart';
 
-/// Phone number entry — the first step of OTP login.
+/// Email + password sign-in, with a toggle to create a new account.
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -18,17 +17,34 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
-  final _phoneController = TextEditingController();
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _registerMode = false;
 
   @override
   void dispose() {
-    _phoneController.dispose();
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
-    context.read<AuthBloc>().add(SendOtpRequested(_phoneController.text.trim()));
+    final bloc = context.read<AuthBloc>();
+    if (_registerMode) {
+      bloc.add(RegisterRequested(
+        name: _nameController.text.trim(),
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      ));
+    } else {
+      bloc.add(LoginRequested(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      ));
+    }
   }
 
   @override
@@ -36,11 +52,11 @@ class _LoginPageState extends State<LoginPage> {
     return Scaffold(
       body: BlocConsumer<AuthBloc, AuthState>(
         listener: (context, state) {
-          if (state is OtpSent) {
-            Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => OtpVerificationPage(
-                  phone: state.phone, devOtp: state.devOtp),
-            ));
+          if (state is RegisterSuccess) {
+            ScaffoldMessenger.of(context)
+              ..hideCurrentSnackBar()
+              ..showSnackBar(SnackBar(content: Text(AppLocalizations.of(context).loginHaveAccount)));
+            setState(() => _registerMode = false);
           } else if (state is Authenticated) {
             // Covers the session restored from secure storage on app start —
             // the user goes straight to the home shell, not the login form.
@@ -70,7 +86,7 @@ class _LoginPageState extends State<LoginPage> {
                       const Icon(Icons.how_to_vote_outlined, size: 72),
                       const SizedBox(height: 12),
                       Text(
-                        AppConstants.appName,
+                        _registerMode ? l10n.registerTitle : AppConstants.appName,
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.headlineSmall,
                       ),
@@ -81,16 +97,42 @@ class _LoginPageState extends State<LoginPage> {
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                       const SizedBox(height: 32),
-                      TextFormField(
-                        controller: _phoneController,
-                        decoration: InputDecoration(
-                          labelText: l10n.loginPhoneLabel,
-                          prefixIcon: const Icon(Icons.phone_outlined),
+                      if (_registerMode) ...[
+                        TextFormField(
+                          controller: _nameController,
+                          decoration: InputDecoration(
+                            labelText: l10n.registerNameLabel,
+                            prefixIcon: const Icon(Icons.person_outline),
+                          ),
+                          textInputAction: TextInputAction.next,
+                          validator: (value) => Validators.name(value, l10n),
                         ),
-                        keyboardType: TextInputType.phone,
-                        validator: (value) => Validators.phone(value, l10n),
+                        const SizedBox(height: 16),
+                      ],
+                      TextFormField(
+                        controller: _emailController,
+                        decoration: InputDecoration(
+                          labelText: l10n.loginEmailLabel,
+                          prefixIcon: const Icon(Icons.alternate_email),
+                        ),
+                        keyboardType: TextInputType.emailAddress,
+                        autofillHints: const [AutofillHints.email],
+                        textInputAction: TextInputAction.next,
+                        validator: (value) => Validators.email(value, l10n),
                       ),
                       const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _passwordController,
+                        decoration: InputDecoration(
+                          labelText: l10n.loginPasswordLabel,
+                          prefixIcon: const Icon(Icons.lock_outline),
+                        ),
+                        obscureText: true,
+                        autofillHints: const [AutofillHints.password],
+                        onFieldSubmitted: (_) => _submit(),
+                        validator: (value) => Validators.password(value, l10n),
+                      ),
+                      const SizedBox(height: 24),
                       FilledButton(
                         onPressed: loading ? null : _submit,
                         child: loading
@@ -99,7 +141,17 @@ class _LoginPageState extends State<LoginPage> {
                                 width: 20,
                                 child: CircularProgressIndicator(strokeWidth: 2),
                               )
-                            : Text(l10n.loginSendOtp),
+                            : Text(_registerMode ? l10n.registerSignUp : l10n.loginSignIn),
+                      ),
+                      const SizedBox(height: 8),
+                      TextButton(
+                        onPressed: loading
+                            ? null
+                            : () => setState(() {
+                                  _registerMode = !_registerMode;
+                                  _formKey.currentState?.reset();
+                                }),
+                        child: Text(_registerMode ? l10n.loginHaveAccount : l10n.loginCreateAccount),
                       ),
                     ],
                   ),

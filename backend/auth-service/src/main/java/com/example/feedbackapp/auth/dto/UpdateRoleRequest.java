@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Pattern;
 
 public record UpdateRoleRequest(
         @NotBlank
-        @Pattern(regexp = "CITIZEN|MODERATOR|ADMIN", message = "role must be CITIZEN, MODERATOR or ADMIN")
+        @Pattern(regexp = "CITIZEN|ADMIN", message = "role must be CITIZEN or ADMIN")
         String newRole) {
 
     public static UpdateRoleRequest of(String role) {

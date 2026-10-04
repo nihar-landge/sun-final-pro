@@ -12,9 +12,8 @@ class ApiConstants {
   );
 
   // Auth endpoints
-  static const String sendOtp = '$baseUrl/auth/otp/send';
-  static const String verifyOtp = '$baseUrl/auth/otp/verify';
-  static const String refreshToken = '$baseUrl/auth/token/refresh';
+  static const String register = '$baseUrl/auth/register';
+  static const String login = '$baseUrl/auth/login';
   static const String me = '$baseUrl/auth/me';
 
   // Feature endpoints

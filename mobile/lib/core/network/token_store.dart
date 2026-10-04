@@ -2,9 +2,9 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// Persists the JWT session in platform secure storage (Keychain /
 /// Keystore / encrypted web storage) so login survives app restarts.
+/// A single 24h access token — no refresh token.
 class TokenStore {
   static const _accessTokenKey = 'access_token';
-  static const _refreshTokenKey = 'refresh_token';
 
   final FlutterSecureStorage _storage;
 
@@ -12,18 +12,11 @@ class TokenStore {
 
   Future<String?> readAccessToken() => _storage.read(key: _accessTokenKey);
 
-  Future<String?> readRefreshToken() => _storage.read(key: _refreshTokenKey);
-
-  Future<void> save({required String accessToken, required String refreshToken}) async {
-    await _storage.write(key: _accessTokenKey, value: accessToken);
-    await _storage.write(key: _refreshTokenKey, value: refreshToken);
-  }
-
-  Future<void> updateAccessToken(String accessToken) =>
+  Future<void> save({required String accessToken}) =>
       _storage.write(key: _accessTokenKey, value: accessToken);
 
   Future<void> clear() async {
     await _storage.delete(key: _accessTokenKey);
-    await _storage.delete(key: _refreshTokenKey);
+    await _storage.delete(key: 'refresh_token'); // leftover from earlier builds
   }
 }

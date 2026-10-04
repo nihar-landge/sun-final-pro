@@ -9,11 +9,8 @@ import java.time.Duration;
  * Secrets and TTLs are overridable via environment variables for each deployment.
  */
 @ConfigurationProperties(prefix = "app")
-public record AppProperties(Jwt jwt, Otp otp) {
+public record AppProperties(Jwt jwt) {
 
-    public record Jwt(String secret, String issuer, Duration accessTtl, Duration refreshTtl) {
-    }
-
-    public record Otp(int length, Duration ttl, boolean devEcho, int maxVerifyAttempts, Duration sendCooldown) {
+    public record Jwt(String secret, String issuer, Duration accessTtl) {
     }
 }

@@ -11,29 +11,31 @@ void main() {
     l10n = await AppLocalizations.delegate.load(const Locale('en'));
   });
 
-  group('Validators.phone', () {
-    test('accepts 10-15 digit numbers', () {
-      expect(Validators.phone('9876543210', l10n), isNull);
-      expect(Validators.phone('123456789012345', l10n), isNull);
+  group('Validators.email', () {
+    test('accepts normal addresses', () {
+      expect(Validators.email('nihar@example.com', l10n), isNull);
+      expect(Validators.email('a.b+tag@sub.domain.in', l10n), isNull);
     });
 
-    test('rejects too-short, non-numeric and empty input', () {
-      expect(Validators.phone('12345', l10n), isNotNull);
-      expect(Validators.phone('98765432a0', l10n), isNotNull);
-      expect(Validators.phone('', l10n), isNotNull);
-      expect(Validators.phone(null, l10n), isNotNull);
+    test('rejects malformed and empty input', () {
+      expect(Validators.email('not-an-email', l10n), isNotNull);
+      expect(Validators.email('missing@tld', l10n), isNotNull);
+      expect(Validators.email('two@@at.com', l10n), isNotNull);
+      expect(Validators.email('', l10n), isNotNull);
+      expect(Validators.email(null, l10n), isNotNull);
     });
   });
 
-  group('Validators.otp', () {
-    test('accepts exactly 6 digits', () {
-      expect(Validators.otp('123456', l10n), isNull);
+  group('Validators.password', () {
+    test('accepts passwords of 8+ characters', () {
+      expect(Validators.password('s3cretPass!', l10n), isNull);
+      expect(Validators.password('12345678', l10n), isNull);
     });
 
-    test('rejects wrong lengths and non-digits', () {
-      expect(Validators.otp('12345', l10n), isNotNull);
-      expect(Validators.otp('1234567', l10n), isNotNull);
-      expect(Validators.otp('12a456', l10n), isNotNull);
+    test('rejects short and empty passwords', () {
+      expect(Validators.password('1234567', l10n), isNotNull);
+      expect(Validators.password('', l10n), isNotNull);
+      expect(Validators.password(null, l10n), isNotNull);
     });
   });
 }

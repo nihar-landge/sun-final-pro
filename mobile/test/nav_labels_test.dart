@@ -45,14 +45,7 @@ class _FakeTokenStore extends TokenStore {
   Future<String?> readAccessToken() async => null;
 
   @override
-  Future<String?> readRefreshToken() async => null;
-
-  @override
-  Future<void> save(
-      {required String accessToken, required String refreshToken}) async {}
-
-  @override
-  Future<void> updateAccessToken(String accessToken) async {}
+  Future<void> save({required String accessToken}) async {}
 
   @override
   Future<void> clear() async {}

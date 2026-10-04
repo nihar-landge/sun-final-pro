@@ -43,7 +43,7 @@ class AdminUserServiceTest {
     private User user(long id, User.Role role) {
         User user = new User();
         ReflectionTestUtils.setField(user, "id", id);
-        user.setPhone("900000000" + id);
+        user.setEmail("user" + id + "@example.com");
         user.setName("User " + id);
         user.setRole(role);
         ReflectionTestUtils.setField(user, "createdAt", java.time.LocalDateTime.now());
@@ -57,9 +57,9 @@ class AdminUserServiceTest {
         when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
 
         var response = adminUserService.changeRole(
-                2L, UpdateRoleRequest.of("MODERATOR"), ADMIN_PRINCIPAL);
+                2L, UpdateRoleRequest.of("ADMIN"), ADMIN_PRINCIPAL);
 
-        assertThat(response.role()).isEqualTo("MODERATOR");
+        assertThat(response.role()).isEqualTo("ADMIN");
     }
 
     @Test

@@ -54,7 +54,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private UserPrincipal toPrincipal(Claims claims) {
         return new UserPrincipal(
                 Long.valueOf(claims.getSubject()),
-                claims.get("phone", String.class),
+                claims.get("email", String.class),
                 claims.get("name", String.class),
                 claims.get("role", String.class));
     }

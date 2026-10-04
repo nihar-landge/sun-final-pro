@@ -3,18 +3,17 @@ import 'package:feedback_app/l10n/gen/app_localizations.dart';
 class Validators {
   Validators._();
 
-  static final RegExp _phone = RegExp(r'^\d{10,15}$');
-  static final RegExp _otp = RegExp(r'^\d{6}$');
+  static final RegExp _email = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
 
-  static String? phone(String? value, AppLocalizations l10n) {
-    if (value == null || value.trim().isEmpty) return l10n.validationEnterPhone;
-    if (!_phone.hasMatch(value.trim())) return l10n.validationPhoneDigits;
+  static String? email(String? value, AppLocalizations l10n) {
+    if (value == null || value.trim().isEmpty) return l10n.validationEnterEmail;
+    if (!_email.hasMatch(value.trim())) return l10n.validationEmailInvalid;
     return null;
   }
 
-  static String? otp(String? value, AppLocalizations l10n) {
-    if (value == null || value.trim().isEmpty) return l10n.validationEnterOtp;
-    if (!_otp.hasMatch(value.trim())) return l10n.validationOtpDigits;
+  static String? password(String? value, AppLocalizations l10n) {
+    if (value == null || value.isEmpty) return l10n.validationEnterPassword;
+    if (value.length < 8) return l10n.validationPasswordLength;
     return null;
   }
 

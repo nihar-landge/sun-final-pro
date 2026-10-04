@@ -43,7 +43,7 @@ public class AdminUserService {
                 String term = "%" + search.toLowerCase() + "%";
                 predicates.add(cb.or(
                         cb.like(cb.lower(cb.coalesce(root.get("name"), "")), term),
-                        cb.like(root.get("phone"), "%" + search + "%")));
+                        cb.like(cb.lower(root.get("email")), term)));
             }
             return cb.and(predicates.toArray(new Predicate[0]));
         };
@@ -70,6 +70,6 @@ public class AdminUserService {
         user.setRole(newRole);
         return AdminUserResponse.from(userRepository.save(user));
         // Note: the role lives in the JWT claim, so a demoted user keeps their
-        // old authority until their access token expires (max 15 min).
+        // old authority until their access token expires (max 24 h).
     }
 }

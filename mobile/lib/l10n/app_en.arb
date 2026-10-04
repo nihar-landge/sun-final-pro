@@ -1,29 +1,23 @@
 {
   "@@locale": "en",
-
   "appTagline": "Your voice. Your community. Your impact.",
-
   "commonTryAgain": "Try again",
   "commonSomethingWentWrong": "Something went wrong",
   "commonView": "VIEW",
-
   "navHome": "Home",
   "navPolls": "Polls",
   "navReport": "Report",
   "navAlerts": "Alerts",
   "navProfile": "Profile",
-
   "statusOpen": "Open",
   "statusInReview": "In Review",
   "statusResolved": "Resolved",
-
   "categoryRoads": "Roads",
   "categoryWater": "Water",
   "categoryElectricity": "Electricity",
   "categorySanitation": "Sanitation",
   "categoryTransport": "Transport",
   "categoryOther": "Other",
-
   "pollStatusLive": "LIVE",
   "pollStatusUpcoming": "UPCOMING",
   "pollStatusClosed": "CLOSED",
@@ -31,45 +25,76 @@
   "pollEnded": "Ended",
   "pollEndsInDays": "Ends in {days}d",
   "@pollEndsInDays": {
-    "placeholders": { "days": { "type": "int" } }
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
   },
   "pollEndsInHours": "Ends in {hours}h",
   "@pollEndsInHours": {
-    "placeholders": { "hours": { "type": "int" } }
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
   },
   "pollEndsInMinutes": "Ends in {minutes}m",
   "@pollEndsInMinutes": {
-    "placeholders": { "minutes": { "type": "int" } }
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
   },
   "pollVotesCount": "{count} votes",
   "@pollVotesCount": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "pollParticipating": "{count} participating",
   "@pollParticipating": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "pollParticipatingWithCountdown": "{count} participating  •  {countdown}",
   "@pollParticipatingWithCountdown": {
     "placeholders": {
-      "count": { "type": "int" },
-      "countdown": { "type": "String" }
+      "count": {
+        "type": "int"
+      },
+      "countdown": {
+        "type": "String"
+      }
     }
   },
   "pollOptionsWithCountdown": "{count} options · {countdown}",
   "@pollOptionsWithCountdown": {
     "placeholders": {
-      "count": { "type": "int" },
-      "countdown": { "type": "String" }
+      "count": {
+        "type": "int"
+      },
+      "countdown": {
+        "type": "String"
+      }
     }
   },
-
   "profileFallbackName": "Citizen",
   "profileSectionActivity": "My activity",
   "profileReportsFiled": "reports filed",
   "profileViewAllReports": "View all {count} reports",
   "@profileViewAllReports": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "profileSectionPreferences": "Preferences",
   "profileTheme": "Theme",
@@ -82,36 +107,29 @@
   "profileSectionAbout": "About",
   "profileAboutSubtitle": "{tagline}\nCDAC Final Project — Mobile Computing",
   "@profileAboutSubtitle": {
-    "placeholders": { "tagline": { "type": "String" } }
+    "placeholders": {
+      "tagline": {
+        "type": "String"
+      }
+    }
   },
   "profileSignOut": "Sign out",
-
-  "loginSubtitle": "Raise your voice for your city.\nSign in with your phone number.",
-  "loginPhoneLabel": "Phone number",
-  "loginSendOtp": "Send OTP",
-
-  "otpTitle": "Verify OTP",
-  "otpSentTo": "We sent a code to {phone}",
-  "@otpSentTo": {
-    "placeholders": { "phone": { "type": "String" } }
-  },
-  "otpDevChip": "Dev OTP: {code} — tap to fill",
-  "@otpDevChip": {
-    "placeholders": { "code": { "type": "String" } }
-  },
-  "otpCodeLabel": "6-digit OTP",
-  "otpNameLabel": "Your name (new users)",
-  "otpVerifySignIn": "Verify & Sign in",
-
-  "validationEnterPhone": "Enter your phone number",
-  "validationPhoneDigits": "Phone must be 10-15 digits",
-  "validationEnterOtp": "Enter the OTP",
-  "validationOtpDigits": "OTP must be 6 digits",
+  "loginSubtitle": "Raise your voice for your city.\nSign in with your email.",
+  "loginEmailLabel": "Email",
+  "loginPasswordLabel": "Password",
+  "loginSignIn": "Sign in",
+  "loginCreateAccount": "New here? Create an account",
+  "loginHaveAccount": "Already have an account? Sign in",
+  "registerTitle": "Create your account",
+  "registerNameLabel": "Your name",
+  "registerSignUp": "Create account",
+  "validationEnterEmail": "Enter your email",
+  "validationEmailInvalid": "Enter a valid email address",
+  "validationEnterPassword": "Enter your password",
+  "validationPasswordLength": "Password must be at least 8 characters",
   "validationEnterName": "Enter your name",
   "validationNameLength": "Name must be at most 100 characters",
-
   "commonSeeAll": "See all",
-
   "homeGreetingMorning": "Good morning",
   "homeGreetingAfternoon": "Good afternoon",
   "homeGreetingEvening": "Good evening",
@@ -131,19 +149,20 @@
   "homeIssuesReported": "issues reported",
   "homeResolved": "resolved",
   "homeResolutionRate": "resolution rate",
-
   "mapTitle": "Issues Near You",
   "mapRecenter": "Center on my location",
   "mapReportsCount": "{count, plural, =1{1 report} other{{count} reports}}",
   "@mapReportsCount": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "mapViewReport": "View Report",
   "locationFallbackNotice": "Location unavailable — showing a default area",
-
   "commonBack": "Back",
   "commonContinue": "Continue",
-
   "wizardTitle": "Report an Issue",
   "wizardSubmitReport": "Submit Report",
   "wizardCategoryQuestion": "What is the problem?",
@@ -181,23 +200,34 @@
   "wizardNoSimilarSubtitle": "You seem to be the first to spot this here.",
   "wizardSimilarFound": "{count, plural, =1{We found 1 similar report nearby. Supporting an existing report gets it fixed faster.} other{We found {count} similar reports nearby. Supporting an existing report gets it fixed faster.}}",
   "@wizardSimilarFound": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "wizardSimilarDistance": "<300 m",
   "wizardStillFileReport": "Still want to file your report? Submit below — more reports raise priority.",
   "wizardSubmittedTitle": "Report submitted!",
   "wizardSubmittedTrack": "Report #{id} · track it from Alerts or Profile",
   "@wizardSubmittedTrack": {
-    "placeholders": { "id": { "type": "int" } }
+    "placeholders": {
+      "id": {
+        "type": "int"
+      }
+    }
   },
   "wizardTrackReport": "Track your report",
   "wizardBackHome": "Back to home",
-
   "detailTitle": "Report",
   "detailCitizen": "Citizen",
   "detailUpvoteSupport": "{count, plural, =1{1 person supports this} other{{count} people support this}}",
   "@detailUpvoteSupport": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "detailOfficialUpdate": "OFFICIAL UPDATE",
   "detailResolvedTitle": "🎉 Issue Resolved",
@@ -205,25 +235,43 @@
   "detailResolvedDates": "Reported {reported} · Resolved {resolved} · {duration}",
   "@detailResolvedDates": {
     "placeholders": {
-      "reported": { "type": "String" },
-      "resolved": { "type": "String" },
-      "duration": { "type": "String" }
+      "reported": {
+        "type": "String"
+      },
+      "resolved": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      }
     }
   },
   "detailSameDay": "same day",
   "detailDaysCount": "{count, plural, =1{1 day} other{{count} days}}",
   "@detailDaysCount": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "detailCitizensSupported": "{count, plural, =1{1 citizen supported this report} other{{count} citizens supported this report}}",
   "@detailCitizensSupported": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "detailProgress": "Progress",
   "detailLocation": "Location",
   "detailComments": "Comments ({count})",
   "@detailComments": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "detailNoComments": "No comments yet — start the conversation.",
   "detailTimelineSubmitted": "Report submitted",
@@ -231,12 +279,14 @@
   "detailTimelineReview": "Review",
   "detailCitizenNumber": "Citizen #{id}",
   "@detailCitizenNumber": {
-    "placeholders": { "id": { "type": "String" } }
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
   },
   "detailCommentHint": "Write a comment…",
-
   "commonRefresh": "Refresh",
-
   "pollsTitle": "Polls",
   "pollsSegmentActive": "Active",
   "pollsSegmentUpcoming": "Upcoming",
@@ -245,7 +295,6 @@
   "pollsEmptyActive": "No active polls right now",
   "pollsEmptyUpcoming": "No upcoming polls scheduled",
   "pollsEmptyClosed": "No closed polls yet",
-
   "pollDetailTitle": "Poll",
   "pollOpenUntil": "open until",
   "pollClosedLabel": "closed",
@@ -260,17 +309,24 @@
   "pollEnds": "Poll ends",
   "pollCitizensCount": "{count} citizens",
   "@pollCitizensCount": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "pollEndsInDaysHours": "Ends in {days}d {hours}h",
   "@pollEndsInDaysHours": {
     "placeholders": {
-      "days": { "type": "int" },
-      "hours": { "type": "int" }
+      "days": {
+        "type": "int"
+      },
+      "hours": {
+        "type": "int"
+      }
     }
   },
   "pollRefreshResults": "Refresh results",
-
   "alertsTitle": "Alerts",
   "alertsMarkAllRead": "Mark all read",
   "alertsNothingNew": "Nothing new",
@@ -279,7 +335,6 @@
   "alertsYesterday": "Yesterday",
   "alertsThisWeek": "This week",
   "alertsEarlier": "Earlier",
-
   "aboutTitle": "About",
   "aboutWhatYouCanDo": "What you can do",
   "aboutBulletPolls": "Participate in public polls with live results",

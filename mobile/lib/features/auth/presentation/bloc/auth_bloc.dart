@@ -4,10 +4,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:feedback_app/core/errors/failures.dart';
 import 'package:feedback_app/features/auth/domain/entities/user.dart';
 import 'package:feedback_app/features/auth/domain/repositories/auth_repository.dart';
+import 'package:feedback_app/features/auth/domain/usecases/login.dart';
 import 'package:feedback_app/features/auth/domain/usecases/logout.dart';
+import 'package:feedback_app/features/auth/domain/usecases/register.dart';
 import 'package:feedback_app/features/auth/domain/usecases/restore_session.dart';
-import 'package:feedback_app/features/auth/domain/usecases/send_otp.dart';
-import 'package:feedback_app/features/auth/domain/usecases/verify_otp.dart';
 
 // ---------- Events ----------
 
@@ -23,24 +23,29 @@ class AuthSessionRequested extends AuthEvent {
   const AuthSessionRequested();
 }
 
-class SendOtpRequested extends AuthEvent {
-  final String phone;
+class RegisterRequested extends AuthEvent {
+  final String name;
+  final String email;
+  final String password;
 
-  const SendOtpRequested(this.phone);
+  const RegisterRequested({
+    required this.name,
+    required this.email,
+    required this.password,
+  });
 
   @override
-  List<Object?> get props => [phone];
+  List<Object?> get props => [name, email, password];
 }
 
-class OtpVerificationRequested extends AuthEvent {
-  final String phone;
-  final String code;
-  final String? name;
+class LoginRequested extends AuthEvent {
+  final String email;
+  final String password;
 
-  const OtpVerificationRequested({required this.phone, required this.code, this.name});
+  const LoginRequested({required this.email, required this.password});
 
   @override
-  List<Object?> get props => [phone, code, name];
+  List<Object?> get props => [email, password];
 }
 
 class AuthResetRequested extends AuthEvent {}
@@ -64,14 +69,8 @@ class AuthLoading extends AuthState {
   const AuthLoading();
 }
 
-class OtpSent extends AuthState {
-  final String phone;
-  final String? devOtp; // present only when the backend runs with dev echo
-
-  const OtpSent(this.phone, [this.devOtp]);
-
-  @override
-  List<Object?> get props => [phone, devOtp];
+class RegisterSuccess extends AuthState {
+  const RegisterSuccess();
 }
 
 class Authenticated extends AuthState {
@@ -95,20 +94,20 @@ class AuthFailure extends AuthState {
 // ---------- Bloc ----------
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
-  final SendOtp sendOtp;
-  final VerifyOtp verifyOtp;
+  final Register register;
+  final Login login;
   final RestoreSession restoreSession;
   final Logout logout;
 
   AuthBloc({required AuthRepository repository})
-      : sendOtp = SendOtp(repository),
-        verifyOtp = VerifyOtp(repository),
+      : register = Register(repository),
+        login = Login(repository),
         restoreSession = RestoreSession(repository),
         logout = Logout(repository),
         super(const AuthInitial()) {
     on<AuthSessionRequested>(_onRestoreSession);
-    on<SendOtpRequested>(_onSendOtp);
-    on<OtpVerificationRequested>(_onVerifyOtp);
+    on<RegisterRequested>(_onRegister);
+    on<LoginRequested>(_onLogin);
     on<AuthResetRequested>((event, emit) => emit(const AuthInitial()));
     on<LogoutRequested>(_onLogout);
   }
@@ -119,26 +118,26 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       if (session != null) {
         emit(Authenticated(session.user));
       }
-      // No stored session (or refresh failed): stay on AuthInitial (login page).
+      // No stored session (or it is no longer valid): stay on AuthInitial.
     } on Failure {
       // Offline or backend down — the user can still try to log in.
     }
   }
 
-  Future<void> _onSendOtp(SendOtpRequested event, Emitter<AuthState> emit) async {
+  Future<void> _onRegister(RegisterRequested event, Emitter<AuthState> emit) async {
     emit(const AuthLoading());
     try {
-      final devOtp = await sendOtp(event.phone);
-      emit(OtpSent(event.phone, devOtp));
+      await register(name: event.name, email: event.email, password: event.password);
+      emit(const RegisterSuccess());
     } on Failure catch (failure) {
       emit(AuthFailure(failure.message));
     }
   }
 
-  Future<void> _onVerifyOtp(OtpVerificationRequested event, Emitter<AuthState> emit) async {
+  Future<void> _onLogin(LoginRequested event, Emitter<AuthState> emit) async {
     emit(const AuthLoading());
     try {
-      final session = await verifyOtp(phone: event.phone, code: event.code, name: event.name);
+      final session = await login(email: event.email, password: event.password);
       emit(Authenticated(session.user));
     } on Failure catch (failure) {
       emit(AuthFailure(failure.message));

@@ -8,10 +8,9 @@ import java.util.Set;
 public final class UserRoles {
 
     public static final String CITIZEN = "CITIZEN";
-    public static final String MODERATOR = "MODERATOR";
     public static final String ADMIN = "ADMIN";
 
-    public static final Set<String> ALL = Set.of(CITIZEN, MODERATOR, ADMIN);
+    public static final Set<String> ALL = Set.of(CITIZEN, ADMIN);
 
     private UserRoles() {
     }

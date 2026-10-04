@@ -165,47 +165,44 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get loginSubtitle =>
-      'Raise your voice for your city.\nSign in with your phone number.';
+      'Raise your voice for your city.\nSign in with your email.';
 
   @override
-  String get loginPhoneLabel => 'Phone number';
+  String get loginEmailLabel => 'Email';
 
   @override
-  String get loginSendOtp => 'Send OTP';
+  String get loginPasswordLabel => 'Password';
 
   @override
-  String get otpTitle => 'Verify OTP';
+  String get loginSignIn => 'Sign in';
 
   @override
-  String otpSentTo(String phone) {
-    return 'We sent a code to $phone';
-  }
+  String get loginCreateAccount => 'New here? Create an account';
 
   @override
-  String otpDevChip(String code) {
-    return 'Dev OTP: $code — tap to fill';
-  }
+  String get loginHaveAccount => 'Already have an account? Sign in';
 
   @override
-  String get otpCodeLabel => '6-digit OTP';
+  String get registerTitle => 'Create your account';
 
   @override
-  String get otpNameLabel => 'Your name (new users)';
+  String get registerNameLabel => 'Your name';
 
   @override
-  String get otpVerifySignIn => 'Verify & Sign in';
+  String get registerSignUp => 'Create account';
 
   @override
-  String get validationEnterPhone => 'Enter your phone number';
+  String get validationEnterEmail => 'Enter your email';
 
   @override
-  String get validationPhoneDigits => 'Phone must be 10-15 digits';
+  String get validationEmailInvalid => 'Enter a valid email address';
 
   @override
-  String get validationEnterOtp => 'Enter the OTP';
+  String get validationEnterPassword => 'Enter your password';
 
   @override
-  String get validationOtpDigits => 'OTP must be 6 digits';
+  String get validationPasswordLength =>
+      'Password must be at least 8 characters';
 
   @override
   String get validationEnterName => 'Enter your name';

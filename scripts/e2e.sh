@@ -19,14 +19,21 @@ check() { # check <name> <expected> <actual>
 
 json() { python3 -c "import sys,json;$1" 2>/dev/null; }
 
-token() { # token <phone> -> access token (dev echo OTP)
-  local otp url
-  otp=$(curl -s -m 10 -X POST "$GW/api/v1/auth/otp/send" \
-    -H 'Content-Type: application/json' -d "{\"phone\":\"$1\"}" \
-    | json "print(json.load(sys.stdin)['data']['devOtp'])") || return 1
-  curl -s -m 10 -X POST "$GW/api/v1/auth/otp/verify" \
+admin_login() { # -> access token for the seeded admin account
+  curl -s -m 10 -X POST "$GW/api/v1/auth/login" \
     -H 'Content-Type: application/json' \
-    -d "{\"phone\":\"$1\",\"code\":\"$otp\"}" \
+    -d '{"email":"admin@civicpulse.in","password":"Admin@123"}' \
+    | json "print(json.load(sys.stdin)['data']['accessToken'])"
+}
+
+citizen_login() { # -> registers a fresh citizen and returns the access token
+  local email="e2e-$(date +%s)-$RANDOM@civicpulse.test"
+  curl -s -o /dev/null -m 10 -X POST "$GW/api/v1/auth/register" \
+    -H 'Content-Type: application/json' \
+    -d "{\"name\":\"E2E Citizen\",\"email\":\"$email\",\"password\":\"s3cretPass!\"}"
+  curl -s -m 10 -X POST "$GW/api/v1/auth/login" \
+    -H 'Content-Type: application/json' \
+    -d "{\"email\":\"$email\",\"password\":\"s3cretPass!\"}" \
     | json "print(json.load(sys.stdin)['data']['accessToken'])"
 }
 
@@ -39,8 +46,9 @@ if [ "$HEALTH" != "200" ]; then
   echo "In CI, service logs are dumped by the workflow; locally check the service consoles."
   exit 1
 fi
-CITIZEN=$(token "9876543210"); [ -n "$CITIZEN" ] && { PASS=$((PASS+1)); echo "  ✓ citizen login"; } || { FAIL=$((FAIL+1)); echo "  ✗ citizen login"; }
-ADMIN=$(token "9999999999");   [ -n "$ADMIN" ] &&   { PASS=$((PASS+1)); echo "  ✓ admin login"; }   || { FAIL=$((FAIL+1)); echo "  ✗ admin login"; }
+CITIZEN=$(citizen_login); [ -n "$CITIZEN" ] && { PASS=$((PASS+1)); echo "  ✓ citizen register+login"; } || { FAIL=$((FAIL+1)); echo "  ✗ citizen register+login"; }
+ADMIN=$(admin_login);     [ -n "$ADMIN" ] &&   { PASS=$((PASS+1)); echo "  ✓ admin login"; }          || { FAIL=$((FAIL+1)); echo "  ✗ admin login"; }
+check "duplicate register rejected" "409" "$(curl -s -o /dev/null -w '%{http_code}' -m 5 -X POST "$GW/api/v1/auth/register" -H 'Content-Type: application/json' -d '{"name":"E2E","email":"admin@civicpulse.in","password":"s3cretPass!"}')"
 check "bad token rejected" "401" "$(curl -s -o /dev/null -w '%{http_code}' -m 5 $GW/api/v1/auth/me -H 'Authorization: Bearer garbage')"
 check "no token rejected"  "401" "$(curl -s -o /dev/null -w '%{http_code}' -m 5 $GW/api/v1/feedback)"
 

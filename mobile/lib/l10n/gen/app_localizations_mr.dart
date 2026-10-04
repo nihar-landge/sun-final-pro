@@ -165,47 +165,43 @@ class AppLocalizationsMr extends AppLocalizations {
 
   @override
   String get loginSubtitle =>
-      'तुमच्या शहरासाठी आवाज उठवा.\nतुमच्या फोन नंबरने साइन इन करा.';
+      'तुमच्या शहरासाठी आवाज उठवा.\nतुमच्या ईमेलने साइन इन करा.';
 
   @override
-  String get loginPhoneLabel => 'फोन नंबर';
+  String get loginEmailLabel => 'ईमेल';
 
   @override
-  String get loginSendOtp => 'OTP पाठवा';
+  String get loginPasswordLabel => 'पासवर्ड';
 
   @override
-  String get otpTitle => 'OTP सत्यापित करा';
+  String get loginSignIn => 'साइन इन करा';
 
   @override
-  String otpSentTo(String phone) {
-    return 'आम्ही $phone वर एक कोड पाठवला आहे';
-  }
+  String get loginCreateAccount => 'नवीन आहात? खाते तयार करा';
 
   @override
-  String otpDevChip(String code) {
-    return 'डेव्ह OTP: $code — भरण्यासाठी टॅप करा';
-  }
+  String get loginHaveAccount => 'आधीच खाते आहे? साइन इन करा';
 
   @override
-  String get otpCodeLabel => '6-अंकी OTP';
+  String get registerTitle => 'तुमचे खाते तयार करा';
 
   @override
-  String get otpNameLabel => 'तुमचे नाव (नवीन वापरकर्ते)';
+  String get registerNameLabel => 'तुमचे नाव';
 
   @override
-  String get otpVerifySignIn => 'सत्यापित करा आणि साइन इन करा';
+  String get registerSignUp => 'खाते तयार करा';
 
   @override
-  String get validationEnterPhone => 'तुमचा फोन नंबर टाका';
+  String get validationEnterEmail => 'तुमचा ईमेल टाका';
 
   @override
-  String get validationPhoneDigits => 'फोन नंबर 10-15 अंकी असावा';
+  String get validationEmailInvalid => 'वैध ईमेल पत्ता टाका';
 
   @override
-  String get validationEnterOtp => 'OTP टाका';
+  String get validationEnterPassword => 'तुमचा पासवर्ड टाका';
 
   @override
-  String get validationOtpDigits => 'OTP 6 अंकी असावा';
+  String get validationPasswordLength => 'पासवर्ड किमान 8 अक्षरांचा असावा';
 
   @override
   String get validationEnterName => 'तुमचे नाव टाका';

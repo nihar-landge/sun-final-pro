@@ -373,80 +373,80 @@ abstract class AppLocalizations {
   /// No description provided for @loginSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Raise your voice for your city.\nSign in with your phone number.'**
+  /// **'Raise your voice for your city.\nSign in with your email.'**
   String get loginSubtitle;
 
-  /// No description provided for @loginPhoneLabel.
+  /// No description provided for @loginEmailLabel.
   ///
   /// In en, this message translates to:
-  /// **'Phone number'**
-  String get loginPhoneLabel;
+  /// **'Email'**
+  String get loginEmailLabel;
 
-  /// No description provided for @loginSendOtp.
+  /// No description provided for @loginPasswordLabel.
   ///
   /// In en, this message translates to:
-  /// **'Send OTP'**
-  String get loginSendOtp;
+  /// **'Password'**
+  String get loginPasswordLabel;
 
-  /// No description provided for @otpTitle.
+  /// No description provided for @loginSignIn.
   ///
   /// In en, this message translates to:
-  /// **'Verify OTP'**
-  String get otpTitle;
+  /// **'Sign in'**
+  String get loginSignIn;
 
-  /// No description provided for @otpSentTo.
+  /// No description provided for @loginCreateAccount.
   ///
   /// In en, this message translates to:
-  /// **'We sent a code to {phone}'**
-  String otpSentTo(String phone);
+  /// **'New here? Create an account'**
+  String get loginCreateAccount;
 
-  /// No description provided for @otpDevChip.
+  /// No description provided for @loginHaveAccount.
   ///
   /// In en, this message translates to:
-  /// **'Dev OTP: {code} — tap to fill'**
-  String otpDevChip(String code);
+  /// **'Already have an account? Sign in'**
+  String get loginHaveAccount;
 
-  /// No description provided for @otpCodeLabel.
+  /// No description provided for @registerTitle.
   ///
   /// In en, this message translates to:
-  /// **'6-digit OTP'**
-  String get otpCodeLabel;
+  /// **'Create your account'**
+  String get registerTitle;
 
-  /// No description provided for @otpNameLabel.
+  /// No description provided for @registerNameLabel.
   ///
   /// In en, this message translates to:
-  /// **'Your name (new users)'**
-  String get otpNameLabel;
+  /// **'Your name'**
+  String get registerNameLabel;
 
-  /// No description provided for @otpVerifySignIn.
+  /// No description provided for @registerSignUp.
   ///
   /// In en, this message translates to:
-  /// **'Verify & Sign in'**
-  String get otpVerifySignIn;
+  /// **'Create account'**
+  String get registerSignUp;
 
-  /// No description provided for @validationEnterPhone.
+  /// No description provided for @validationEnterEmail.
   ///
   /// In en, this message translates to:
-  /// **'Enter your phone number'**
-  String get validationEnterPhone;
+  /// **'Enter your email'**
+  String get validationEnterEmail;
 
-  /// No description provided for @validationPhoneDigits.
+  /// No description provided for @validationEmailInvalid.
   ///
   /// In en, this message translates to:
-  /// **'Phone must be 10-15 digits'**
-  String get validationPhoneDigits;
+  /// **'Enter a valid email address'**
+  String get validationEmailInvalid;
 
-  /// No description provided for @validationEnterOtp.
+  /// No description provided for @validationEnterPassword.
   ///
   /// In en, this message translates to:
-  /// **'Enter the OTP'**
-  String get validationEnterOtp;
+  /// **'Enter your password'**
+  String get validationEnterPassword;
 
-  /// No description provided for @validationOtpDigits.
+  /// No description provided for @validationPasswordLength.
   ///
   /// In en, this message translates to:
-  /// **'OTP must be 6 digits'**
-  String get validationOtpDigits;
+  /// **'Password must be at least 8 characters'**
+  String get validationPasswordLength;
 
   /// No description provided for @validationEnterName.
   ///

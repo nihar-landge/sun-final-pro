@@ -165,47 +165,44 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get loginSubtitle =>
-      'अपने शहर के लिए आवाज़ उठाएँ।\nअपने फ़ोन नंबर से साइन इन करें।';
+      'अपने शहर के लिए आवाज़ उठाएँ।\nअपने ईमेल से साइन इन करें।';
 
   @override
-  String get loginPhoneLabel => 'फ़ोन नंबर';
+  String get loginEmailLabel => 'ईमेल';
 
   @override
-  String get loginSendOtp => 'OTP भेजें';
+  String get loginPasswordLabel => 'पासवर्ड';
 
   @override
-  String get otpTitle => 'OTP सत्यापित करें';
+  String get loginSignIn => 'साइन इन करें';
 
   @override
-  String otpSentTo(String phone) {
-    return 'हमने $phone पर एक कोड भेजा है';
-  }
+  String get loginCreateAccount => 'नए हैं? खाता बनाएँ';
 
   @override
-  String otpDevChip(String code) {
-    return 'डेव OTP: $code — भरने के लिए टैप करें';
-  }
+  String get loginHaveAccount => 'पहले से खाता है? साइन इन करें';
 
   @override
-  String get otpCodeLabel => '6 अंकों का OTP';
+  String get registerTitle => 'अपना खाता बनाएँ';
 
   @override
-  String get otpNameLabel => 'आपका नाम (नए उपयोगकर्ता)';
+  String get registerNameLabel => 'आपका नाम';
 
   @override
-  String get otpVerifySignIn => 'सत्यापित करें और साइन इन करें';
+  String get registerSignUp => 'खाता बनाएँ';
 
   @override
-  String get validationEnterPhone => 'अपना फ़ोन नंबर दर्ज करें';
+  String get validationEnterEmail => 'अपना ईमेल दर्ज करें';
 
   @override
-  String get validationPhoneDigits => 'फ़ोन नंबर 10-15 अंकों का होना चाहिए';
+  String get validationEmailInvalid => 'मान्य ईमेल पता दर्ज करें';
 
   @override
-  String get validationEnterOtp => 'OTP दर्ज करें';
+  String get validationEnterPassword => 'अपना पासवर्ड दर्ज करें';
 
   @override
-  String get validationOtpDigits => 'OTP 6 अंकों का होना चाहिए';
+  String get validationPasswordLength =>
+      'पासवर्ड कम से कम 8 अक्षरों का होना चाहिए';
 
   @override
   String get validationEnterName => 'अपना नाम दर्ज करें';

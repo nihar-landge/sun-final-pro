@@ -7,34 +7,21 @@ class AuthRemoteDataSource {
 
   AuthRemoteDataSource(this.apiClient);
 
-  /// Returns the dev-echoed OTP when the backend runs with dev-echo enabled.
-  Future<String?> sendOtp(String phone) async {
-    final data = await apiClient.post(
-      Uri.parse(ApiConstants.sendOtp),
-      body: {'phone': phone},
+  Future<void> register({required String name, required String email, required String password}) async {
+    await apiClient.post(
+      Uri.parse(ApiConstants.register),
+      body: {'name': name, 'email': email, 'password': password},
     );
-    return data['devOtp'] as String?;
   }
 
-  Future<Map<String, dynamic>> verifyOtp({
-    required String phone,
-    required String code,
-    String? name,
-  }) {
+  Future<Map<String, dynamic>> login({required String email, required String password}) {
     return apiClient.post(
-      Uri.parse(ApiConstants.verifyOtp),
-      body: {'phone': phone, 'code': code, 'name': name},
+      Uri.parse(ApiConstants.login),
+      body: {'email': email, 'password': password},
     );
   }
 
   Future<Map<String, dynamic>> me() {
     return apiClient.get(Uri.parse(ApiConstants.me), authenticated: true);
-  }
-
-  Future<void> logout(String refreshToken) async {
-    await apiClient.post(
-      Uri.parse('${ApiConstants.baseUrl}/auth/logout'),
-      body: {'refreshToken': refreshToken},
-    );
   }
 }

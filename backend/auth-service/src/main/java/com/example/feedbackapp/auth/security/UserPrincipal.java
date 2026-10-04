@@ -5,7 +5,7 @@ import com.example.feedbackapp.common.domain.UserRoles;
 /**
  * Authenticated caller details resolved from the JWT claims.
  */
-public record UserPrincipal(Long id, String phone, String name, String role) {
+public record UserPrincipal(Long id, String email, String name, String role) {
 
     public UserPrincipal {
         if (role == null) {

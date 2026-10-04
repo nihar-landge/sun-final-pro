@@ -23,7 +23,7 @@ class ProfilePage extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final user = authState is Authenticated ? authState.user : null;
     final name = user?.name ?? l10n.profileFallbackName;
-    final phone = user?.phone ?? '';
+    final email = user?.email ?? '';
 
     return SafeArea(
       child: ListView(
@@ -53,8 +53,8 @@ class ProfilePage extends StatelessWidget {
                             .textTheme
                             .titleLarge
                             ?.copyWith(fontWeight: FontWeight.w800)),
-                    if (phone.isNotEmpty)
-                      Text(phone,
+                    if (email.isNotEmpty)
+                      Text(email,
                           style: Theme.of(context)
                               .textTheme
                               .bodySmall

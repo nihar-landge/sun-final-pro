@@ -13,9 +13,9 @@ class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl(this.remoteDataSource, this.tokenStore);
 
   @override
-  Future<String?> sendOtp(String phone) async {
+  Future<void> register({required String name, required String email, required String password}) async {
     try {
-      return await remoteDataSource.sendOtp(phone);
+      await remoteDataSource.register(name: name, email: email, password: password);
     } on NetworkException catch (e) {
       throw NetworkFailure(e.message);
     } on ServerException catch (e) {
@@ -24,18 +24,11 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<AuthSession> verifyOtp({
-    required String phone,
-    required String code,
-    String? name,
-  }) async {
+  Future<AuthSession> login({required String email, required String password}) async {
     try {
-      final data = await remoteDataSource.verifyOtp(phone: phone, code: code, name: name);
-      final session = _sessionFrom(data, fallbackPhone: phone, fallbackName: name);
-      await tokenStore.save(
-        accessToken: session.accessToken,
-        refreshToken: session.refreshToken,
-      );
+      final data = await remoteDataSource.login(email: email, password: password);
+      final session = _sessionFrom(data, fallbackEmail: email);
+      await tokenStore.save(accessToken: session.accessToken);
       return session;
     } on NetworkException catch (e) {
       throw NetworkFailure(e.message);
@@ -49,16 +42,14 @@ class AuthRepositoryImpl implements AuthRepository {
     final accessToken = await tokenStore.readAccessToken();
     if (accessToken == null) return null;
     try {
-      // A 401 here is auto-refreshed by the ApiClient before this throws.
       final data = await remoteDataSource.me();
       final userJson = data['user'] ?? data;
       return AuthSession(
         accessToken: accessToken,
-        refreshToken: await tokenStore.readRefreshToken() ?? '',
-        expiresIn: 900,
+        expiresIn: 24 * 60 * 60,
         user: userJson is Map<String, dynamic>
             ? UserModel.fromJson(userJson).toEntity()
-            : const User(id: 0, phone: '', name: '', role: 'CITIZEN'),
+            : const User(id: 0, email: '', name: '', role: 'CITIZEN'),
       );
     } on ServerException catch (e) {
       if (e.statusCode == 401) {
@@ -73,33 +64,22 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> logout() async {
-    final refreshToken = await tokenStore.readRefreshToken();
-    if (refreshToken != null) {
-      try {
-        await remoteDataSource.logout(refreshToken);
-      } on ServerException catch (_) {
-        // Backend revocation is best-effort; local session is cleared regardless.
-      } on NetworkException catch (_) {
-        // Offline logout still clears the local session.
-      }
-    }
+    // Stateless JWT: the server keeps no session; clearing local storage is all.
     await tokenStore.clear();
   }
 
-  AuthSession _sessionFrom(Map<String, dynamic> data,
-      {required String fallbackPhone, String? fallbackName}) {
+  AuthSession _sessionFrom(Map<String, dynamic> data, {required String fallbackEmail}) {
     final userJson = data['user'];
     final user = userJson is Map<String, dynamic>
         ? UserModel.fromJson(userJson).toEntity()
         : User(
             id: (data['userId'] as num?)?.toInt() ?? 0,
-            phone: fallbackPhone,
-            name: fallbackName ?? 'Citizen',
+            email: fallbackEmail,
+            name: 'Citizen',
             role: 'CITIZEN');
     return AuthSession(
       accessToken: data['accessToken'] as String,
-      refreshToken: data['refreshToken'] as String,
-      expiresIn: (data['expiresIn'] as num? ?? 900).toInt(),
+      expiresIn: (data['expiresIn'] as num? ?? 24 * 60 * 60).toInt(),
       user: user,
     );
   }

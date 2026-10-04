@@ -9,11 +9,9 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import java.util.List;
-
 /**
  * Stateless security: no sessions, JWT validated per request.
- * Public: OTP send/verify, refresh, actuator health, API docs.
+ * Public: register, login, actuator health, API docs.
  * Everything else requires a valid JWT.
  */
 @Configuration
@@ -21,8 +19,8 @@ import java.util.List;
 public class SecurityConfig {
 
     private static final String[] PUBLIC_PATHS = {
-            "/api/v1/auth/otp/**",
-            "/api/v1/auth/token/refresh",
+            "/api/v1/auth/register",
+            "/api/v1/auth/login",
             "/actuator/**",
             "/v3/api-docs/**",
             "/swagger-ui/**",

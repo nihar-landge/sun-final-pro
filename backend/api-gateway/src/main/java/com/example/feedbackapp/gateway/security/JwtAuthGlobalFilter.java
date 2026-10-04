@@ -29,16 +29,16 @@ import java.util.Optional;
  * identity to downstream services via trusted X-User-* headers (any
  * client-supplied X-User-* header is stripped first).
  *
- * Public: OTP endpoints, token refresh, the community-stats teaser,
- * WebSocket upgrades and actuator.
+ * Public: register/login, the community-stats teaser, WebSocket upgrades
+ * and actuator.
  */
 @Component
 public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
 
     private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
     private static final List<String> PUBLIC_PATHS = List.of(
-            "/api/v1/auth/otp/**",
-            "/api/v1/auth/token/refresh",
+            "/api/v1/auth/register",
+            "/api/v1/auth/login",
             "/api/v1/feedback/community-stats",
             "/ws/**",
             "/actuator/**");
@@ -77,6 +77,7 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
                 .header("X-User-Id", claims.get().getSubject())
                 .header("X-User-Role", String.valueOf(claims.get().get("role", String.class)))
                 .header("X-User-Name", String.valueOf(claims.get().get("name", String.class)))
+                .header("X-User-Email", String.valueOf(claims.get().get("email", String.class)))
                 .build();
         return chain.filter(exchange.mutate().request(authenticated).build());
     }
@@ -97,6 +98,7 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
                     headers.remove("X-User-Id");
                     headers.remove("X-User-Role");
                     headers.remove("X-User-Name");
+                    headers.remove("X-User-Email");
                 })
                 .build();
         return exchange.mutate().request(clean).build();

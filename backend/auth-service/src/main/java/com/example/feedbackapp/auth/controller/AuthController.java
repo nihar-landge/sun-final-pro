@@ -1,11 +1,9 @@
 package com.example.feedbackapp.auth.controller;
 
-import com.example.feedbackapp.auth.dto.RefreshTokenRequest;
-import com.example.feedbackapp.auth.dto.SendOtpRequest;
-import com.example.feedbackapp.auth.dto.SendOtpResponse;
+import com.example.feedbackapp.auth.dto.LoginRequest;
+import com.example.feedbackapp.auth.dto.RegisterRequest;
 import com.example.feedbackapp.auth.dto.TokenResponse;
 import com.example.feedbackapp.auth.dto.UserResponse;
-import com.example.feedbackapp.auth.dto.VerifyOtpRequest;
 import com.example.feedbackapp.auth.security.UserPrincipal;
 import com.example.feedbackapp.auth.service.AuthService;
 import com.example.feedbackapp.common.api.ApiResponse;
@@ -23,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v1/auth")
-@Tag(name = "Authentication", description = "Phone OTP login and JWT lifecycle")
+@Tag(name = "Authentication", description = "Email + password login and JWT lifecycle")
 public class AuthController {
 
     private final AuthService authService;
@@ -32,32 +30,25 @@ public class AuthController {
         this.authService = authService;
     }
 
-    @PostMapping("/otp/send")
-    @ResponseStatus(HttpStatus.OK)
-    @Operation(summary = "Send a login OTP to the given phone number")
-    public ApiResponse<SendOtpResponse> sendOtp(@Valid @RequestBody SendOtpRequest request) {
-        return ApiResponse.ok(authService.sendOtp(request), "OTP sent");
+    @PostMapping("/register")
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "Create a citizen account (email + password)")
+    public ApiResponse<UserResponse> register(@Valid @RequestBody RegisterRequest request) {
+        return ApiResponse.ok(authService.register(request), "Account created");
     }
 
-    @PostMapping("/otp/verify")
+    @PostMapping("/login")
     @ResponseStatus(HttpStatus.OK)
-    @Operation(summary = "Verify the OTP and receive access + refresh tokens")
-    public ApiResponse<TokenResponse> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
-        return ApiResponse.ok(authService.verifyAndLogin(request), "Logged in");
+    @Operation(summary = "Login with email + password and receive a 24h access token")
+    public ApiResponse<TokenResponse> login(@Valid @RequestBody LoginRequest request) {
+        return ApiResponse.ok(authService.login(request), "Logged in");
     }
 
-    @PostMapping("/token/refresh")
-    @ResponseStatus(HttpStatus.OK)
-    @Operation(summary = "Exchange a refresh token for a new token pair")
-    public ApiResponse<TokenResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
-        return ApiResponse.ok(authService.refresh(request.refreshToken()));
-    }
-
+    /** Stateless JWT: logout is the client discarding the token. */
     @PostMapping("/logout")
     @ResponseStatus(HttpStatus.OK)
-    @Operation(summary = "Revoke the given refresh token")
-    public ApiResponse<Void> logout(@Valid @RequestBody RefreshTokenRequest request) {
-        authService.logout(request.refreshToken());
+    @Operation(summary = "Logout (client discards the token; server keeps no session)")
+    public ApiResponse<Void> logout() {
         return ApiResponse.ok(null, "Logged out");
     }
 
