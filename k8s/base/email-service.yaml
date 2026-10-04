@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: email-service
+  namespace: feedbackapp
+  labels: { app: email-service }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: email-service }
+  template:
+    metadata:
+      labels: { app: email-service }
+      annotations:
+        prometheus.io/scrape: "false"
+    spec:
+      containers:
+        - name: email-service
+          image: civicpulse/email-service:0.1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8090
+          env:
+            - name: EMAIL_DEV_MODE
+              value: "true"          # logs emails in the demo; set SMTP_* + false for real sends
+            - name: EXPRESS_SERVICE_KEY
+              valueFrom:
+                secretKeyRef: { name: feedbackapp-secrets, key: SERVICE_KEY }
+          readinessProbe:
+            httpGet: { path: /health, port: 8090 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /health, port: 8090 }
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { cpu: 250m, memory: 128Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: email-service
+  namespace: feedbackapp
+spec:
+  selector: { app: email-service }
+  ports:
+    - port: 8090
+      targetPort: 8090

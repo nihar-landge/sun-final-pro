@@ -1,7 +1,7 @@
-# App services run in Kubernetes; the stateful data layer (PostgreSQL+PostGIS,
-# Redis, MinIO, RabbitMQ) stays in the local Docker Compose stack and is
-# reached via host.docker.internal. In a real deployment these become
-# in-cluster StatefulSets or managed cloud services.
+# App services run in Kubernetes; the stateful data layer (MySQL) stays in
+# the local Docker Compose stack and is reached via host.docker.internal.
+# In a real deployment it becomes an in-cluster StatefulSet or a managed
+# cloud database.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -9,16 +9,13 @@ metadata:
   namespace: feedbackapp
 data:
   DB_HOST: "host.docker.internal"
-  REDIS_HOST: "host.docker.internal"
-  MINIO_URL: "http://host.docker.internal:9000"
-  MINIO_PUBLIC_URL: "http://localhost:9000"
-  # Dev defaults below; the LIVE cluster overrides all four MINIO_* keys to
-  # point at Cloudflare R2 (endpoint, endpoint, civicpulse-photos, auto).
-  # Live-only values must never be committed here (see SESSION-HANDOFF W11).
-  MINIO_BUCKET: "feedback-photos"
-  MINIO_REGION: "us-east-1"
+  DB_PORT: "3306"
+  # Service-to-service URLs (cluster-internal DNS). The gateway is the only
+  # externally exposed backend; these are reachable only in-cluster.
   AUTH_SERVICE_URL: "http://auth-service.feedbackapp.svc.cluster.local:8081"
   POLL_SERVICE_URL: "http://poll-service.feedbackapp.svc.cluster.local:8082"
   FEEDBACK_SERVICE_URL: "http://feedback-service.feedbackapp.svc.cluster.local:8083"
   NOTIFICATION_SERVICE_URL: "http://notification-service.feedbackapp.svc.cluster.local:8084"
-  POLL_SERVICE_WS_HOST: "poll-service.feedbackapp.svc.cluster.local"
+  NOTIFICATION_URL: "http://notification-service.feedbackapp.svc.cluster.local:8084"
+  EMAIL_URL: "http://email-service.feedbackapp.svc.cluster.local:8090"
+  UPLOAD_DIR: "/app/uploads"

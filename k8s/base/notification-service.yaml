@@ -24,11 +24,6 @@ spec:
           env:
             - name: JAVA_TOOL_OPTIONS
               value: "-XX:MaxRAMPercentage=55.0 -XX:MaxMetaspaceSize=110m"
-            - name: FCM_SERVICE_ACCOUNT
-              value: "/etc/fcm/service-account.json"
-          volumeMounts:
-            - name: fcm-service-account
-              mountPath: /etc/fcm
               readOnly: true
           startupProbe:
             httpGet: { path: /actuator/health, port: 8084 }
@@ -50,12 +45,6 @@ spec:
               cpu: 500m
               memory: 460Mi
       # Push stays disabled (sender logs + skips) until the secret exists:
-      #   kubectl -n feedbackapp create secret generic fcm-service-account \
-      #     --from-file=service-account.json=/path/to/key.json
-      volumes:
-        - name: fcm-service-account
-          secret:
-            secretName: fcm-service-account
             optional: true
 ---
 apiVersion: v1
