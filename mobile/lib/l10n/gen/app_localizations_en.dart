@@ -39,7 +39,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get statusOpen => 'Open';
 
   @override
-  String get statusInReview => 'In Review';
+  String get statusInProgress => 'In Progress';
 
   @override
   String get statusResolved => 'Resolved';

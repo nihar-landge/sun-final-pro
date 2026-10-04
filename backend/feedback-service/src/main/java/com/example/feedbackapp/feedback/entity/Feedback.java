@@ -49,6 +49,13 @@ public class Feedback {
     @Column(name = "assigned_to", length = 100)
     private String assignedTo;
 
+    /** Captured at submit time from the gateway's verified identity headers. */
+    @Column(name = "reporter_name", length = 100)
+    private String reporterName;
+
+    @Column(name = "reporter_email")
+    private String reporterEmail;
+
     @Column(name = "public_note", columnDefinition = "text")
     private String publicNote;
 
@@ -145,6 +152,22 @@ public class Feedback {
 
     public void setAssignedTo(String assignedTo) {
         this.assignedTo = assignedTo;
+    }
+
+    public String getReporterName() {
+        return reporterName;
+    }
+
+    public void setReporterName(String reporterName) {
+        this.reporterName = reporterName;
+    }
+
+    public String getReporterEmail() {
+        return reporterEmail;
+    }
+
+    public void setReporterEmail(String reporterEmail) {
+        this.reporterEmail = reporterEmail;
     }
 
     public String getPublicNote() {

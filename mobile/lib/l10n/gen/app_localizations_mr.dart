@@ -39,7 +39,7 @@ class AppLocalizationsMr extends AppLocalizations {
   String get statusOpen => 'खुले';
 
   @override
-  String get statusInReview => 'पुनरावलोकनात';
+  String get statusInProgress => 'प्रगतीवर आहे';
 
   @override
   String get statusResolved => 'सोडवले';

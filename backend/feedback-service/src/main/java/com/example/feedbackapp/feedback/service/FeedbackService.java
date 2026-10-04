@@ -49,8 +49,8 @@ public class FeedbackService {
 
     /** Admin workflow transitions (re-openings included). */
     private static final Map<FeedbackStatus, Set<FeedbackStatus>> ALLOWED_TRANSITIONS = Map.of(
-            FeedbackStatus.OPEN, Set.of(FeedbackStatus.IN_REVIEW, FeedbackStatus.RESOLVED),
-            FeedbackStatus.IN_REVIEW, Set.of(FeedbackStatus.RESOLVED, FeedbackStatus.OPEN),
+            FeedbackStatus.OPEN, Set.of(FeedbackStatus.IN_PROGRESS, FeedbackStatus.RESOLVED),
+            FeedbackStatus.IN_PROGRESS, Set.of(FeedbackStatus.RESOLVED, FeedbackStatus.OPEN),
             FeedbackStatus.RESOLVED, Set.of(FeedbackStatus.OPEN));
 
     private final FeedbackRepository feedbackRepository;
@@ -58,20 +58,20 @@ public class FeedbackService {
     private final CommentRepository commentRepository;
     private final FeedbackStatusHistoryRepository historyRepository;
     private final FeedbackImageService imageService;
-    private final NotificationInboxService notificationInboxService;
+    private final org.springframework.context.ApplicationEventPublisher events;
 
     public FeedbackService(FeedbackRepository feedbackRepository,
                            FeedbackUpvoteRepository upvoteRepository,
                            CommentRepository commentRepository,
                            FeedbackStatusHistoryRepository historyRepository,
                            FeedbackImageService imageService,
-                           NotificationInboxService notificationInboxService) {
+                           org.springframework.context.ApplicationEventPublisher events) {
         this.feedbackRepository = feedbackRepository;
         this.upvoteRepository = upvoteRepository;
         this.commentRepository = commentRepository;
         this.historyRepository = historyRepository;
         this.imageService = imageService;
-        this.notificationInboxService = notificationInboxService;
+        this.events = events;
     }
 
     @Transactional
@@ -81,6 +81,8 @@ public class FeedbackService {
         feedback.setDescription(request.description().trim());
         feedback.setCategory(request.category());
         feedback.setUserId(user.id());
+        feedback.setReporterName(user.name());
+        feedback.setReporterEmail(user.email());
         if (request.latitude() != null && request.longitude() != null) {
             feedback.setLocation(point(request.latitude(), request.longitude()));
         }
@@ -94,7 +96,7 @@ public class FeedbackService {
     public Page<FeedbackSummaryResponse> list(FeedbackCategory category, FeedbackStatus status,
                                               String search, int page, int size, GatewayUser viewer,
                                               boolean includeHidden) {
-        boolean staff = viewer != null && (viewer.isAdmin() || "MODERATOR".equals(viewer.role()));
+        boolean staff = viewer != null && viewer.isAdmin();
         Specification<Feedback> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             if (!staff || !includeHidden) {
@@ -142,16 +144,16 @@ public class FeedbackService {
         feedbackRepository.incrementUpvotes(feedbackId);
     }
 
-    /** Moderators manage content (status transitions, hiding); admins additionally manage users/polls. */
-    private void requireModeratorOrAdmin(GatewayUser user) {
-        if (user == null || !(user.isAdmin() || "MODERATOR".equals(user.role()))) {
-            throw new ForbiddenException("Only moderators or admins can perform this action");
+    /** Admins manage content: status transitions, assignment, hiding. */
+    private void requireAdmin(GatewayUser user) {
+        if (user == null || !user.isAdmin()) {
+            throw new ForbiddenException("Only admins can perform this action");
         }
     }
 
     @Transactional
     public FeedbackDetailResponse transitionStatus(Long feedbackId, StatusUpdateRequest request, GatewayUser admin) {
-        requireModeratorOrAdmin(admin);
+        requireAdmin(admin);
         Feedback feedback = getFeedbackOrThrow(feedbackId);
         FeedbackStatus oldStatus = feedback.getStatus();
         if (!ALLOWED_TRANSITIONS.getOrDefault(oldStatus, Set.of()).contains(request.newStatus())) {
@@ -161,15 +163,11 @@ public class FeedbackService {
         feedback.setStatus(request.newStatus());
         historyRepository.save(new FeedbackStatusHistory(feedbackId, oldStatus, request.newStatus(), admin.id()));
 
-        // The author's notification is written in the SAME transaction as the
-        // status change — no broker, no lost notifications.
-        String pushBody = switch (request.newStatus()) {
-            case RESOLVED -> "Your report has been resolved 🎉";
-            case IN_REVIEW -> "Your report is now being reviewed";
-            default -> "Your report status changed to " + request.newStatus().name();
-        };
-        notificationInboxService.create(feedback.getUserId(), "REPORT_STATUS",
-                feedback.getTitle(), pushBody, feedbackId);
+        // Committed first; the AFTER_COMMIT listener then tells the
+        // notification service — a notification outage cannot fail this.
+        events.publishEvent(new StatusChangedEvent(feedback.getUserId(),
+                feedback.getReporterEmail(), feedback.getReporterName(),
+                feedbackId, feedback.getTitle(), oldStatus.name(), request.newStatus().name()));
 
         return getDetail(feedbackId, admin);
     }
@@ -182,7 +180,7 @@ public class FeedbackService {
     public FeedbackDetailResponse adminUpdate(Long feedbackId,
                                               com.example.feedbackapp.feedback.dto.AdminUpdateFeedbackRequest request,
                                               GatewayUser operator) {
-        requireModeratorOrAdmin(operator);
+        requireAdmin(operator);
         Feedback feedback = getFeedbackOrThrow(feedbackId);
 
         if (request.newStatus() != null && request.newStatus() != feedback.getStatus()) {
@@ -195,13 +193,9 @@ public class FeedbackService {
             historyRepository.save(new FeedbackStatusHistory(feedbackId, oldStatus,
                     request.newStatus(), operator.id()));
 
-            String pushBody = switch (request.newStatus()) {
-                case RESOLVED -> "Your report has been resolved 🎉";
-                case IN_REVIEW -> "Your report is now being reviewed";
-                default -> "Your report status changed to " + request.newStatus().name();
-            };
-            notificationInboxService.create(feedback.getUserId(), "REPORT_STATUS",
-                    feedback.getTitle(), pushBody, feedbackId);
+            events.publishEvent(new StatusChangedEvent(feedback.getUserId(),
+                    feedback.getReporterEmail(), feedback.getReporterName(),
+                    feedbackId, feedback.getTitle(), oldStatus.name(), request.newStatus().name()));
         }
         if (request.assignedTo() != null) {
             feedback.setAssignedTo(request.assignedTo().isBlank() ? null : request.assignedTo().trim());
@@ -251,7 +245,7 @@ public class FeedbackService {
     public FeedbackDetailResponse getDetail(Long feedbackId, GatewayUser viewer) {
         Feedback feedback = getFeedbackOrThrow(feedbackId);
         if (feedback.isHidden()) {
-            boolean staff = viewer != null && (viewer.isAdmin() || "MODERATOR".equals(viewer.role()));
+            boolean staff = viewer != null && viewer.isAdmin();
             if (!staff) {
                 throw new NotFoundException("Feedback %d not found".formatted(feedbackId));
             }

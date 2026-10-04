@@ -16,6 +16,7 @@ public class CurrentUserArgumentResolver implements HandlerMethodArgumentResolve
     private static final String USER_ID_HEADER = "X-User-Id";
     private static final String USER_ROLE_HEADER = "X-User-Role";
     private static final String USER_NAME_HEADER = "X-User-Name";
+    private static final String USER_EMAIL_HEADER = "X-User-Email";
 
     @Override
     public boolean supportsParameter(MethodParameter parameter) {
@@ -40,7 +41,8 @@ public class CurrentUserArgumentResolver implements HandlerMethodArgumentResolve
             return new GatewayUser(
                     Long.valueOf(userId),
                     webRequest.getHeader(USER_ROLE_HEADER),
-                    webRequest.getHeader(USER_NAME_HEADER));
+                    webRequest.getHeader(USER_NAME_HEADER),
+                    webRequest.getHeader(USER_EMAIL_HEADER));
         } catch (NumberFormatException e) {
             if (!required) {
                 return null;

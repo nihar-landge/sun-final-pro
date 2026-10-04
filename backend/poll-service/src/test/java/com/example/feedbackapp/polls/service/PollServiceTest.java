@@ -58,8 +58,8 @@ class PollServiceTest {
 
     private PollService pollService;
 
-    private static final GatewayUser ADMIN = new GatewayUser(1L, "ADMIN", "Admin");
-    private static final GatewayUser CITIZEN = new GatewayUser(2L, "CITIZEN", "Nihar");
+    private static final GatewayUser ADMIN = new GatewayUser(1L, "ADMIN", "Admin", "user1@test.in");
+    private static final GatewayUser CITIZEN = new GatewayUser(2L, "CITIZEN", "Nihar", "user2@test.in");
 
     @BeforeEach
     void setUp() {

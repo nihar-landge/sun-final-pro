@@ -48,19 +48,17 @@ class FeedbackServiceTest {
     @Mock
     private FeedbackImageService imageService;
     @Mock
-    private NotificationInboxService notificationInboxService;
+    private org.springframework.context.ApplicationEventPublisher eventPublisher;
 
     private FeedbackService feedbackService;
 
-    private static final GatewayUser CITIZEN = new GatewayUser(2L, "CITIZEN", "Nihar");
-    private static final GatewayUser ADMIN = new GatewayUser(1L, "ADMIN", "Admin");
-    private static final GatewayUser MODERATOR = new GatewayUser(3L, "MODERATOR", "Mod");
+    private static final GatewayUser CITIZEN = new GatewayUser(2L, "CITIZEN", "Nihar", "user2@test.in");
+    private static final GatewayUser ADMIN = new GatewayUser(1L, "ADMIN", "Admin", "user1@test.in");
 
     @BeforeEach
     void setUp() {
         feedbackService = new FeedbackService(feedbackRepository, upvoteRepository,
-                commentRepository, historyRepository, imageService,
-                notificationInboxService);
+                commentRepository, historyRepository, imageService, eventPublisher);
         org.mockito.Mockito.lenient()
                 .when(imageService.viewUrls(org.mockito.ArgumentMatchers.anyLong()))
                 .thenReturn(java.util.List.of());
@@ -131,24 +129,28 @@ class FeedbackServiceTest {
         when(historyRepository.findByFeedbackIdOrderByChangedAtAsc(7L)).thenReturn(java.util.List.of());
 
         var detail = feedbackService.transitionStatus(
-                7L, new StatusUpdateRequest(FeedbackStatus.IN_REVIEW), ADMIN);
+                7L, new StatusUpdateRequest(FeedbackStatus.IN_PROGRESS), ADMIN);
 
-        assertThat(detail.status()).isEqualTo("IN_REVIEW");
+        assertThat(detail.status()).isEqualTo("IN_PROGRESS");
         verify(historyRepository).save(any());
     }
 
     @Test
-    @DisplayName("moderators can change feedback status (content management)")
-    void moderatorCanTransition() {
+    @DisplayName("committed status change publishes a StatusChangedEvent for the notifier")
+    void statusChangePublishesEvent() {
         when(feedbackRepository.findById(7L)).thenReturn(Optional.of(feedback(7L)));
         when(commentRepository.findByFeedbackIdOrderByCreatedAtAsc(7L)).thenReturn(java.util.List.of());
         when(historyRepository.findByFeedbackIdOrderByChangedAtAsc(7L)).thenReturn(java.util.List.of());
 
-        var detail = feedbackService.transitionStatus(
-                7L, new StatusUpdateRequest(FeedbackStatus.IN_REVIEW), MODERATOR);
+        feedbackService.transitionStatus(
+                7L, new StatusUpdateRequest(FeedbackStatus.IN_PROGRESS), ADMIN);
 
-        assertThat(detail.status()).isEqualTo("IN_REVIEW");
-        verify(historyRepository).save(any());
+        org.mockito.ArgumentCaptor<StatusChangedEvent> captor =
+                org.mockito.ArgumentCaptor.forClass(StatusChangedEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        assertThat(captor.getValue().reportId()).isEqualTo(7L);
+        assertThat(captor.getValue().oldStatus()).isEqualTo("OPEN");
+        assertThat(captor.getValue().newStatus()).isEqualTo("IN_PROGRESS");
     }
 
     @Test
@@ -175,30 +177,29 @@ class FeedbackServiceTest {
     void illegalTransitionRejected() {
         // The admin check fires before the repository is touched.
         assertThatThrownBy(() -> feedbackService.transitionStatus(
-                7L, new StatusUpdateRequest(FeedbackStatus.IN_REVIEW), CITIZEN))
+                7L, new StatusUpdateRequest(FeedbackStatus.IN_PROGRESS), CITIZEN))
                 .isInstanceOf(ForbiddenException.class);
         org.mockito.Mockito.verifyNoInteractions(feedbackRepository);
     }
 
     @Test
-    @DisplayName("adminUpdate status change writes history and creates an inbox notification")
+    @DisplayName("adminUpdate status change writes history and publishes the notifier event")
     void adminUpdateStatusChangeCreatesNotification() {
         when(feedbackRepository.findById(7L)).thenReturn(Optional.of(feedback(7L)));
         when(commentRepository.findByFeedbackIdOrderByCreatedAtAsc(7L)).thenReturn(java.util.List.of());
         when(historyRepository.findByFeedbackIdOrderByChangedAtAsc(7L)).thenReturn(java.util.List.of());
 
         var request = new com.example.feedbackapp.feedback.dto.AdminUpdateFeedbackRequest(
-                FeedbackStatus.IN_REVIEW, null, null, null, null);
+                FeedbackStatus.IN_PROGRESS, null, null, null, null);
         var detail = feedbackService.adminUpdate(7L, request, ADMIN);
 
-        assertThat(detail.status()).isEqualTo("IN_REVIEW");
+        assertThat(detail.status()).isEqualTo("IN_PROGRESS");
         verify(historyRepository).save(any());
-        verify(notificationInboxService).create(
-                org.mockito.ArgumentMatchers.eq(2L),
-                org.mockito.ArgumentMatchers.eq("REPORT_STATUS"),
-                org.mockito.ArgumentMatchers.anyString(),
-                org.mockito.ArgumentMatchers.anyString(),
-                org.mockito.ArgumentMatchers.eq(7L));
+        org.mockito.ArgumentCaptor<StatusChangedEvent> captor =
+                org.mockito.ArgumentCaptor.forClass(StatusChangedEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        assertThat(captor.getValue().reportId()).isEqualTo(7L);
+        assertThat(captor.getValue().newStatus()).isEqualTo("IN_PROGRESS");
     }
 
     @Test

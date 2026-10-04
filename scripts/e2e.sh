@@ -74,9 +74,9 @@ check "feedback submitted OPEN" "OPEN" "$(echo "$FB" | json "print(json.load(sys
 check "near-me returns it" "200" "$(curl -s -o /dev/null -w '%{http_code}' "$GW/api/v1/feedback/near-me?lat=18.5204&lng=73.8567&radiusKm=5" -H "Authorization: Bearer $CITIZEN")"
 check "upvote ok" "200" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$GW/api/v1/feedback/$FBID/upvote" -H "Authorization: Bearer $ADMIN")"
 check "duplicate upvote 409" "409" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$GW/api/v1/feedback/$FBID/upvote" -H "Authorization: Bearer $ADMIN")"
-curl -s -o /dev/null -X POST "$GW/api/v1/feedback/$FBID/status" -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' -d '{"newStatus":"IN_REVIEW"}'
-check "IN_REVIEW->RESOLVED ok" "200" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$GW/api/v1/feedback/$FBID/status" -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' -d '{"newStatus":"RESOLVED"}')"
-check "illegal transition 409" "409" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$GW/api/v1/feedback/$FBID/status" -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' -d '{"newStatus":"IN_REVIEW"}')"
+curl -s -o /dev/null -X POST "$GW/api/v1/feedback/$FBID/status" -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' -d '{"newStatus":"IN_PROGRESS"}'
+check "IN_PROGRESS->RESOLVED ok" "200" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$GW/api/v1/feedback/$FBID/status" -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' -d '{"newStatus":"RESOLVED"}')"
+check "illegal transition 409" "409" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$GW/api/v1/feedback/$FBID/status" -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' -d '{"newStatus":"IN_PROGRESS"}')"
 check "admin assign+notes" "200" "$(curl -s -o /dev/null -w '%{http_code}' -X PATCH "$GW/api/v1/feedback/$FBID" -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' -d '{"assignedTo":"Amit","publicNote":"Scheduled"}')"
 check "audit trail populated" "200" "$(curl -s -o /dev/null -w '%{http_code}' "$GW/api/v1/feedback/admin/audit?limit=5" -H "Authorization: Bearer $ADMIN")"
 

@@ -160,11 +160,11 @@ abstract class AppLocalizations {
   /// **'Open'**
   String get statusOpen;
 
-  /// No description provided for @statusInReview.
+  /// No description provided for @statusInProgress.
   ///
   /// In en, this message translates to:
-  /// **'In Review'**
-  String get statusInReview;
+  /// **'In Progress'**
+  String get statusInProgress;
 
   /// No description provided for @statusResolved.
   ///

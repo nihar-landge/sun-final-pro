@@ -10,7 +10,7 @@
   "navAlerts": "Alerts",
   "navProfile": "Profile",
   "statusOpen": "Open",
-  "statusInReview": "In Review",
+  "statusInProgress": "In Progress",
   "statusResolved": "Resolved",
   "categoryRoads": "Roads",
   "categoryWater": "Water",

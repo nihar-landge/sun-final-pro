@@ -34,7 +34,7 @@ class FeedbackImageServiceTest {
     @Mock
     private FeedbackImageRepository imageRepository;
 
-    private static final GatewayUser ADMIN = new GatewayUser(1L, "ADMIN", "Admin");
+    private static final GatewayUser ADMIN = new GatewayUser(1L, "ADMIN", "Admin", "user1@test.in");
 
     private FeedbackImageService service(boolean enabled) {
         return new FeedbackImageService(minioClient, presigner,

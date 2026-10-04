@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -104,7 +105,7 @@ public class FeedbackController {
     public ApiResponse<List<com.example.feedbackapp.feedback.dto.AuditEntryResponse>> audit(
             @RequestParam(defaultValue = "100") int limit,
             @CurrentUser GatewayUser user) {
-        if (user == null || !(user.isAdmin() || "MODERATOR".equals(user.role()))) {
+        if (user == null || !user.isAdmin()) {
             throw new com.example.feedbackapp.common.error.ForbiddenException("Moderators or admins only");
         }
         return ApiResponse.ok(feedbackService.auditTrail(limit));
@@ -145,6 +146,7 @@ public class FeedbackController {
     }
 
     @PostMapping("/{id}/status")
+    @PutMapping("/{id}/status")
     @ResponseStatus(HttpStatus.OK)
     @Operation(summary = "Transition feedback status (admin; audited)")
     public ApiResponse<FeedbackDetailResponse> updateStatus(@PathVariable Long id,
@@ -175,7 +177,7 @@ public class FeedbackController {
     public ApiResponse<List<com.example.feedbackapp.feedback.dto.TrendPointResponse>> trend(
             @RequestParam(defaultValue = "30") int days,
             @CurrentUser GatewayUser user) {
-        if (user == null || !(user.isAdmin() || "MODERATOR".equals(user.role()))) {
+        if (user == null || !user.isAdmin()) {
             throw new com.example.feedbackapp.common.error.ForbiddenException("Moderators or admins only");
         }
         return ApiResponse.ok(feedbackService.trend(days));

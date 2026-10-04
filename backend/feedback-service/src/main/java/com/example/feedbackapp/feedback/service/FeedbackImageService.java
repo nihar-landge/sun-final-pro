@@ -119,7 +119,7 @@ public class FeedbackImageService {
         Feedback feedback = feedbackRepository.findById(feedbackId)
                 .orElseThrow(() -> new com.example.feedbackapp.common.error.NotFoundException(
                         "Feedback %d not found".formatted(feedbackId)));
-        boolean staff = user.isAdmin() || "MODERATOR".equals(user.role());
+        boolean staff = user.isAdmin();
         if (!staff && !feedback.getUserId().equals(user.id())) {
             throw new ForbiddenException("Only the report's author or staff can manage its photos");
         }

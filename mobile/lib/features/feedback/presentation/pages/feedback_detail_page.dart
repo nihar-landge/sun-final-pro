@@ -337,7 +337,7 @@ class _Timeline extends StatelessWidget {
         ),
       if (detail.item.status != FeedbackStatus.resolved)
         _TimelineStep(
-          label: detail.item.status == FeedbackStatus.inReview
+          label: detail.item.status == FeedbackStatus.inProgress
               ? l10n.detailTimelineResolution
               : l10n.detailTimelineReview,
           time: null,

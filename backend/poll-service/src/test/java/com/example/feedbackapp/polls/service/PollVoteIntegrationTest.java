@@ -45,7 +45,7 @@ class PollVoteIntegrationTest {
     @Autowired
     private PollService pollService;
 
-    private static final GatewayUser ADMIN = new GatewayUser(1L, "ADMIN", "Admin");
+    private static final GatewayUser ADMIN = new GatewayUser(1L, "ADMIN", "Admin", "user1@test.in");
 
     @Test
     void secondVoteBySameUserIsRejectedByTheDatabase() {
@@ -56,8 +56,8 @@ class PollVoteIntegrationTest {
         PollResponse created = pollService.createPoll(request, ADMIN);
         Long optionId = created.results().get(0).optionId();
 
-        GatewayUser voter1 = new GatewayUser(50L, "CITIZEN", "A");
-        GatewayUser voter2 = new GatewayUser(51L, "CITIZEN", "B");
+        GatewayUser voter1 = new GatewayUser(50L, "CITIZEN", "A", "user50@test.in");
+        GatewayUser voter2 = new GatewayUser(51L, "CITIZEN", "B", "user51@test.in");
 
         PollResponse afterFirst = pollService.castVote(created.id(), voter1, optionId);
         assertThat(afterFirst.totalVotes()).isEqualTo(1);

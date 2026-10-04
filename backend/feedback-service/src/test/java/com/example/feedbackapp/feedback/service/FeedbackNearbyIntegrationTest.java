@@ -39,7 +39,7 @@ class FeedbackNearbyIntegrationTest {
     @Autowired
     private FeedbackService feedbackService;
 
-    private static final GatewayUser CITIZEN = new GatewayUser(2L, "CITIZEN", "Nihar");
+    private static final GatewayUser CITIZEN = new GatewayUser(2L, "CITIZEN", "Nihar", "user2@test.in");
 
     @Test
     void nearMeOrdersByRealDistanceAndUpvotesAreUnique() {

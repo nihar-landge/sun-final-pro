@@ -214,7 +214,7 @@ class _MyReportsCardState extends State<_MyReportsCard> {
                               fontWeight: FontWeight.w600,
                               color: switch (item.status.name) {
                                 'RESOLVED' => Colors.green,
-                                'IN_REVIEW' => Colors.amber.shade800,
+                                'IN_PROGRESS' => Colors.amber.shade800,
                                 _ => Colors.orange,
                               }),
                         ),

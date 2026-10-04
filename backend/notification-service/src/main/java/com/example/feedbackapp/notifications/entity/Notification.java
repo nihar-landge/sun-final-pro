@@ -1,4 +1,4 @@
-package com.example.feedbackapp.feedback.entity;
+package com.example.feedbackapp.notifications.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -10,10 +10,13 @@ import jakarta.persistence.Table;
 
 import java.time.LocalDateTime;
 
-/** One row in the citizen's notification inbox — created in the same
- *  transaction as the status change that caused it. */
+/**
+ * One citizen-facing inbox row, owned by notification-service and stored in
+ * notificationdb. Created when another service reports a domain event
+ * (e.g. "report status changed") over the internal API.
+ */
 @Entity
-@Table(name = "notification")
+@Table(name = "notifications")
 public class Notification {
 
     @Id
@@ -23,20 +26,19 @@ public class Notification {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Column(nullable = false, length = 40)
+    /** Event type, e.g. REPORT_STATUS. */
+    @Column(nullable = false, length = 50)
     private String type;
 
     @Column(nullable = false, length = 200)
     private String title;
 
-    @Column(nullable = false, length = 1000)
+    @Column(length = 500)
     private String body;
 
+    /** Reference to the domain object (e.g. the report id) for deep links. */
     @Column(name = "ref_id")
     private Long refId;
-
-    @Column(name = "pushed_at")
-    private LocalDateTime pushedAt;
 
     @Column(name = "read_at")
     private LocalDateTime readAt;
@@ -44,7 +46,12 @@ public class Notification {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    public Notification() {
+    @PrePersist
+    void onCreate() {
+        this.createdAt = LocalDateTime.now();
+    }
+
+    protected Notification() {
     }
 
     public Notification(Long userId, String type, String title, String body, Long refId) {
@@ -55,23 +62,12 @@ public class Notification {
         this.refId = refId;
     }
 
-    @PrePersist
-    void onCreate() {
-        if (this.createdAt == null) {
-            this.createdAt = LocalDateTime.now();
-        }
-    }
-
-    public void markPushed() {
-        this.pushedAt = LocalDateTime.now();
+    public boolean isUnread() {
+        return readAt == null;
     }
 
     public void markRead() {
         this.readAt = LocalDateTime.now();
-    }
-
-    public boolean isUnread() {
-        return readAt == null;
     }
 
     public Long getId() {
@@ -96,10 +92,6 @@ public class Notification {
 
     public Long getRefId() {
         return refId;
-    }
-
-    public LocalDateTime getPushedAt() {
-        return pushedAt;
     }
 
     public LocalDateTime getReadAt() {

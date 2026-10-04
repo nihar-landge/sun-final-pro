@@ -1,6 +1,6 @@
-package com.example.feedbackapp.feedback.repository;
+package com.example.feedbackapp.notifications.repository;
 
-import com.example.feedbackapp.feedback.entity.Notification;
+import com.example.feedbackapp.notifications.entity.Notification;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

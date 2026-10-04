@@ -4,7 +4,7 @@ import 'package:equatable/equatable.dart';
 
 enum FeedbackCategory { roads, water, electricity, sanitation, transport, other }
 
-enum FeedbackStatus { open, inReview, resolved }
+enum FeedbackStatus { open, inProgress, resolved }
 
 class FeedbackItem extends Equatable {
   final int id;

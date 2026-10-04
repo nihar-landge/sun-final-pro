@@ -6,23 +6,29 @@ spring:
     name: notification-service
 
   datasource:
-    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/feedbackdb?serverTimezone=UTC
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/notificationdb?serverTimezone=UTC
     username: ${DB_USER:feedback}
     password: ${DB_PASSWORD:mysql_feedback_pw}
 
+  jpa:
+    hibernate:
+      ddl-auto: validate        # Flyway owns the schema
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
   flyway:
-    enabled: false     # feedback-service owns and migrates the shared tables
+    enabled: true               # this service owns notificationdb
 
-fcm:
-  enabled: true
-  # Service-account JSON from Firebase console > Project settings >
-  # Service accounts > Generate new private key. Push is disabled (and the
-  # poller marks rows attempted) when the file is absent.
-  service-account: ${FCM_SERVICE_ACCOUNT:}
-  project-id: ${FCM_PROJECT_ID:feedback-5c79b}
+app:
+  internal:
+    service-key: ${SERVICE_KEY:dev-service-key}
 
-poll:
-  interval-ms: ${PUSH_POLL_INTERVAL_MS:10000}
+  email-service:
+    base-url: ${EMAIL_SERVICE_URL:http://localhost:8090}
+    service-key: ${SERVICE_KEY:dev-service-key}
 
 management:
   endpoints:

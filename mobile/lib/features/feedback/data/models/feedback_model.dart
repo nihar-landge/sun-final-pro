@@ -38,7 +38,7 @@ class FeedbackModel {
 
   static String wireStatus(FeedbackStatus status) => switch (status) {
         FeedbackStatus.open => 'OPEN',
-        FeedbackStatus.inReview => 'IN_REVIEW',
+        FeedbackStatus.inProgress => 'IN_PROGRESS',
         FeedbackStatus.resolved => 'RESOLVED',
       };
 
@@ -52,7 +52,7 @@ class FeedbackModel {
       };
 
   static FeedbackStatus _status(String? value) => switch (value) {
-        'IN_REVIEW' => FeedbackStatus.inReview,
+        'IN_PROGRESS' => FeedbackStatus.inProgress,
         'RESOLVED' => FeedbackStatus.resolved,
         _ => FeedbackStatus.open,
       };

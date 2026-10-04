@@ -9,7 +9,7 @@ String feedbackStatusLabel(BuildContext context, String status) {
   final l10n = AppLocalizations.of(context);
   return switch (status) {
     'OPEN' => l10n.statusOpen,
-    'IN_REVIEW' => l10n.statusInReview,
+    'IN_PROGRESS' => l10n.statusInProgress,
     'RESOLVED' => l10n.statusResolved,
     _ => status,
   };
