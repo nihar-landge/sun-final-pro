@@ -123,7 +123,7 @@ Each service applies its own migrations at startup (`flyway.enabled=true`):
 
 ```bash
 docker compose -f infra/docker-compose.yml up -d
-cd backend
+cd services
 ./mvnw -pl auth-service spring-boot:run        # applies V1__create_users.sql to authdb
 ./mvnw -pl poll-service spring-boot:run        # applies V1__create_polls.sql to polldb
 ./mvnw -pl feedback-service spring-boot:run    # applies V1__create_feedback.sql to feedbackdb

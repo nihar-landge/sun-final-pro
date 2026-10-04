@@ -8,7 +8,7 @@ feedbackapp/                        ← repo root (this project)
 │
 ├── README.md                       Start here: what the project is + quickstart
 ├── .gitignore                      Java/Flutter/IDE/env exclusions
-├── .github/workflows/ci.yml        CI: backend tests + Flutter analyze/test on every push/PR
+├── .github/workflows/ci.yml        CI: services tests + Flutter analyze/test on every push/PR
 │
 ├── docs/                           All human documentation
 │   ├── project-structure.md        ← YOU ARE HERE (this file)
@@ -29,7 +29,7 @@ feedbackapp/                        ← repo root (this project)
 │       ├── polls-openapi.yaml      Poll service contract
 │       └── feedback-openapi.yaml   Feedback service contract
 │
-├── backend/                        Spring Boot microservices (Maven multi-module)
+├── services/                        Spring Boot microservices (Maven multi-module)
 │   ├── pom.xml                     Parent POM: Java 21, Boot 3.3, shared versions
 │   ├── mvnw, .mvn/                 Maven wrapper (build without installing Maven)
 │   │
@@ -154,4 +154,4 @@ Web admin ─┘        │                 poll-service  :8082 ──→ polldb
 - Running it all: [setup-guide.md](setup-guide.md)
 - How a specific feature works: [features/](features/) folder
 - Database details: [database-schema.md](database-schema.md)
-- Want to add a new service or Flutter feature? See [backend/README.md](../backend/README.md) and [mobile/README.md](../mobile/README.md)
+- Want to add a new service or Flutter feature? See [services/README.md](../services/README.md) and [mobile/README.md](../mobile/README.md)

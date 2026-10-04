@@ -9,7 +9,7 @@
 **Project:** CivicPulse — Public Feedback & Polling System (CDAC Final Project, Mobile Computing)
 **Repo:** github.com/nihar-landge/sun-final-pro · branch `master`
 **Scale:** ~15,900 lines hand-written code (4,675 Java main · 913 Java tests · 10,340 Dart — plus ~3,200 generated gen_l10n classes) · 338+ files · 260 lines Flyway SQL · 18 docs
-**Verification:** 37 backend unit tests + 4 env-gated live/integration suites (2 Testcontainers, R2 presign round-trip, FCM token mint) + 27-check live E2E suite + 4 Dart tests + k6 load script
+**Verification:** 37 services unit tests + 4 env-gated live/integration suites (2 Testcontainers, R2 presign round-trip, FCM token mint) + 27-check live E2E suite + 4 Dart tests + k6 load script
 
 ---
 
@@ -47,7 +47,7 @@ PostgreSQL 16 + PostGIS (4 DBs: authdb, polldb, feedbackdb, **notificationdb**) 
 - `infra/cloudflare/tunnel-up.sh` — auto-restart loops for port-forward + tunnel
 
 ### CI/CD (GitHub Actions)
-- `ci.yml` — backend verify (incl. Testcontainers integration tests, `TEST_DOCKER=true`), Flutter analyze/test
+- `ci.yml` — services verify (incl. Testcontainers integration tests, `TEST_DOCKER=true`), Flutter analyze/test
 - `e2e.yml` — boots the whole stack on the runner, runs `scripts/e2e.sh` (27 checks), dumps logs on failure
 
 ---

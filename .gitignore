@@ -1,5 +1,5 @@
 # --- Java / Maven ---
-backend/**/target/
+services/**/target/
 *.class
 *.jar
 !.mvn/wrapper/maven-wrapper.jar
@@ -46,4 +46,4 @@ infra/data/
 
 # ZCode session metadata
 .zcode/
-/backend/uploads/
+/services/uploads/

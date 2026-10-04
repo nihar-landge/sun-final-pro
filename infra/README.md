@@ -101,7 +101,7 @@ Token notes:
 To re-run the live round-trip against any R2 account/bucket:
 
 ```bash
-cd backend && R2_LIVE_TEST=true \
+cd services && R2_LIVE_TEST=true \
 R2_ENDPOINT=https://<account>.r2.cloudflarestorage.com \
 R2_ACCESS_KEY=... R2_SECRET_KEY=... R2_BUCKET=... \
 ./mvnw -pl feedback-service -am test -Dtest=R2PresignLiveTest \

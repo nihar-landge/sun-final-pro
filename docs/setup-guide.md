@@ -4,8 +4,8 @@
 
 | Tool | Version | Used for |
 |---|---|---|
-| JDK | 21 (`/opt/homebrew/opt/openjdk@21`) | backend build & run |
-| Maven | 3.9.x (`brew install maven`) + committed `mvnw` wrapper | backend build |
+| JDK | 21 (`/opt/homebrew/opt/openjdk@21`) | services build & run |
+| Maven | 3.9.x (`brew install maven`) + committed `mvnw` wrapper | services build |
 | Docker Desktop | any recent | PostgreSQL/PostGIS, Redis, SeaweedFS, RabbitMQ |
 | Flutter | stable (analyze/test green) | mobile + admin apps |
 | kubectl | any recent | weeks 9-10 deployment |
@@ -24,10 +24,10 @@ docker compose -f infra/docker-compose.yml ps     # all four should be "healthy"
 | SeaweedFS (S3 API) | localhost:9000 | none (no auth in dev) |
 | RabbitMQ | localhost:5672 (AMQP), localhost:15672 (UI) | `guest` / `guest` |
 
-## 2. Run the backend
+## 2. Run the services
 
 ```bash
-cd backend
+cd services
 ./mvnw -pl auth-service spring-boot:run      # terminal 1  (port 8081)
 ./mvnw -pl api-gateway spring-boot:run       # terminal 2  (port 8080)
 # optional: stub services
@@ -72,7 +72,7 @@ Admin panel: `cd admin && flutter run -d chrome`.
 ## 5. Tests
 
 ```bash
-cd backend && ./mvnw verify              # unit tests; add TEST_DOCKER=true for Testcontainers integration tests
+cd services && ./mvnw verify              # unit tests; add TEST_DOCKER=true for Testcontainers integration tests
 cd mobile && flutter test && flutter analyze
 cd admin && flutter analyze
 ```

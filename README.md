@@ -39,19 +39,19 @@ how to demo it)
 - [docs/database-schema.md](docs/database-schema.md) — ERD + every table
 - [docs/api/](docs/api/) — OpenAPI specs (auth, polls, feedback)
 - [docs/project-plan.md](docs/project-plan.md) — 12-week roadmap and status
-- Per-folder guides: [backend/README.md](backend/README.md) · [mobile/README.md](mobile/README.md) · [admin/README.md](admin/README.md) · [infra/README.md](infra/README.md) · [k8s/README.md](k8s/README.md)
+- Per-folder guides: [services/README.md](services/README.md) · [mobile/README.md](mobile/README.md) · [admin/README.md](admin/README.md) · [infra/README.md](infra/README.md) · [k8s/README.md](k8s/README.md)
 
 ## Repository layout
 
 | Path | Contents |
 |---|---|
-| `backend/` | Maven multi-module: `common`, `api-gateway` (:8080), `auth-service` (:8081), `poll-service` (:8082), `feedback-service` (:8083), `notification-service` (:8084) |
+| `services/` | Maven multi-module: `common`, `api-gateway` (:8080), `auth-service` (:8081), `poll-service` (:8082), `feedback-service` (:8083), `notification-service` (:8084) |
 | `mobile/` | Flutter citizen app (clean architecture: core/ + features/{auth,polls,feedback}) |
 | `admin/` | Flutter web admin panel (polls, feedback triage, analytics, user management) |
 | `infra/` | Docker Compose for PostgreSQL+PostGIS, Redis, SeaweedFS (S3), RabbitMQ |
 | `k8s/` | Kubernetes manifests (deployed in weeks 9-10) |
 | `docs/` | Architecture, DB schema, setup guide, API specs, 12-week plan |
-| `.github/workflows/ci.yml` | CI: backend tests + Flutter analyze/test |
+| `.github/workflows/ci.yml` | CI: services tests + Flutter analyze/test |
 
 ## Current status — core features working end-to-end
 
@@ -115,7 +115,7 @@ how to demo it)
     dashboards at Grafana :3000), `scripts/e2e.sh` verifies 27 system
     guarantees in one run (also a CI job), and `scripts/load/vote.js` is a
     k6 load test asserting the blueprint's p95 < 200 ms target.
-14. CI runs the backend build plus Testcontainers-PostgreSQL integration
+14. CI runs the services build plus Testcontainers-PostgreSQL integration
     tests (`TEST_DOCKER=true`), the E2E suite, and Flutter analyze/test.
 
 ## Quickstart
@@ -125,8 +125,8 @@ how to demo it)
 docker compose -f infra/docker-compose.yml up -d
 
 # 2. Backend — two terminals
-cd backend && ./mvnw -pl auth-service spring-boot:run
-cd backend && ./mvnw -pl api-gateway spring-boot:run
+cd services && ./mvnw -pl auth-service spring-boot:run
+cd services && ./mvnw -pl api-gateway spring-boot:run
 
 # 3. Try the vertical slice (dev profile echoes the OTP in the response)
 curl -s -X POST localhost:8080/api/v1/auth/otp/send \

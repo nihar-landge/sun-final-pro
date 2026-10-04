@@ -4,7 +4,7 @@ Baseline of what exists after the foundation phase, then the phased roadmap.
 
 ## Phase 0 — Foundation (done)
 
-- [x] Monorepo: Maven multi-module backend, Flutter mobile + web admin
+- [x] Monorepo: Maven multi-module services, Flutter mobile + web admin
 - [x] Docker Compose infra (PostgreSQL+PostGIS, Redis, SeaweedFS, RabbitMQ)
 - [x] Flyway schemas for all three databases
 - [x] auth-service: OTP + JWT + refresh rotation, unit-tested

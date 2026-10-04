@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Boots the full CivicPulse backend locally (host-run jars + compose MySQL).
+# Boots the full CivicPulse services locally (host-run jars + compose MySQL).
 #
 #   infra/docker-compose.yml  →  MySQL on host port 3307 (a local Homebrew
 #   MySQL can occupy 127.0.0.1:3306 and shadow the container)
@@ -8,7 +8,7 @@
 #   scripts/run-local.sh          # start (expects jars built: ./mvnw -DskipTests package)
 #   scripts/run-local.sh stop     # stop everything
 set -euo pipefail
-cd "$(dirname "$0")/../backend"
+cd "$(dirname "$0")/../services"
 
 export DB_HOST="${DB_HOST:-localhost}"
 export DB_PORT="${DB_PORT:-3307}"

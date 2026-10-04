@@ -74,9 +74,9 @@ existing `PollModel` — no separate message class.
 
 | Concern | File |
 |---|---|
-| STOMP endpoint + broker config | `backend/poll-service/.../config/WebSocketConfig.java` |
-| AFTER_COMMIT broadcast | `backend/poll-service/.../service/VoteBroadcastListener.java` |
-| Gateway ws:// route + public path | `backend/api-gateway/src/main/resources/application.yml` + `JwtAuthGlobalFilter.java` |
+| STOMP endpoint + broker config | `services/poll-service/.../config/WebSocketConfig.java` |
+| AFTER_COMMIT broadcast | `services/poll-service/.../service/VoteBroadcastListener.java` |
+| Gateway ws:// route + public path | `services/api-gateway/src/main/resources/application.yml` + `JwtAuthGlobalFilter.java` |
 | Flutter subscription | `mobile/lib/features/polls/presentation/pages/poll_detail_page.dart` (`_connectLive`) |
 | Live update → state | `mobile/lib/features/polls/presentation/bloc/polls_bloc.dart` (`PollLiveUpdate`) |
 

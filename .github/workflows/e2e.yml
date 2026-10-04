@@ -20,7 +20,7 @@ jobs:
           cache: 'maven'
 
       - name: Build service jars
-        working-directory: backend
+        working-directory: services
         run: ./mvnw -B -DskipTests package
 
       - name: Start the full stack (compose)

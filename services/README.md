@@ -65,7 +65,7 @@ The gateway (reactive) skips this auto-configuration — see
 ## Adding a new service (checklist)
 
 1. `mkdir my-service && cd it`, copy a `pom.xml` from `poll-service` (parent
-   = backend POM, add `common`).
+   = services POM, add `common`).
 2. Application class + `application.yml` (port, datasource if needed,
    Flyway if it owns tables).
 3. If it owns tables: `src/main/resources/db/migration/V1__….sql`.
@@ -73,7 +73,7 @@ The gateway (reactive) skips this auto-configuration — see
 5. If clients send identity to it: depend on `common` and use
    `@CurrentUser GatewayUser` — done, the resolver is auto-configured.
 6. Add a `Dockerfile` (copy from any service — they're identical).
-7. Add a module entry to the root `backend/pom.xml`.
+7. Add a module entry to the root `services/pom.xml`.
 
 ## Testing conventions
 

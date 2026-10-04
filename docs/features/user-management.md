@@ -69,10 +69,10 @@ the database on every request.
 
 | Concern | File |
 |---|---|
-| Endpoints | `backend/auth-service/.../controller/AdminUserController.java` |
-| Rules + user search | `backend/auth-service/.../service/AdminUserService.java` |
-| Request/response DTOs | `backend/auth-service/.../dto/UpdateRoleRequest.java`, `AdminUserResponse.java` |
-| Unit tests | `backend/auth-service/src/test/.../AdminUserServiceTest.java` |
+| Endpoints | `services/auth-service/.../controller/AdminUserController.java` |
+| Rules + user search | `services/auth-service/.../service/AdminUserService.java` |
+| Request/response DTOs | `services/auth-service/.../dto/UpdateRoleRequest.java`, `AdminUserResponse.java` |
+| Unit tests | `services/auth-service/src/test/.../AdminUserServiceTest.java` |
 | Users tab UI | `admin/lib/main.dart` (_UsersTab, _RoleChip) |
 | Users bloc | `admin/lib/features/users/admin_users_bloc.dart` |
 | Signed-in admin id (for the lock icon) | `admin/lib/features/auth/admin_auth_bloc.dart` (AdminAuthenticated.userId) |

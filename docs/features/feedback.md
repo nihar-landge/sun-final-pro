@@ -88,11 +88,11 @@ Full contract: [api/feedback-openapi.yaml](../api/feedback-openapi.yaml).
 
 | Concern | File |
 |---|---|
-| Endpoints | `backend/feedback-service/.../controller/FeedbackController.java` |
-| Business rules + events | `backend/feedback-service/.../service/FeedbackService.java` |
-| PostGIS query + resolution SQL | `backend/feedback-service/.../repository/FeedbackRepository.java` |
-| Entities (incl. `Persistable` upvote) | `backend/feedback-service/.../entity/` |
-| Tables (+ PostGIS extension) | `backend/feedback-service/.../db/migration/V1__create_feedback.sql` |
+| Endpoints | `services/feedback-service/.../controller/FeedbackController.java` |
+| Business rules + events | `services/feedback-service/.../service/FeedbackService.java` |
+| PostGIS query + resolution SQL | `services/feedback-service/.../repository/FeedbackRepository.java` |
+| Entities (incl. `Persistable` upvote) | `services/feedback-service/.../entity/` |
+| Tables (+ PostGIS extension) | `services/feedback-service/.../db/migration/V1__create_feedback.sql` |
 | Mobile: submit form with GPS | `mobile/lib/features/feedback/presentation/pages/submit_feedback_page.dart` |
 | Mobile: list with filters + upvote | `mobile/lib/features/feedback/presentation/pages/feedback_list_page.dart` |
 | Mobile: bloc | `mobile/lib/features/feedback/presentation/bloc/feedback_bloc.dart` |

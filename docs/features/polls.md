@@ -83,12 +83,12 @@ admin · full contract in [api/polls-openapi.yaml](../api/polls-openapi.yaml).
 
 | Concern | File |
 |---|---|
-| Endpoints | `backend/poll-service/.../controller/PollController.java` |
-| Voting transaction | `backend/poll-service/.../service/PollService.java` |
-| Entities (incl. composite PK) | `backend/poll-service/.../entity/` |
-| Atomic vote counter | `backend/poll-service/.../repository/PollOptionRepository.java` |
-| WebSocket broadcast | `backend/poll-service/.../service/VoteBroadcastListener.java` |
-| Table definitions | `backend/poll-service/.../db/migration/V1__create_polls.sql` |
+| Endpoints | `services/poll-service/.../controller/PollController.java` |
+| Voting transaction | `services/poll-service/.../service/PollService.java` |
+| Entities (incl. composite PK) | `services/poll-service/.../entity/` |
+| Atomic vote counter | `services/poll-service/.../repository/PollOptionRepository.java` |
+| WebSocket broadcast | `services/poll-service/.../service/VoteBroadcastListener.java` |
+| Table definitions | `services/poll-service/.../db/migration/V1__create_polls.sql` |
 | Mobile: list + detail + live bars | `mobile/lib/features/polls/presentation/pages/` |
 | Mobile: voting bloc | `mobile/lib/features/polls/presentation/bloc/polls_bloc.dart` |
 | Admin: create/close polls | `admin/lib/features/polls/admin_polls_bloc.dart` + `admin/lib/main.dart` (_PollsTab) |

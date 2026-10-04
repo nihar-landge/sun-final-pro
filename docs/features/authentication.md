@@ -44,13 +44,13 @@ Phone app                    Gateway :8080                auth-service :8081    
 
 | Concern | File |
 |---|---|
-| Endpoints | `backend/auth-service/.../controller/AuthController.java` |
-| OTP lifecycle | `backend/auth-service/.../service/OtpService.java` |
-| Login + token issue/rotation | `backend/auth-service/.../service/AuthService.java` |
-| JWT sign/verify | `backend/auth-service/.../security/JwtTokenProvider.java` |
-| SMS abstraction (dev = log) | `backend/auth-service/.../service/SmsSender.java` + `LoggingSmsSender.java` |
-| Gateway validation + identity headers | `backend/api-gateway/.../security/JwtAuthGlobalFilter.java` |
-| Seeded dev admin (9999999999) | `backend/auth-service/.../db/migration/V2__seed_admin.sql` |
+| Endpoints | `services/auth-service/.../controller/AuthController.java` |
+| OTP lifecycle | `services/auth-service/.../service/OtpService.java` |
+| Login + token issue/rotation | `services/auth-service/.../service/AuthService.java` |
+| JWT sign/verify | `services/auth-service/.../security/JwtTokenProvider.java` |
+| SMS abstraction (dev = log) | `services/auth-service/.../service/SmsSender.java` + `LoggingSmsSender.java` |
+| Gateway validation + identity headers | `services/api-gateway/.../security/JwtAuthGlobalFilter.java` |
+| Seeded dev admin (9999999999) | `services/auth-service/.../db/migration/V2__seed_admin.sql` |
 | Mobile: login pages + session restore | `mobile/lib/features/auth/presentation/pages/` + `presentation/bloc/auth_bloc.dart` |
 | Mobile: secure token storage | `mobile/lib/core/network/token_store.dart` |
 | Admin panel login (role-gated) | `admin/lib/features/auth/admin_auth_bloc.dart` |

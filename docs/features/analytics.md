@@ -79,9 +79,9 @@ only touches `_DistributionBars`.
 
 | Concern | File |
 |---|---|
-| Poll summary endpoint | `backend/poll-service/.../controller/PollController.java` + `PollService.analyticsSummary` |
-| Feedback summary endpoint + SQL | `backend/feedback-service/.../controller/FeedbackController.java`, `FeedbackRepository.avgResolutionHours` |
-| Recent events endpoint | `backend/notification-service/.../web/NotificationsController.java` |
+| Poll summary endpoint | `services/poll-service/.../controller/PollController.java` + `PollService.analyticsSummary` |
+| Feedback summary endpoint + SQL | `services/feedback-service/.../controller/FeedbackController.java`, `FeedbackRepository.avgResolutionHours` |
+| Recent events endpoint | `services/notification-service/.../web/NotificationsController.java` |
 | Dashboard UI (KPI cards, bars, feed) | `admin/lib/main.dart` (_AnalyticsTab, _KpiCard, _DistributionBars) |
 | State management + API calls | `admin/lib/features/analytics/admin_analytics_bloc.dart` |
 

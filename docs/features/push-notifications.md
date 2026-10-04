@@ -55,7 +55,7 @@ Citizen's phone: system notification
 
 ## The one manual step (per environment)
 
-The backend cannot send until it has a **service-account private key**:
+The services cannot send until it has a **service-account private key**:
 
 1. Get the JSON — Firebase console → your project → ⚙ Project settings →
    **Service accounts** → **Generate new private key**, or without the console:

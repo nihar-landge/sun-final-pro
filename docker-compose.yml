@@ -40,7 +40,7 @@ services:
     networks: [app-net]
 
   auth-service:
-    build: ./backend/auth-service
+    build: ./services/auth-service
     image: civicpulse/auth-service:0.1.0
     container_name: civicpulse-auth
     environment:
@@ -53,7 +53,7 @@ services:
     networks: [app-net]
 
   poll-service:
-    build: ./backend/poll-service
+    build: ./services/poll-service
     image: civicpulse/poll-service:0.1.0
     container_name: civicpulse-poll
     environment:
@@ -66,7 +66,7 @@ services:
     networks: [app-net]
 
   feedback-service:
-    build: ./backend/feedback-service
+    build: ./services/feedback-service
     image: civicpulse/feedback-service:0.1.0
     container_name: civicpulse-feedback
     environment:
@@ -83,7 +83,7 @@ services:
     networks: [app-net]
 
   notification-service:
-    build: ./backend/notification-service
+    build: ./services/notification-service
     image: civicpulse/notification-service:0.1.0
     container_name: civicpulse-notification
     environment:
@@ -105,11 +105,11 @@ services:
     networks: [app-net]
 
   api-gateway:
-    build: ./backend/api-gateway
+    build: ./services/api-gateway
     image: civicpulse/api-gateway:0.1.0
     container_name: civicpulse-gateway
     ports:
-      - "8080:8080"   # the only published application backend
+      - "8080:8080"   # the only published application services
     environment:
       JAVA_TOOL_OPTIONS: -Dnetworkaddress.cache.ttl=10
       AUTH_SERVICE_URL: http://auth-service:8081
