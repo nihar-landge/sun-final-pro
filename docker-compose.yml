@@ -1,0 +1,161 @@
+# CivicPulse — full local stack (Phase 8)
+#
+#   docker compose up -d --build          # everything (MySQL + 6 services + React admin)
+#   docker compose --profile monitoring up -d grafana prometheus
+#
+# The gateway (:8080) is the only published application backend. MySQL is
+# published on 3307 for local database tooling only — never exposed in
+# production/Kubernetes. Flutter runs separately on an emulator/device
+# pointed at http://10.0.2.2:8080/api/v1.
+
+name: civicpulse
+
+networks:
+  app-net:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  feedback_uploads:
+
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: civicpulse-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: mysql_root_devpw
+      MYSQL_DATABASE: authdb
+      MYSQL_USER: feedback
+      MYSQL_PASSWORD: mysql_feedback_pw
+    ports:
+      - "3307:3306"   # dev tooling only (a local Homebrew MySQL may hold 3306)
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./infra/mysql/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-pmysql_root_devpw"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    networks: [app-net]
+
+  auth-service:
+    build: ./backend/auth-service
+    image: civicpulse/auth-service:0.1.0
+    container_name: civicpulse-auth
+    environment:
+      JAVA_TOOL_OPTIONS: -Dnetworkaddress.cache.ttl=10
+      DB_HOST: mysql
+      DB_PORT: "3306"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks: [app-net]
+
+  poll-service:
+    build: ./backend/poll-service
+    image: civicpulse/poll-service:0.1.0
+    container_name: civicpulse-poll
+    environment:
+      JAVA_TOOL_OPTIONS: -Dnetworkaddress.cache.ttl=10
+      DB_HOST: mysql
+      DB_PORT: "3306"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks: [app-net]
+
+  feedback-service:
+    build: ./backend/feedback-service
+    image: civicpulse/feedback-service:0.1.0
+    container_name: civicpulse-feedback
+    environment:
+      JAVA_TOOL_OPTIONS: -Dnetworkaddress.cache.ttl=10
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      UPLOAD_DIR: /app/uploads
+      NOTIFICATION_URL: http://notification-service:8084
+    volumes:
+      - feedback_uploads:/app/uploads
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks: [app-net]
+
+  notification-service:
+    build: ./backend/notification-service
+    image: civicpulse/notification-service:0.1.0
+    container_name: civicpulse-notification
+    environment:
+      JAVA_TOOL_OPTIONS: -Dnetworkaddress.cache.ttl=10
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      EMAIL_URL: http://email-service:8090
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks: [app-net]
+
+  email-service:
+    build: ./email-service
+    image: civicpulse/email-service:0.1.0
+    container_name: civicpulse-email
+    environment:
+      EMAIL_DEV_MODE: "true"   # logs emails instead of sending (no SMTP needed)
+    networks: [app-net]
+
+  api-gateway:
+    build: ./backend/api-gateway
+    image: civicpulse/api-gateway:0.1.0
+    container_name: civicpulse-gateway
+    ports:
+      - "8080:8080"   # the only published application backend
+    environment:
+      JAVA_TOOL_OPTIONS: -Dnetworkaddress.cache.ttl=10
+      AUTH_SERVICE_URL: http://auth-service:8081
+      POLL_SERVICE_URL: http://poll-service:8082
+      FEEDBACK_SERVICE_URL: http://feedback-service:8083
+      NOTIFICATION_SERVICE_URL: http://notification-service:8084
+    depends_on:
+      - auth-service
+      - poll-service
+      - feedback-service
+      - notification-service
+    networks: [app-net]
+
+  react-admin:
+    build: ./admin-react
+    image: civicpulse/react-admin:0.1.0
+    container_name: civicpulse-admin
+    ports:
+      - "4173:80"
+    depends_on:
+      - api-gateway
+    networks: [app-net]
+
+  # ---- DevOps layer (optional): docker compose --profile monitoring up -d
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: civicpulse-prometheus
+    profiles: [monitoring]
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infra/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks: [app-net]
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: civicpulse-grafana
+    profiles: [monitoring]
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin        # dev-only credentials
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - ./infra/monitoring/grafana-datasource.yml:/etc/grafana/provisioning/datasources/prometheus.yml:ro
+    depends_on: [prometheus]
+    networks: [app-net]

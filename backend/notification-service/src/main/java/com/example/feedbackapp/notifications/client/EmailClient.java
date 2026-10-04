@@ -22,7 +22,7 @@ public class EmailClient {
     private final RestClient restClient;
     private final String serviceKey;
 
-    public EmailClient(@Value("${email-service.base-url:http://localhost:8090}") String baseUrl,
+    public EmailClient(@Value("${email.url:http://localhost:8090}") String baseUrl,
                        @Value("${email-service.service-key:dev-service-key}") String serviceKey) {
         this.serviceKey = serviceKey;
         this.restClient = RestClient.builder()

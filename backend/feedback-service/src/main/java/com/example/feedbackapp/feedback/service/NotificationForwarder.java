@@ -28,7 +28,7 @@ public class NotificationForwarder {
     private final String serviceKey;
 
     public NotificationForwarder(
-            @Value("${notification-service.base-url:http://localhost:8084}") String baseUrl,
+            @Value("${notification.url:http://localhost:8084}") String baseUrl,
             @Value("${internal.service-key:dev-service-key}") String serviceKey) {
         this.serviceKey = serviceKey;
         this.restClient = RestClient.builder()

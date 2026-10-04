@@ -7,6 +7,8 @@ CREATE DATABASE IF NOT EXISTS notificationdb;
 -- 'feedback'@'%', which only gets rights on authdb) — grant it on all four.
 -- The 'localhost' twin exists because connections from host-run services
 -- (mvn spring-boot:run / java -jar) arrive from 127.0.0.1 and never match '%'.
+-- MySQL 8 does not create users via GRANT, so the twin must be created here.
+CREATE USER IF NOT EXISTS 'feedback'@'localhost' IDENTIFIED BY 'mysql_feedback_pw';
 GRANT ALL PRIVILEGES ON polldb.* TO 'feedback'@'%';
 GRANT ALL PRIVILEGES ON feedbackdb.* TO 'feedback'@'%';
 GRANT ALL PRIVILEGES ON notificationdb.* TO 'feedback'@'%';

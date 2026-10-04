@@ -8,6 +8,9 @@ RUN java -Djarmode=layertools -jar app.jar extract
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 RUN addgroup -S app && adduser -S app -G app
+# uploads dir must exist and be writable by the app user — a fresh named
+# volume inherits this ownership
+RUN mkdir -p /app/uploads && chown -R app:app /app/uploads
 USER app
 COPY --from=builder /app/dependencies/ ./
 COPY --from=builder /app/spring-boot-loader/ ./
