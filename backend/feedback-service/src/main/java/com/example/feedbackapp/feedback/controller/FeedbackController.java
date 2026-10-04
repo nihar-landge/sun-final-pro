@@ -134,13 +134,22 @@ public class FeedbackController {
     }
 
     @PostMapping("/{id}/status")
-    @PutMapping("/{id}/status")
     @ResponseStatus(HttpStatus.OK)
     @Operation(summary = "Transition feedback status (admin; audited)")
     public ApiResponse<FeedbackDetailResponse> updateStatus(@PathVariable Long id,
                                                             @Valid @RequestBody StatusUpdateRequest request,
                                                             @CurrentUser GatewayUser user) {
         return ApiResponse.ok(feedbackService.transitionStatus(id, request, user), "Status updated");
+    }
+
+    /** Same transition, spec verb — delegates to the POST handler. */
+    @PutMapping("/{id}/status")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "PUT form of POST /{id}/status")
+    public ApiResponse<FeedbackDetailResponse> updateStatusPut(@PathVariable Long id,
+                                                               @Valid @RequestBody StatusUpdateRequest request,
+                                                               @CurrentUser GatewayUser user) {
+        return updateStatus(id, request, user);
     }
 
     @PostMapping("/{id}/comments")
