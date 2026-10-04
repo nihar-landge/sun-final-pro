@@ -1,4 +1,4 @@
-# CivicPulse — full local stack (Phase 8)
+# CivicPulse — full local stack
 #
 #   docker compose up -d --build          # everything (MySQL + 6 services + React admin)
 #   docker compose --profile monitoring up -d grafana prometheus
@@ -47,6 +47,13 @@ services:
       JAVA_TOOL_OPTIONS: -Dnetworkaddress.cache.ttl=10
       DB_HOST: mysql
       DB_PORT: "3306"
+    # Flyway on a fresh DB takes a while — give Spring a real start budget
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/actuator/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 40s
     depends_on:
       mysql:
         condition: service_healthy
@@ -60,6 +67,12 @@ services:
       JAVA_TOOL_OPTIONS: -Dnetworkaddress.cache.ttl=10
       DB_HOST: mysql
       DB_PORT: "3306"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8082/actuator/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 40s
     depends_on:
       mysql:
         condition: service_healthy
@@ -77,6 +90,12 @@ services:
       NOTIFICATION_URL: http://notification-service:8084
     volumes:
       - feedback_uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8083/actuator/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 40s
     depends_on:
       mysql:
         condition: service_healthy
@@ -91,6 +110,12 @@ services:
       DB_HOST: mysql
       DB_PORT: "3306"
       EMAIL_URL: http://email-service:8090
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8084/actuator/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 40s
     depends_on:
       mysql:
         condition: service_healthy
@@ -102,6 +127,12 @@ services:
     container_name: civicpulse-email
     environment:
       EMAIL_DEV_MODE: "true"   # logs emails instead of sending (no SMTP needed)
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8090/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 10s
     networks: [app-net]
 
   api-gateway:
@@ -109,18 +140,24 @@ services:
     image: civicpulse/api-gateway:0.1.0
     container_name: civicpulse-gateway
     ports:
-      - "8080:8080"   # the only published application services
+      - "8080:8080"   # the only published application backend
     environment:
       JAVA_TOOL_OPTIONS: -Dnetworkaddress.cache.ttl=10
       AUTH_SERVICE_URL: http://auth-service:8081
       POLL_SERVICE_URL: http://poll-service:8082
       FEEDBACK_SERVICE_URL: http://feedback-service:8083
       NOTIFICATION_SERVICE_URL: http://notification-service:8084
+    # do not accept traffic until every downstream is genuinely healthy —
+    # a cold CI start must never serve requests against a booting service
     depends_on:
-      - auth-service
-      - poll-service
-      - feedback-service
-      - notification-service
+      auth-service:
+        condition: service_healthy
+      poll-service:
+        condition: service_healthy
+      feedback-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
     networks: [app-net]
 
   react-admin:

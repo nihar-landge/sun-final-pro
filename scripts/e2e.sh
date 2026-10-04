@@ -46,8 +46,18 @@ if [ "$HEALTH" != "200" ]; then
   echo "In CI, service logs are dumped by the workflow; locally check the service consoles."
   exit 1
 fi
+
+# Cold CI starts: the gateway can be healthy while auth-service is still
+# finishing its first Flyway run — warm up before declaring failure.
+ADMIN=""
+for _ in $(seq 1 24); do
+  ADMIN=$(admin_login)
+  [ -n "$ADMIN" ] && break
+  sleep 5
+done
+
 CITIZEN=$(citizen_login); [ -n "$CITIZEN" ] && { PASS=$((PASS+1)); echo "  ✓ citizen register+login"; } || { FAIL=$((FAIL+1)); echo "  ✗ citizen register+login"; }
-ADMIN=$(admin_login);     [ -n "$ADMIN" ] &&   { PASS=$((PASS+1)); echo "  ✓ admin login"; }          || { FAIL=$((FAIL+1)); echo "  ✗ admin login"; }
+[ -n "$ADMIN" ] &&        { PASS=$((PASS+1)); echo "  ✓ admin login"; }          || { FAIL=$((FAIL+1)); echo "  ✗ admin login"; }
 check "duplicate register rejected" "409" "$(curl -s -o /dev/null -w '%{http_code}' -m 5 -X POST "$GW/api/v1/auth/register" -H 'Content-Type: application/json' -d '{"name":"E2E","email":"admin@civicpulse.in","password":"s3cretPass!"}')"
 check "bad token rejected" "401" "$(curl -s -o /dev/null -w '%{http_code}' -m 5 $GW/api/v1/auth/me -H 'Authorization: Bearer garbage')"
 check "no token rejected"  "401" "$(curl -s -o /dev/null -w '%{http_code}' -m 5 $GW/api/v1/feedback)"
