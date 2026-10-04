@@ -1,7 +1,9 @@
-import 'package:feedback_app/core/constants/api_constants.dart';
+import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:feedback_app/core/constants/api_constants.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 import 'package:feedback_app/core/errors/exceptions.dart';
 import 'package:feedback_app/core/network/api_client.dart';
@@ -81,30 +83,26 @@ class FeedbackRemoteDataSource {
     );
   }
 
-  /// Asks feedback-service for a time-limited direct-upload URL.
-  Future<Map<String, dynamic>> presignImage(int feedbackId, String contentType) async {
-    return apiClient.post(
-      Uri.parse('${ApiConstants.feedbackBase}/$feedbackId/images/presign'),
-      body: {'contentType': contentType},
-      authenticated: true,
-    );
-  }
-
-  /// Puts the photo bytes straight to MinIO using the pre-signed URL.
-  Future<void> putBytes(Uri url, Uint8List bytes, String contentType) async {
-    final response = await http.put(url, headers: {'Content-Type': contentType}, body: bytes);
-    if (response.statusCode != 200) {
+  /// Uploads one photo in a single multipart request to feedback-service.
+  Future<void> uploadPhoto(int feedbackId, Uint8List bytes, String contentType) async {
+    final accessToken = await apiClient.tokenStore?.readAccessToken() ?? '';
+    final uri = Uri.parse('${ApiConstants.feedbackBase}/$feedbackId/photos');
+    final request = http.MultipartRequest('POST', uri)
+      ..headers['Authorization'] = 'Bearer $accessToken'
+      ..files.add(http.MultipartFile.fromBytes(
+        'file',
+        bytes,
+        filename: 'photo.${contentType.split('/').last == 'jpeg' ? 'jpg' : contentType.split('/').last}',
+        contentType: MediaType.parse(contentType),
+      ));
+    try {
+      final streamed = await request.send().timeout(const Duration(seconds: 60));
+      final response = await http.Response.fromStream(streamed);
+      if (response.statusCode >= 200 && response.statusCode < 300) return;
       throw ServerException('Photo upload failed', statusCode: response.statusCode);
+    } on SocketException {
+      throw NetworkException('Could not reach the server. Check your connection.');
     }
-  }
-
-  /// Registers the uploaded object against the report.
-  Future<void> registerImage(int feedbackId, String objectKey) async {
-    await apiClient.post(
-      Uri.parse('${ApiConstants.feedbackBase}/$feedbackId/images'),
-      body: {'objectKey': objectKey},
-      authenticated: true,
-    );
   }
 
   /// Public community-impact numbers for the Home screen.

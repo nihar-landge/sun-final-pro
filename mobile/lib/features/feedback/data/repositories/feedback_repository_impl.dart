@@ -104,16 +104,10 @@ class FeedbackRepositoryImpl {
     }
   }
 
-  /// Uploads one photo: presign -> direct PUT to MinIO -> register.
+  /// Uploads one photo in a single multipart request.
   Future<void> uploadPhoto(int feedbackId, FeedbackPhoto photo) async {
     try {
-      final presign = await remoteDataSource.presignImage(feedbackId, photo.contentType);
-      await remoteDataSource.putBytes(
-        Uri.parse(presign['uploadUrl'] as String),
-        photo.bytes,
-        photo.contentType,
-      );
-      await remoteDataSource.registerImage(feedbackId, presign['objectKey'] as String);
+      await remoteDataSource.uploadPhoto(feedbackId, photo.bytes, photo.contentType);
     } on NetworkException catch (e) {
       throw NetworkFailure(e.message);
     } on ServerException catch (e) {

@@ -76,26 +76,14 @@ public class FeedbackController {
         return ApiResponse.ok(feedbackService.adminUpdate(id, request, user), "Report updated");
     }
 
-    @PostMapping("/{id}/images/presign")
+    @PostMapping("/{id}/photos")
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Get a time-limited direct-upload URL for one photo (author or staff)")
-    public ApiResponse<com.example.feedbackapp.feedback.dto.ImagePresignResponse> presignImage(
-            @PathVariable Long id,
-            @Valid @RequestBody com.example.feedbackapp.feedback.dto.ImagePresignRequest request,
-            @CurrentUser GatewayUser user) {
-        var result = imageService.presignUpload(id, request.contentType(), user);
-        return ApiResponse.ok(new com.example.feedbackapp.feedback.dto.ImagePresignResponse(
-                result.uploadUrl(), result.objectKey()));
-    }
-
-    @PostMapping("/{id}/images")
-    @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Register an uploaded photo against the report")
-    public ApiResponse<Void> registerImage(
-            @PathVariable Long id,
-            @Valid @RequestBody com.example.feedbackapp.feedback.dto.ImageRegisterRequest request,
-            @CurrentUser GatewayUser user) {
-        imageService.register(id, request.objectKey(), user);
+    @Operation(summary = "Upload one photo for the report (author or staff; multipart)")
+    public ApiResponse<Void> uploadPhoto(@PathVariable Long id,
+                                         @org.springframework.web.bind.annotation.RequestParam("file")
+                                         org.springframework.web.multipart.MultipartFile file,
+                                         @CurrentUser GatewayUser user) {
+        imageService.store(id, file, user);
         return ApiResponse.ok(null, "Photo attached");
     }
 

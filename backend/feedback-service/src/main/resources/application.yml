@@ -12,12 +12,16 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: none     # Flyway owns the schema; validate false-positives on geography columns
+      ddl-auto: none     # Flyway owns the schema; validate false-positives on spatial columns
     open-in-view: false
 
   flyway:
     enabled: true
 
+  servlet:
+    multipart:
+      max-file-size: 6MB      # service-level limit is 5 MB
+      max-request-size: 20MB
 
 management:
   endpoints:
@@ -29,11 +33,5 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
 
-minio:
-  enabled: ${MINIO_ENABLED:true}
-  url: ${MINIO_URL:http://localhost:9000}
-  public-url: ${MINIO_PUBLIC_URL:http://localhost:9000}
-  access-key: ${MINIO_ACCESS_KEY:minioadmin}
-  secret-key: ${MINIO_SECRET_KEY:minioadmin123}
-  bucket: ${MINIO_BUCKET:civicpulse-photos}
-  region: ${MINIO_REGION:us-east-1}   # "auto" for Cloudflare R2
+app:
+  upload-dir: ${UPLOAD_DIR:./uploads}

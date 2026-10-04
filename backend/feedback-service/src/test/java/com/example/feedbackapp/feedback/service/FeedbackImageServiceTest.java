@@ -1,91 +1,115 @@
 package com.example.feedbackapp.feedback.service;
 
 import com.example.feedbackapp.common.error.ConflictException;
+import com.example.feedbackapp.common.error.ValidationFailedException;
 import com.example.feedbackapp.common.web.GatewayUser;
-import com.example.feedbackapp.feedback.config.MinioProperties;
 import com.example.feedbackapp.feedback.entity.Feedback;
 import com.example.feedbackapp.feedback.repository.FeedbackImageRepository;
 import com.example.feedbackapp.feedback.repository.FeedbackRepository;
-import io.minio.MinioClient;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockMultipartFile;
 
+import java.lang.reflect.Field;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class FeedbackImageServiceTest {
 
     @Mock
-    private MinioClient minioClient;
-    @Mock
-    private SigV4Presigner presigner;
-    @Mock
     private FeedbackRepository feedbackRepository;
     @Mock
     private FeedbackImageRepository imageRepository;
 
-    private static final GatewayUser ADMIN = new GatewayUser(1L, "ADMIN", "Admin", "user1@test.in");
+    private static final GatewayUser CITIZEN = new GatewayUser(2L, "CITIZEN", "Nihar", "user2@test.in");
+    private static final GatewayUser STRANGER = new GatewayUser(9L, "CITIZEN", "Other", "user9@test.in");
 
-    private FeedbackImageService service(boolean enabled) {
-        return new FeedbackImageService(minioClient, presigner,
-                new MinioProperties(enabled, "http://localhost:9000", "http://localhost:9000",
-                        "key", "secret", "feedback-photos", "us-east-1"),
-                feedbackRepository, imageRepository);
+    @TempDir
+    Path tempDir;
+
+    private FeedbackImageService service() {
+        return new FeedbackImageService(tempDir.toString(), feedbackRepository, imageRepository);
     }
 
-    private Feedback feedbackOwnedBy(Long userId) {
+    private void existingReportOwnedBy(Long userId) throws Exception {
         Feedback feedback = new Feedback();
-        feedback.setUserId(userId);
-        return feedback;
+        Field userIdField = Feedback.class.getDeclaredField("userId");
+        userIdField.setAccessible(true);
+        userIdField.set(feedback, userId);
+        when(feedbackRepository.findById(7L)).thenReturn(Optional.of(feedback));
+    }
+
+    private MockMultipartFile photo(String contentType, byte[] bytes) {
+        return new MockMultipartFile("file", "photo.jpg", contentType, bytes);
     }
 
     @Test
-    @DisplayName("minio.enabled=false: writes conflict and reads stay empty instead of crashing")
-    void disabledStorage() {
-        FeedbackImageService service = service(false);
-
-        assertThatThrownBy(() -> service.presignUpload(7L, "image/jpeg", ADMIN))
-                .isInstanceOf(ConflictException.class);
-        assertThatThrownBy(() -> service.register(7L, "reports/7/a.jpg", ADMIN))
-                .isInstanceOf(ConflictException.class);
-        assertThat(service.viewUrls(7L)).isEmpty();
-        verifyNoInteractions(presigner, imageRepository, feedbackRepository);
-    }
-
-    @Test
-    @DisplayName("minio.enabled=true: presign uploads return a URL and a reports/ object key")
-    void presignEnabled() {
-        FeedbackImageService service = service(true);
-        when(feedbackRepository.findById(7L)).thenReturn(Optional.of(feedbackOwnedBy(1L)));
+    @DisplayName("upload writes the file under uploads/feedback/{id}/ and records the path")
+    void storeWritesFileAndRecord() throws Exception {
+        existingReportOwnedBy(2L);
         when(imageRepository.countByFeedbackId(7L)).thenReturn(0L);
-        when(presigner.presignPut(eq("feedback-photos"), anyString(), eq(600)))
-                .thenReturn(new SigV4Presigner.PresignedUrl("https://storage.example/put?sig=x", "host"));
 
-        FeedbackImageService.PresignResult result = service.presignUpload(7L, "image/jpeg", ADMIN);
+        String path = service().store(7L, photo("image/jpeg", new byte[]{1, 2, 3}), CITIZEN);
 
-        assertThat(result.uploadUrl()).isEqualTo("https://storage.example/put?sig=x");
-        assertThat(result.objectKey()).startsWith("reports/7/").endsWith(".jpg");
+        assertThat(path).startsWith("feedback/7/").endsWith(".jpg");
+        assertThat(Files.exists(tempDir.resolve(path))).isTrue();
+        verify(imageRepository).save(any());
     }
 
     @Test
-    @DisplayName("minio.enabled=true: viewUrls mints read URLs for stored photos")
-    void viewUrlsEnabled() {
-        FeedbackImageService service = service(true);
-        when(imageRepository.findByFeedbackIdOrderByIdAsc(7L)).thenReturn(java.util.List.of(
-                new com.example.feedbackapp.feedback.entity.FeedbackImage(7L, "reports/7/a.jpg")));
-        when(presigner.presignGet(eq("feedback-photos"), eq("reports/7/a.jpg"), eq(3600)))
-                .thenReturn(new SigV4Presigner.PresignedUrl("https://storage.example/get?sig=y", "host"));
+    @DisplayName("oversized photos are rejected before touching disk")
+    void storeRejectsOversized() throws Exception {
+        existingReportOwnedBy(2L);
 
-        assertThat(service.viewUrls(7L)).containsExactly("https://storage.example/get?sig=y");
+        byte[] tooBig = new byte[5 * 1024 * 1024 + 1];
+        assertThatThrownBy(() -> service().store(7L, photo("image/jpeg", tooBig), CITIZEN))
+                .isInstanceOf(ValidationFailedException.class);
+    }
+
+    @Test
+    @DisplayName("non-image content types are rejected")
+    void storeRejectsNonImages() throws Exception {
+        existingReportOwnedBy(2L);
+
+        assertThatThrownBy(() -> service().store(7L, photo("application/pdf", new byte[]{1}), CITIZEN))
+                .isInstanceOf(ValidationFailedException.class);
+    }
+
+    @Test
+    @DisplayName("a fourth photo on one report is a conflict")
+    void storeEnforcesPhotoLimit() throws Exception {
+        existingReportOwnedBy(2L);
+        when(imageRepository.countByFeedbackId(7L)).thenReturn(3L);
+
+        assertThatThrownBy(() -> service().store(7L, photo("image/png", new byte[]{1}), CITIZEN))
+                .isInstanceOf(ConflictException.class);
+    }
+
+    @Test
+    @DisplayName("non-admin strangers cannot attach photos to someone else's report")
+    void storeRejectsStrangers() {
+        when(feedbackRepository.findById(7L)).thenReturn(Optional.of(new Feedback() {{
+            try {
+                Field f = Feedback.class.getDeclaredField("userId");
+                f.setAccessible(true);
+                f.set(this, 2L);
+            } catch (Exception ignored) {
+            }
+        }}));
+
+        assertThatThrownBy(() -> service().store(7L, photo("image/png", new byte[]{1}), STRANGER))
+                .isInstanceOf(com.example.feedbackapp.common.error.ForbiddenException.class);
     }
 }

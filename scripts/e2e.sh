@@ -80,15 +80,13 @@ check "illegal transition 409" "409" "$(curl -s -o /dev/null -w '%{http_code}' -
 check "admin assign+notes" "200" "$(curl -s -o /dev/null -w '%{http_code}' -X PATCH "$GW/api/v1/feedback/$FBID" -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' -d '{"assignedTo":"Amit","publicNote":"Scheduled"}')"
 check "audit trail populated" "200" "$(curl -s -o /dev/null -w '%{http_code}' "$GW/api/v1/feedback/admin/audit?limit=5" -H "Authorization: Bearer $ADMIN")"
 
-echo "── 4. Photos (MinIO pre-signed)"
-PRESIGN=$(curl -s -X POST "$GW/api/v1/feedback/$FBID/images/presign" -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' -d '{"contentType":"image/png"}')
-UPURL=$(echo "$PRESIGN" | json "print(json.load(sys.stdin)['data']['uploadUrl'])")
-OKEY=$(echo "$PRESIGN" | json "print(json.load(sys.stdin)['data']['objectKey'])")
-[ -n "$UPURL" ] && { PASS=$((PASS+1)); echo "  ✓ presign issued"; } || { FAIL=$((FAIL+1)); echo "  ✗ presign"; }
-printf 'PNGDATA' > /tmp/e2e-photo.png
-check "direct PUT to MinIO" "200" "$(curl -s -o /dev/null -w '%{http_code}' -X PUT "$UPURL" -H 'Content-Type: image/png' --data-binary @/tmp/e2e-photo.png)"
-check "register image" "201" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$GW/api/v1/feedback/$FBID/images" -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' -d "{\"objectKey\":\"$OKEY\"}")"
+echo "── 4. Photos (multipart upload, served from feedback-service)"
+printf '\x89PNG\r\n\x1a\nFAKEIMAGEBYTES' > /tmp/e2e-photo.png
+UP=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$GW/api/v1/feedback/$FBID/photos" -H "Authorization: Bearer $ADMIN" -F "file=@/tmp/e2e-photo.png;type=image/png")
+check "multipart photo upload" "201" "$UP"
+check "photo served via /uploads" "200" "$(curl -s -o /dev/null -w '%{http_code}' "$GW$(curl -s "$GW/api/v1/feedback/$FBID" -H "Authorization: Bearer $ADMIN" | json "print(json.load(sys.stdin)['data']['images'][0])")")"
 check "detail carries image" "True" "$(curl -s "$GW/api/v1/feedback/$FBID" -H "Authorization: Bearer $ADMIN" | json "print(len(json.load(sys.stdin)['data']['images']) > 0)")"
+check "oversized photo rejected" "400" "$(dd if=/dev/zero of=/tmp/e2e-big.png bs=1M count=6 2>/dev/null; curl -s -o /dev/null -w '%{http_code}' -X POST "$GW/api/v1/feedback/$FBID/photos" -H "Authorization: Bearer $ADMIN" -F "file=@/tmp/e2e-big.png;type=image/png")"
 
 echo "── 5. Notification inbox (transactional — no broker) + analytics + roles"
 # The status transitions above wrote inbox rows in the same transaction.

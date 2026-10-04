@@ -5,57 +5,61 @@ import com.example.feedbackapp.common.error.ForbiddenException;
 import com.example.feedbackapp.common.error.InternalErrorException;
 import com.example.feedbackapp.common.error.ValidationFailedException;
 import com.example.feedbackapp.common.web.GatewayUser;
-import com.example.feedbackapp.feedback.config.MinioProperties;
 import com.example.feedbackapp.feedback.entity.Feedback;
+import com.example.feedbackapp.feedback.entity.FeedbackImage;
 import com.example.feedbackapp.feedback.repository.FeedbackImageRepository;
 import com.example.feedbackapp.feedback.repository.FeedbackRepository;
-import io.minio.MinioClient;
-import io.minio.StatObjectArgs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
 /**
- * Report photo storage on MinIO. Uploads are direct-from-client using
- * pre-signed PUT URLs (the service never handles photo bytes); downloads
- * use pre-signed GET URLs minted per detail request.
+ * Report photo storage on local disk. The client uploads the bytes in one
+ * multipart request; the file lands under {upload.dir}/feedback/{reportId}/
+ * and is served back at /uploads/**.
  */
 @Service
 public class FeedbackImageService {
 
     private static final Logger log = LoggerFactory.getLogger(FeedbackImageService.class);
     private static final int MAX_IMAGES_PER_REPORT = 3;
+    private static final long MAX_FILE_BYTES = 5 * 1024 * 1024;
     private static final Set<String> ALLOWED_CONTENT_TYPES =
             Set.of("image/jpeg", "image/png", "image/webp");
 
-    private final MinioClient minioClient;
-    private final SigV4Presigner sigV4Presigner;
-    private final MinioProperties props;
+    private final Path uploadDir;
     private final FeedbackRepository feedbackRepository;
     private final FeedbackImageRepository imageRepository;
 
-    public FeedbackImageService(@org.springframework.beans.factory.annotation.Qualifier("minioClient") MinioClient minioClient,
-                                SigV4Presigner sigV4Presigner,
-                                MinioProperties props,
+    public FeedbackImageService(@Value("${app.upload-dir:./uploads}") String uploadDir,
                                 FeedbackRepository feedbackRepository,
                                 FeedbackImageRepository imageRepository) {
-        this.minioClient = minioClient;
-        this.sigV4Presigner = sigV4Presigner;
-        this.props = props;
+        this.uploadDir = Paths.get(uploadDir);
         this.feedbackRepository = feedbackRepository;
         this.imageRepository = imageRepository;
     }
 
-    public record PresignResult(String uploadUrl, String objectKey) {
-    }
-
-    public PresignResult presignUpload(Long feedbackId, String contentType, GatewayUser user) {
-        requirePhotoStorageEnabled();
+    /** Stores the uploaded photo on disk and records its relative path. */
+    public String store(Long feedbackId, MultipartFile file, GatewayUser user) {
         requireAccess(feedbackId, user);
+        if (file == null || file.isEmpty()) {
+            throw new ValidationFailedException("Photo file is required");
+        }
+        if (file.getSize() > MAX_FILE_BYTES) {
+            throw new ValidationFailedException("Photo must be 5 MB or smaller");
+        }
+        String contentType = file.getContentType();
         if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType)) {
             throw new ValidationFailedException("Only JPEG, PNG or WebP photos are allowed");
         }
@@ -68,48 +72,30 @@ public class FeedbackImageService {
             case "image/webp" -> "webp";
             default -> "jpg";
         };
-        String objectKey = "reports/%d/%s.%s".formatted(feedbackId, UUID.randomUUID(), ext);
-        try {
-            SigV4Presigner.PresignedUrl presigned =
-                    sigV4Presigner.presignPut(props.bucket(), objectKey, 600);
-            return new PresignResult(presigned.url(), objectKey);
-        } catch (Exception e) {
-            log.error("Presign failed for report {}", feedbackId, e);
-            throw new InternalErrorException("Could not prepare the photo upload");
-        }
-    }
-
-    /** Verifies the bytes actually arrived in MinIO, then records the reference. */
-    public void register(Long feedbackId, String objectKey, GatewayUser user) {
-        requirePhotoStorageEnabled();
-        requireAccess(feedbackId, user);
-        if (objectKey == null || !objectKey.startsWith("reports/" + feedbackId + "/")) {
-            throw new ValidationFailedException("Invalid object key");
+        String relativePath = "feedback/%d/%s.%s".formatted(feedbackId, UUID.randomUUID(), ext);
+        Path target = uploadDir.resolve(relativePath).normalize();
+        if (!target.startsWith(uploadDir.normalize())) {
+            throw new ValidationFailedException("Invalid photo path");
         }
         try {
-            minioClient.statObject(StatObjectArgs.builder()
-                    .bucket(props.bucket()).object(objectKey).build());
-        } catch (Exception e) {
-            throw new ValidationFailedException("Upload not found — retry the photo upload");
+            Files.createDirectories(target.getParent());
+            try (var in = file.getInputStream()) {
+                Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (IOException e) {
+            log.error("Photo write failed for report {}", feedbackId, e);
+            throw new InternalErrorException("Could not save the photo");
         }
-        imageRepository.save(new com.example.feedbackapp.feedback.entity.FeedbackImage(feedbackId, objectKey));
-        log.info("Registered image {} for report {}", objectKey, feedbackId);
+        imageRepository.save(new FeedbackImage(feedbackId, relativePath));
+        log.info("Stored photo {} for report {}", relativePath, feedbackId);
+        return relativePath;
     }
 
-    /** Pre-signed read URLs (1 h) for the report's photos. */
+    /** Public, gateway-routed URLs for the report's photos. */
     public List<String> viewUrls(Long feedbackId) {
-        if (!props.enabled()) {
-            return List.of();
-        }
         return imageRepository.findByFeedbackIdOrderByIdAsc(feedbackId).stream()
-                .map(image -> sigV4Presigner.presignGet(props.bucket(), image.getObjectKey(), 3600).url())
+                .map(image -> "/uploads/" + image.getObjectKey())
                 .toList();
-    }
-
-    private void requirePhotoStorageEnabled() {
-        if (!props.enabled()) {
-            throw new ConflictException("Photo storage is disabled on this deployment");
-        }
     }
 
     private void requireAccess(Long feedbackId, GatewayUser user) {
@@ -119,8 +105,7 @@ public class FeedbackImageService {
         Feedback feedback = feedbackRepository.findById(feedbackId)
                 .orElseThrow(() -> new com.example.feedbackapp.common.error.NotFoundException(
                         "Feedback %d not found".formatted(feedbackId)));
-        boolean staff = user.isAdmin();
-        if (!staff && !feedback.getUserId().equals(user.id())) {
+        if (!user.isAdmin() && !feedback.getUserId().equals(user.id())) {
             throw new ForbiddenException("Only the report's author or staff can manage its photos");
         }
     }

@@ -19,6 +19,10 @@ spring:
           uri: ${FEEDBACK_SERVICE_URL:http://localhost:8083}
           predicates:
             - Path=/api/v1/feedback/**
+        - id: feedback-uploads
+          uri: ${FEEDBACK_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=/uploads/**
         - id: notification-service
           uri: ${NOTIFICATION_SERVICE_URL:http://localhost:8084}
           predicates:
