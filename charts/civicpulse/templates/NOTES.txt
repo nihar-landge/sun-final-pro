@@ -1,0 +1,28 @@
+CivicPulse has been deployed with Helm.
+
+1. Check that every pod is Running/Ready (first Flyway boot can take ~1 minute):
+
+   kubectl get pods -l app.kubernetes.io/name=civicpulse
+
+2. Reach the API gateway:
+
+{{- if eq (index .Values.services "api-gateway" "serviceType") "NodePort" }}
+   kubectl get svc {{ include "civicpulse.fullname" . }}-api-gateway
+   # use the node port with any node IP: http://<node-ip>:<nodePort>
+{{- else }}
+   kubectl port-forward svc/{{ include "civicpulse.fullname" . }}-api-gateway 8080:8080
+   # then: http://localhost:8080
+{{- end }}
+
+3. Smoke test:
+
+   curl http://localhost:8080/actuator/health
+   scripts/e2e.sh localhost:8080        # 27 guarantees
+
+4. React admin is NOT deployed in-cluster (it is static nginx) - serve it locally
+   from admin-react/ or with its own chart if needed.
+
+Values to override per environment (see values.yaml):
+   mysql.enabled=false + externalDatabase.*   - use an existing database
+   services.api-gateway.serviceType=NodePort  - expose the gateway on a cloud VM
+   jwtSecret / serviceKey                     - real secrets per environment

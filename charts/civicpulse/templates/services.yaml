@@ -1,0 +1,44 @@
+{{- $fullname := include "civicpulse.fullname" . -}}
+{{- range $name, $svc := .Values.services }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-{{ $name }}
+  labels:
+    {{- include "civicpulse.labels" (dict "name" $name "Release" $.Release "Values" $.Values) | nindent 4 }}
+spec:
+  {{- if eq $name "api-gateway" }}
+  type: {{ default "ClusterIP" $svc.serviceType }}
+  {{- else }}
+  type: ClusterIP
+  {{- end }}
+  selector:
+    app.kubernetes.io/name: civicpulse
+    app.kubernetes.io/instance: {{ $fullname }}
+    app.kubernetes.io/component: {{ $name }}
+  ports:
+    - port: {{ $svc.port }}
+      targetPort: {{ $svc.port }}
+{{- end }}
+{{- if and .Values.ingress.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $fullname }}-gateway
+  labels:
+    {{- include "civicpulse.labels" (dict "name" "api-gateway" "Release" $.Release "Values" $.Values) | nindent 4 }}
+spec:
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $fullname }}-api-gateway
+                port:
+                  number: 8080
+{{- end }}

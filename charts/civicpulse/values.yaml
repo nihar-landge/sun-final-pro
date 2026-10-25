@@ -1,0 +1,92 @@
+# Default values for the civicpulse chart.
+# Override per environment: helm install civicpulse ./charts/civicpulse -f my-values.yaml
+
+fullnameOverride: ""
+
+imagePullPolicy: IfNotPresent
+
+# ── In-cluster MySQL (disable to point services at an external database) ──
+mysql:
+  enabled: true
+  image: mysql:8.4
+  rootPassword: mysql_root_devpw
+  user: feedback
+  password: mysql_feedback_pw
+  storage: 3Gi
+  storageClass: ""
+  resources:
+    requests: { cpu: 250m, memory: 512Mi }
+    limits: { cpu: "1", memory: 1Gi }
+
+# Set enabled=true when mysql.enabled=false (e.g. the compose database on the host)
+externalDatabase:
+  enabled: false
+  host: host.docker.internal
+  port: "3306"
+  user: feedback
+  password: mysql_feedback_pw
+
+# ── Application services ──
+# Each entry becomes a Deployment + Service. Ports are fixed by the architecture.
+services:
+  auth-service:
+    image: civicpulse/auth-service:0.1.0
+    port: 8081
+    replicas: 1
+    resources:
+      requests: { cpu: 150m, memory: 256Mi }
+      limits: { cpu: 500m, memory: 460Mi }
+  poll-service:
+    image: civicpulse/poll-service:0.1.0
+    port: 8082
+    replicas: 1
+    resources:
+      requests: { cpu: 150m, memory: 256Mi }
+      limits: { cpu: 500m, memory: 460Mi }
+  feedback-service:
+    image: civicpulse/feedback-service:0.1.0
+    port: 8083
+    replicas: 1
+    uploads: 1Gi            # creates an emptyDir volume at /app/uploads
+    resources:
+      requests: { cpu: 150m, memory: 256Mi }
+      limits: { cpu: 500m, memory: 460Mi }
+  notification-service:
+    image: civicpulse/notification-service:0.1.0
+    port: 8084
+    replicas: 1
+    resources:
+      requests: { cpu: 150m, memory: 256Mi }
+      limits: { cpu: 500m, memory: 460Mi }
+  email-service:
+    image: civicpulse/email-service:0.1.0
+    port: 8090
+    replicas: 1
+    healthPath: /health      # Express, not actuator
+    env:
+      EMAIL_DEV_MODE: "true"
+    resources:
+      requests: { cpu: 50m, memory: 64Mi }
+      limits: { cpu: 250m, memory: 128Mi }
+  api-gateway:
+    image: civicpulse/api-gateway:0.1.0
+    port: 8080
+    replicas: 1
+    serviceType: ClusterIP   # NodePort to expose on a cloud VM security list
+    hpa:
+      enabled: true
+      minReplicas: 1
+      maxReplicas: 4
+      cpu: 70
+    resources:
+      requests: { cpu: 150m, memory: 256Mi }
+      limits: { cpu: 500m, memory: 460Mi }
+
+# ── Secrets (placeholders; override with real values per environment) ──
+jwtSecret: dev-only-secret-change-me-min-32-bytes-1234567890
+serviceKey: dev-service-key
+
+# Expose the gateway outside the cluster (optional Ingress kept off by default)
+ingress:
+  enabled: false
+  host: civicpulse.local

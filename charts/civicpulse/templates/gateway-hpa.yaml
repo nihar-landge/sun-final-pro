@@ -1,0 +1,24 @@
+{{- $fullname := include "civicpulse.fullname" . -}}
+{{- $gw := index .Values.services "api-gateway" -}}
+{{- if $gw.hpa.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ $fullname }}-api-gateway
+  labels:
+    {{- include "civicpulse.labels" (dict "name" "api-gateway" "Release" $.Release "Values" $.Values) | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ $fullname }}-api-gateway
+  minReplicas: {{ $gw.hpa.minReplicas }}
+  maxReplicas: {{ $gw.hpa.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ $gw.hpa.cpu }}
+{{- end }}

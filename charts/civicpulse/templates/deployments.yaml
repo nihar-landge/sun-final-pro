@@ -1,0 +1,65 @@
+{{- $fullname := include "civicpulse.fullname" . -}}
+{{- range $name, $svc := .Values.services }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullname }}-{{ $name }}
+  labels:
+    {{- include "civicpulse.labels" (dict "name" $name "Release" $.Release "Values" $.Values) | nindent 4 }}
+spec:
+  replicas: {{ $svc.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: civicpulse
+      app.kubernetes.io/instance: {{ $fullname }}
+      app.kubernetes.io/component: {{ $name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: civicpulse
+        app.kubernetes.io/instance: {{ $fullname }}
+        app.kubernetes.io/component: {{ $name }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /actuator/prometheus
+        prometheus.io/port: {{ $svc.port | quote }}
+    spec:
+      containers:
+        - name: {{ $name }}
+          image: {{ $svc.image }}
+          imagePullPolicy: {{ $.Values.imagePullPolicy }}
+          ports:
+            - containerPort: {{ $svc.port }}
+          envFrom:
+            - configMapRef: { name: {{ $fullname }}-config }
+            - secretRef: { name: {{ $fullname }}-secrets }
+          {{- range $k, $v := (default dict $svc.env) }}
+          env:
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+          {{- end }}
+          {{- if $svc.uploads }}
+          volumeMounts:
+            - name: uploads
+              mountPath: /app/uploads
+          {{- end }}
+          {{- $health := default "/actuator/health" $svc.healthPath }}
+          startupProbe:
+            httpGet: { path: {{ $health }}, port: {{ $svc.port }} }
+            periodSeconds: 5
+            failureThreshold: 60        # 5-minute budget: first Flyway run on a fresh DB
+          readinessProbe:
+            httpGet: { path: {{ $health }}, port: {{ $svc.port }} }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: {{ $health }}, port: {{ $svc.port }} }
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          resources: {{- toYaml $svc.resources | nindent 12 }}
+      {{- if $svc.uploads }}
+      volumes:
+        - name: uploads
+          emptyDir: {}
+      {{- end }}
+{{- end }}

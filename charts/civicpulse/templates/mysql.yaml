@@ -1,0 +1,80 @@
+{{- if .Values.mysql.enabled }}
+{{- $fullname := include "civicpulse.fullname" . -}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $fullname }}-mysql
+  labels:
+    {{- include "civicpulse.labels" (dict "name" "mysql" "Release" .Release "Values" .Values) | nindent 4 }}
+spec:
+  accessModes: [ "ReadWriteOnce" ]
+  {{- with .Values.mysql.storageClass }}
+  storageClassName: {{ . | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.mysql.storage }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullname }}-mysql
+  labels:
+    {{- include "civicpulse.labels" (dict "name" "mysql" "Release" .Release "Values" .Values) | nindent 4 }}
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: civicpulse
+      app.kubernetes.io/instance: {{ $fullname }}
+      app.kubernetes.io/component: mysql
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: civicpulse
+        app.kubernetes.io/instance: {{ $fullname }}
+        app.kubernetes.io/component: mysql
+    spec:
+      containers:
+        - name: mysql
+          image: {{ .Values.mysql.image }}
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom: { secretKeyRef: { name: {{ $fullname }}-secrets, key: MYSQL_ROOT_PASSWORD } }
+            - name: MYSQL_DATABASE
+              value: authdb
+            - name: MYSQL_USER
+              valueFrom: { secretKeyRef: { name: {{ $fullname }}-secrets, key: DB_USER } }
+            - name: MYSQL_PASSWORD
+              valueFrom: { secretKeyRef: { name: {{ $fullname }}-secrets, key: DB_PASSWORD } }
+          ports:
+            - containerPort: 3306
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/mysql
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "mysqladmin ping -h localhost -p$MYSQL_ROOT_PASSWORD"]
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          resources: {{- toYaml .Values.mysql.resources | nindent 12 }}
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: {{ $fullname }}-mysql }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-mysql
+  labels:
+    {{- include "civicpulse.labels" (dict "name" "mysql" "Release" .Release "Values" .Values) | nindent 4 }}
+spec:
+  selector:
+    app.kubernetes.io/name: civicpulse
+    app.kubernetes.io/instance: {{ $fullname }}
+    app.kubernetes.io/component: mysql
+  ports:
+    - port: 3306
+      targetPort: 3306
+{{- end }}

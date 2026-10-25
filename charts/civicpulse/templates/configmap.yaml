@@ -1,0 +1,29 @@
+{{- $fullname := include "civicpulse.fullname" . -}}
+{{- if .Values.mysql.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $fullname }}-config
+  labels:
+    {{- include "civicpulse.labels" (dict "name" "config" "Release" .Release "Values" .Values) | nindent 4 }}
+data:
+  DB_HOST: "{{ $fullname }}-mysql"
+  DB_PORT: "3306"
+{{- else }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $fullname }}-config
+  labels:
+    {{- include "civicpulse.labels" (dict "name" "config" "Release" .Release "Values" .Values) | nindent 4 }}
+data:
+  DB_HOST: "{{ .Values.externalDatabase.host }}"
+  DB_PORT: "{{ .Values.externalDatabase.port }}"
+{{- end }}
+  UPLOAD_DIR: "/app/uploads"
+  AUTH_SERVICE_URL: "http://{{ $fullname }}-api-gateway:8080"
+  POLL_SERVICE_URL: "http://{{ $fullname }}-poll-service:8082"
+  FEEDBACK_SERVICE_URL: "http://{{ $fullname }}-feedback-service:8083"
+  NOTIFICATION_SERVICE_URL: "http://{{ $fullname }}-notification-service:8084"
+  NOTIFICATION_URL: "http://{{ $fullname }}-notification-service:8084"
+  EMAIL_URL: "http://{{ $fullname }}-email-service:8090"

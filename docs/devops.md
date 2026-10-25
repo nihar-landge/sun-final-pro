@@ -65,6 +65,39 @@ checkout → build service jars (mvnw package, skip tests)
   `kind load docker-image …` → `kubectl apply -f k8s/base/`.
 - Only the gateway is exposed; every other service is ClusterIP.
 
+## Helm
+
+`charts/civicpulse/` packages the same deployment as a parameterized chart —
+one command for the whole platform, values per environment instead of edited
+YAML.
+
+| File | Purpose |
+|---|---|
+| `Chart.yaml` | chart metadata (v2, appVersion 0.1.0) |
+| `values.yaml` | images, ports, replicas, resources, HPA, MySQL on/off + external DB, secrets |
+| `templates/_helpers.tpl` | naming and label helpers |
+| `templates/configmap.yaml` | DB + cluster-internal service URLs (adapts to in-cluster or external MySQL) |
+| `templates/secret.yaml` | JWT secret, DB credentials, shared service key |
+| `templates/mysql.yaml` | optional in-cluster MySQL (Deployment + PVC + Service) |
+| `templates/deployments.yaml` | one Deployment per service from `values.yaml`, with probes and an uploads volume for feedback |
+| `templates/services.yaml` | Services (gateway type configurable; optional Ingress) |
+| `templates/gateway-hpa.yaml` | HPA 1→4 replicas at 70 % CPU |
+
+Commands:
+
+```bash
+helm lint charts/civicpulse                     # validate
+helm template civicpulse charts/civicpulse      # render locally
+helm install civicpulse charts/civicpulse       # deploy into the cluster
+helm upgrade civicpulse charts/civicpulse -f values-prod.yaml
+helm uninstall civicpulse
+```
+
+Key switches: `mysql.enabled=false` + `externalDatabase.*` to use an existing
+database, `services.api-gateway.serviceType=NodePort` to expose the gateway
+through a cloud VM security list, and `jwtSecret` / `serviceKey` for real
+secrets.
+
 ## Local run scripts
 
 - `scripts/run-local.sh` — boots the five jars (host-run, `DB_PORT=3307`)

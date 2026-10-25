@@ -1,0 +1,5 @@
+# packaged charts
+*.tgz
+
+# lock files are not used for local-only charts
+Chart.lock

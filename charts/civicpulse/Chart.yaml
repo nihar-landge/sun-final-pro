@@ -1,0 +1,13 @@
+apiVersion: v2
+name: civicpulse
+description: CivicPulse civic engagement platform - Spring Boot microservices behind an API gateway, with MySQL, an Express email service and an HPA on the gateway.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - civic
+  - microservices
+  - spring-boot
+  - mysql
+maintainers:
+  - name: Nihar Landge
